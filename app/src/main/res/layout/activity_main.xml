@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/activity_main"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_weight="3"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_weight="5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/display"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/pb100_display"
+                android:scaleType="fitXY"></ImageView>
+
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_weight="5"
+            android:id="@+id/frameLayout1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/keyAreaImageView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/pb100_mainkey"
+                android:scaleType="fitStart"></ImageView>
+
+
+            <TextView
+                android:id="@+id/debugWindow"
+                android:text=""
+                android:textSize="12sp"
+                android:typeface="monospace"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom">
+            </TextView>
+
+        </FrameLayout>
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_weight="8"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <FrameLayout
+            android:layout_weight="7"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/funckey"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/pb100_tenkey"
+                android:scaleType="fitStart"></ImageView>
+
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+
+</LinearLayout>
