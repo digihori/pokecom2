@@ -19,4 +19,13 @@
     <style name="TitleTextStyle" parent="@android:style/TextAppearance.Holo.Widget.ActionBar.Title">
         <item name="android:textSize">@dimen/textsize_medium</item>
     </style>
+
+    <style name="charButton" parent="android:Widget.Button">
+        <item name="android:textSize">6sp</item>
+        <item name="android:textColor">#00000000</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:background">@drawable/button</item>
+    </style>
+
 </resources>

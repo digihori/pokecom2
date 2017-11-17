@@ -33,11 +33,20 @@
             android:layout_height="wrap_content">
 
             <ImageView
-                android:id="@+id/keyAreaImageView"
+                android:id="@+id/imageViewMainkey"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/pb100_mainkey"
+                android:src="@drawable/fx700p_mainkey"
                 android:scaleType="fitStart"></ImageView>
+
+            <include
+                android:id="@+id/keyAreaMainkey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|left"
+                layout="@layout/include_keys_mainkey"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"></include>
 
 
             <TextView
@@ -66,11 +75,20 @@
             android:layout_height="wrap_content">
 
             <ImageView
-                android:id="@+id/funckey"
+                android:id="@+id/imageViewTenkey"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:src="@drawable/pb100_tenkey"
                 android:scaleType="fitStart"></ImageView>
+
+            <include
+                android:id="@+id/keyAreaTenkey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|left"
+                layout="@layout/include_keys_tenkey"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"></include>
 
 
         </FrameLayout>
