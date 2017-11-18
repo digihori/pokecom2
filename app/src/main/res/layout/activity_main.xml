@@ -23,6 +23,13 @@
                 android:src="@drawable/pb100_display"
                 android:scaleType="fitXY"></ImageView>
 
+            <SurfaceView
+                android:id="@+id/surfaceView"
+                android:layout_width="400dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center">
+                <!--android:layout_marginLeft="30dp"-->
+            </SurfaceView>
 
         </FrameLayout>
 
