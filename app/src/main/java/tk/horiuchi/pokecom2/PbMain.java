@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import static tk.horiuchi.pokecom2.MainActivity.dpdx;
 import static tk.horiuchi.pokecom2.MainActivity.ext;
 import static tk.horiuchi.pokecom2.MainActivity.function;
 import static tk.horiuchi.pokecom2.MainActivity.shift;
@@ -99,7 +100,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         Canvas c = holder.lockCanvas();
 
         if (c != null) {
-            c.scale(2f, 2f);
+            c.scale(dpdx, dpdx);
 
             int x_org, y_org, stp_x, stp_y, d_row, d_col;
             int x, y;

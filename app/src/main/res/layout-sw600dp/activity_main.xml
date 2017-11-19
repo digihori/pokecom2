@@ -25,8 +25,8 @@
 
             <SurfaceView
                 android:id="@+id/surfaceView"
-                android:layout_width="400dp"
-                android:layout_height="80dp"
+                android:layout_width="600dp"
+                android:layout_height="128dp"
                 android:layout_gravity="center">
             </SurfaceView>
 

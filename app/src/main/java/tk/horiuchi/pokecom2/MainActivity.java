@@ -4,13 +4,20 @@ import android.graphics.Point;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 
+import static tk.horiuchi.pokecom2.Common.type10inch;
+import static tk.horiuchi.pokecom2.Common.type7inch;
+import static tk.horiuchi.pokecom2.Common.typePhone;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    public static float dpdx, dpdx_org;
+    public static int deviceType;
     private Common define;
     private PbMain pb = null;
     private Keyboard inkey = null;
@@ -57,6 +64,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(mBtnResIds[i]).setOnClickListener(this);
         }
 
+        // dp->px変換のためにDisplayMetricsを取得しておく
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        dpdx_org = dpdx = metrics.density;
+        Log.w("Main", String.format("widthPixels=%d\n", metrics.widthPixels));
+        Log.w("Main", String.format("heightPixels=%d\n", metrics.heightPixels));
+        Log.w("Main", String.format("Xdpi=%f\n", metrics.xdpi));
+        Log.w("Main", String.format("Ydpi=%f\n", metrics.ydpi));
+        Log.w("Main", String.format("density=%f\n", metrics.density));
+        Log.w("Main", String.format("densityDpi=%d\n", metrics.densityDpi));
+        Log.w("Main", String.format("scaledDensity=%f\n", metrics.scaledDensity));
+        // デバイスタイプとスケールの設定
+        if (getResources().getBoolean(R.bool.is_7inch)) {
+            deviceType = type7inch;
+            if (1.3f < dpdx_org && dpdx_org< 1.4f) {
+                // nexus7(2012) tvdpi の時はスケール２倍
+                dpdx = 2f;
+            } else {
+                // それ以外（多分xhdpiしかない？）の時はスケール３倍
+                dpdx = 3f;
+            }
+            Log.w("Main", String.format("deviceType=7inch tablet(%d) scale=%f\n", deviceType, dpdx));
+        } else if (getResources().getBoolean(R.bool.is_10inch)) {
+            deviceType = type10inch;
+            dpdx = 4f;
+            Log.w("Main", String.format("deviceType=10inch tablet(%d) scale=%f\n", deviceType, dpdx));
+        } else {
+            deviceType = typePhone;
+            if (dpdx_org == 1.5) {
+                // hdpiの時は少し小さめにする
+                dpdx = 1.3f;
+            }
+            Log.w("Main", String.format("deviceType=phone(%d) scale=%f\n", deviceType, dpdx));
+        }
+
+
         SurfaceView sv = (SurfaceView) findViewById(R.id.surfaceView);
         pb = new PbMain(this, sv);
 
@@ -72,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(mBtnResIds[i]).setOnClickListener(this);
         }
         // ボタンの枠表示を切り替える
-        changeButtonFrame(mBtnResIds, true);
+        changeButtonFrame(mBtnResIds, false);
 
         // 仮
         initial = true;
@@ -208,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (mode) {
                     mode = false;
                     ext = !ext;
+                    lcd.refresh();
                     break;
                 }
                 // no break!!
