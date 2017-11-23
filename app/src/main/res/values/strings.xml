@@ -1,3 +1,32 @@
 <resources>
     <string name="app_name">Pokecom GO2</string>
+
+    <string name="action_settings">Settings</string>
+
+    <!-- menu used -->
+    <string name="opt_menu_load">load...</string>
+    <string name="opt_menu_save">save...</string>
+    <string name="opt_menu_reset">reset</string>
+    <string name="opt_menu_settings">settings...</string>
+    <string name="opt_menu_about">about...</string>
+    <string name="opt_menu_exit">exit</string>
+
+    <!-- file select used -->
+    <string name="file_select_to_parent">to parent</string>
+    <string name="file_select_back">back</string>
+    <string name="file_select_cancel">cancel</string>
+
+    <!-- preference strings -->
+    <string name="preference_title">settings</string>
+    <string name="vibrator_checkbox_title">viblation</string>
+    <string name="vibrator_checkbox_summary">Activate vibrator function when key is pressed.</string>
+    <string name="debug_checkbox_title">debug</string>
+    <string name="debug_checkbox_summary">Enable the function to display debugging information.</string>
+
+
+    <string name="about_title">About Pokecom GO2</string>
+    <string name="about_body">
+        This is an simulator of CASIO\'s Pocket Computer PB-100.
+    </string>
+
 </resources>

@@ -28,4 +28,25 @@
         <item name="android:background">@drawable/button</item>
     </style>
 
+    <style name="MyAlertDialogStyle" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowMinWidthMajor">95%</item>
+        <item name="android:windowMinWidthMinor">95%</item>
+        <item name="android:textSize">@dimen/textsize_medium</item>
+    </style>
+
+    <style name="MyFileDialogStyle" parent="Theme.AppCompat.Light.Dialog">
+        <!--item name="windowNoTitle">false</item-->
+        <item name="android:windowMinWidthMajor">75%</item>
+        <item name="android:windowMinWidthMinor">75%</item>
+        <item name="android:textSize">@dimen/textsize_medium</item>
+        <!--item name="android:textColor">#00000000</item-->
+    </style>
+
+    <style name="CustomThemePreference" parent="@android:style/Theme.Holo.Light">
+        <item name="android:preferenceCategoryStyle">@style/PreferenceCategory</item>
+    </style>
+    <style name="PreferenceCategory">
+        <item name="android:layout">@layout/custom_preference</item>
+    </style>
+
 </resources>

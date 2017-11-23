@@ -1,14 +1,20 @@
 package tk.horiuchi.pokecom2;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.os.Environment;
 import android.os.Vibrator;
-import android.support.v7.app.AppCompatActivity;
+import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.Window;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 
@@ -16,7 +22,7 @@ import static tk.horiuchi.pokecom2.Common.type10inch;
 import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener {
     public static float dpdx, dpdx_org;
     public static int deviceType;
     public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/Basic1";
@@ -29,6 +35,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static boolean ext = false;
     public static boolean mode = false;
     public static boolean function = false;
+    public static boolean vibrate_enable, debug_info;
     private Vibrator vib;
 
     public static boolean initial; // 仮
@@ -56,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_ACTION_BAR);
+
         setContentView(R.layout.activity_main);
 
         // 共通定義
@@ -110,6 +119,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         lcd = new Lcd();
         lcd.setListener(pb);
 
+
+        // デフォルトの設定
+        PreferenceManager.setDefaultValues(this, R.xml.preference, true);
+
+        // 設定値をロード
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        debug_info = sp.getBoolean("debug_checkbox_key", false);
+        vibrate_enable = sp.getBoolean("vibrator_checkbox_key", true);
+
         vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         // Buttonインスタンスの取得
@@ -118,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             findViewById(mBtnResIds[i]).setOnClickListener(this);
         }
         // ボタンの枠表示を切り替える
-        changeButtonFrame(mBtnResIds, false);
+        changeButtonFrame(mBtnResIds, debug_info);
 
         // 仮
         initial = true;
@@ -213,6 +231,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // ボタン表示枠の更新
+        if (debug_info) {
+            changeButtonFrame(mBtnResIds, true);
+        } else {
+            changeButtonFrame(mBtnResIds, false);
+        }
+    }
+
     public void onClick(View v) {
         int c = v.getId();
 
@@ -292,7 +322,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
 
-        vib.vibrate(10);
+        if (vibrate_enable) {
+            vib.vibrate(10);
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.optionsMenu_01:
+                //nosave = true;
+                //actLoad();
+                return true;
+            case R.id.optionsMenu_02:
+                //nosave = true;
+                //actSave();
+                return true;
+            case R.id.optionsMenu_03:   // reset
+                //modeInit();
+                return true;
+            case R.id.optionsMenu_04:   // settings
+                //nosave = true;
+                Intent intent1 = new android.content.Intent(this, MyPreferenceActivity.class);
+                startActivity(intent1);
+                return true;
+            case R.id.optionsMenu_05:   // help
+                //Toast.makeText(this, "未実装だよ！", Toast.LENGTH_LONG).show();
+                // ボタンをタップした際の処理を記述
+                AboutDialogFragment dialog = new AboutDialogFragment();
+                dialog.show(getFragmentManager(), "");
+                return true;
+            case R.id.optionsMenu_06:   // exit
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
 }

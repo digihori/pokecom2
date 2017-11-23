@@ -30,6 +30,39 @@
                 android:layout_gravity="center">
             </SurfaceView>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="240dp"
+                android:layout_marginTop="18dp"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/d1"
+                    android:layout_width="16dp"
+                    android:layout_height="34dp"
+                    android:src="@drawable/d10"
+                    />
+                <ImageView
+                    android:id="@+id/d2"
+                    android:layout_width="16dp"
+                    android:layout_height="34dp"
+                    android:src="@drawable/d00"
+                    />
+                <ImageView
+                    android:id="@+id/d3"
+                    android:layout_width="16dp"
+                    android:layout_height="34dp"
+                    android:src="@drawable/d00"
+                    />
+                <ImageView
+                    android:id="@+id/d4"
+                    android:layout_width="16dp"
+                    android:layout_height="34dp"
+                    android:src="@drawable/d00"
+                    />
+            </LinearLayout>
+
         </FrameLayout>
 
         <FrameLayout

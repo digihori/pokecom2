@@ -213,14 +213,14 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             }
             c.drawText("STOP", 334, 20, p);
 
-            p.setTextSize(28);
+            //p.setTextSize(28);
             //p.setTypeface()
-            if (false) {
-                p.setColor(Color.DKGRAY);
-            } else {
-                p.setColor(Color.LTGRAY);
-            }
-            c.drawText("1000", 230, 25, p);
+            //if (false) {
+            //    p.setColor(Color.DKGRAY);
+            //} else {
+            //    p.setColor(Color.LTGRAY);
+            //}
+            //c.drawText("1000", 230, 25, p);
 
             //描画処理を終了
             holder.unlockCanvasAndPost(c);
