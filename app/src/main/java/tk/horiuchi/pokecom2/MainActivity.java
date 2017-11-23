@@ -1,6 +1,7 @@
 package tk.horiuchi.pokecom2;
 
 import android.graphics.Point;
+import android.os.Environment;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -18,10 +19,12 @@ import static tk.horiuchi.pokecom2.Common.typePhone;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     public static float dpdx, dpdx_org;
     public static int deviceType;
+    public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/Basic1";
     private Common define;
     private PbMain pb = null;
     private Keyboard inkey = null;
-    private Lcd lcd = null;
+    public static Lcd lcd = null;
+    private static SBasic basic = null;
     public static boolean shift = false;
     public static boolean ext = false;
     public static boolean mode = false;
@@ -38,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             R.id.buttonY, R.id.buttonU, R.id.buttonI, R.id.buttonO, R.id.buttonP,
 
             R.id.buttonA, R.id.buttonS, R.id.buttonD, R.id.buttonF, R.id.buttonG,
-            R.id.buttonH, R.id.buttonJ, R.id.buttonK, R.id.buttonL, R.id.buttonEQ,
+            R.id.buttonH, R.id.buttonJ, R.id.buttonK, R.id.buttonL, R.id.buttonANS,
 
             R.id.buttonZ, R.id.buttonX, R.id.buttonC, R.id.buttonV, R.id.buttonB,
             R.id.buttonN, R.id.buttonM, R.id.buttonSPC, R.id.buttonEQ, R.id.buttonEXP,
@@ -120,6 +123,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // 仮
         initial = true;
         lcd.print("READY P0");
+
+        try {
+            basic = new SBasic(lcd);
+            //basic.load(src_path + "/sample1.bas");
+            //basic.run();
+
+            //basic.calc("A=1+2*3");
+            //basic.calc("A");
+            //Log.w("Main", "----- prog completed!!! -----");
+        } catch (InterpreterException e) {
+            Log.w("Main", String.format("error='%s'", e.toString()));
+        }
     }
 
     @Override
@@ -246,6 +261,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.buttonMODE:
                 mode = true;
                 function = false;
+                break;
+            case R.id.buttonEXE:
+                String s = lcd.getCmdBuf();
+                if (s == null) break;
+                try {
+                    Log.w("EXE", String.format("%s", s));
+                    basic.calc(lcd.getCmdBuf());
+                } catch (InterpreterException e) {
+                    Log.w("Main", String.format("error='%s'", e.toString()));
+                }
+                initial = true;
+                break;
+            case R.id.buttonANS:
+                basic.lastAns();
                 break;
             case R.id.buttonDOT:
                 if (mode) {

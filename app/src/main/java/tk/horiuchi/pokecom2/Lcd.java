@@ -42,6 +42,18 @@ public class Lcd {
 
     }
 
+    public String getCmdBuf() {
+        if (buf_index == 0) return null;
+
+        char[] temp = new char[buf_index];
+        for (int i = 0; i < buf_index; i++) {
+            temp[i] = (char)buf[i];
+        }
+        String s = String.valueOf(temp);
+        Log.w("getCmdBuf", String.format("%s", s));
+        return String.valueOf(temp);
+    }
+
     public void setListener(RefreshScreenInterFace listener) {
         this.listener = listener;
     }
@@ -171,7 +183,7 @@ public class Lcd {
     }
 
     public void putchar(int c) {
-        if (0x90 < c && c <=0xdf && !cmdTable[c].equals("\0")) {
+        if (0x90 <= c && c <=0xdf && !cmdTable[c].equals("\0")) {
             if (buf_top + cursor != 0) putc(' ');
             print(cmdTable[c]);
             putc(' ');
