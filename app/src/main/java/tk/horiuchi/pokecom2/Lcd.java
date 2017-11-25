@@ -240,6 +240,27 @@ public class Lcd {
         }
     }
 
+    public void print(String s, int idx) {
+        if (idx > 12) return;
+        if (bankStatus) {
+            bankStatus = false;
+        }
+        if (initial) {
+            initial = false;
+            cls();
+        }
+        for (int i = 0; i < s.length(); i++) {
+            buf[i] = s.charAt(i);
+        }
+        int j = 0;
+        for (int i = 0; i < 12 && i < idx; i++) {
+            printDigit(i, s.charAt(j++));
+        }
+        for (int i = idx; i < 12 && j < s.length(); i++) {
+            printDigit(i, s.charAt(j++));
+        }
+    }
+
     public void putchar(int c) {
         if (bankStatus) {
             bankStatus = false;
@@ -269,7 +290,8 @@ public class Lcd {
                 printDigit(cursor, c);
                 cursor++;
             } else {
-                buf_top = buf_index - cursor;
+                //buf_top = buf_index - cursor;
+                buf_top++;
                 for (int j = 0; j < 12; j++) {
                     printDigit(j, buf[buf_top + j]);
                 }

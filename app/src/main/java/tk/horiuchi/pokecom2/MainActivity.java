@@ -169,6 +169,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         initial = true;
 
         calcMemoryAndDisp(false);
+        listDisp = false;
 
         try {
             basic = new SBasic(lcd);
@@ -271,6 +272,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    public static boolean listDisp = false;
+
     public void onClick(View v) {
         int c = v.getId();
 
@@ -292,20 +295,67 @@ public class MainActivity extends Activity implements View.OnClickListener {
             keyShift = false;
             switch (c) {
                 default:
-                case R.id.button0: bank = 0; break;
-                case R.id.button1: bank = 1; break;
-                case R.id.button2: bank = 2; break;
-                case R.id.button3: bank = 3; break;
-                case R.id.button4: bank = 4; break;
-                case R.id.button5: bank = 5; break;
-                case R.id.button6: bank = 6; break;
-                case R.id.button7: bank = 7; break;
-                case R.id.button8: bank = 8; break;
-                case R.id.button9: bank = 9; break;
+                case R.id.button0:
+                    bank = 0;
+                    break;
+                case R.id.button1:
+                    bank = 1;
+                    break;
+                case R.id.button2:
+                    bank = 2;
+                    break;
+                case R.id.button3:
+                    bank = 3;
+                    break;
+                case R.id.button4:
+                    bank = 4;
+                    break;
+                case R.id.button5:
+                    bank = 5;
+                    break;
+                case R.id.button6:
+                    bank = 6;
+                    break;
+                case R.id.button7:
+                    bank = 7;
+                    break;
+                case R.id.button8:
+                    bank = 8;
+                    break;
+                case R.id.button9:
+                    bank = 9;
+                    break;
             }
             calcMemoryAndDisp(true);
             lcd.printBankStatus();
             Log.w("MainAct", String.format("bank change(%d)", bank));
+        } else if (mode == MODE_PRO &&
+                    (c == R.id.buttonUA || c == R.id.buttonDA)) {
+            String s;
+            switch (c) {
+                case R.id.buttonDA:
+                    if (listDisp) {
+                        s = basic.getListNext();
+                        Log.w("Main", "listNext");
+                    } else {
+                        s = basic.getListTop();
+                        Log.w("Main", "listTop");
+                    }
+                    lcd.print(s, 0);
+                    initial = true;
+                    break;
+                case R.id.buttonUA:
+                    if (listDisp) {
+                        s = basic.getListPrev();
+                        Log.w("Main", "listPrev");
+                    } else {
+                        s = basic.getListBottom();
+                        Log.w("Main", "listBottom");
+                    }
+                    lcd.print(s, 0);
+                    initial = true;
+                    break;
+            }
         } else if (keyMode && (c == R.id.buttonDOT || c == R.id.button0 ||
                         c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
                         c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
@@ -324,7 +374,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     lcd.refresh();
                     initial = true;
                     calcMemoryAndDisp(false);
-
+                    listDisp = false;
                     break;
                 case R.id.button1:
                     mode = MODE_PRO;
@@ -339,6 +389,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 calcMemoryAndDisp(true);
             } else {
                 calcMemoryAndDisp(false);
+                listDisp = false;
             }
         } else if (keyShift &&
                 (c == R.id.button0 ||
@@ -366,6 +417,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             }
             initial = true;
         } else {
+            listDisp = false;
             if (mode == MODE_PRO) {
                 calcMemoryAndDisp(true);
             } else {
@@ -501,6 +553,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             int[] dest = new int[100];
             String str = "";
 
+            bank = 0;
             while (r < len) {
                 // 1行読み込み
                 str = "";
@@ -567,8 +620,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 }
             }
         }
+
+        // ロードしたサイズを計算する
         for (int i = 0; i < 10; i++) {
             ret += idxEnd[i];
+        }
+
+        // プログラムがロードされているバンクの最小値をbankにセットする
+        bank = 0;
+        for (int i = 0; i < 10; i++) {
+            if (idxEnd[i] != 0) {
+                bank = i;
+                break;
+            }
         }
         return ret;
     }

@@ -10,6 +10,8 @@ import java.util.*;
 
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.idxEnd;
+import static tk.horiuchi.pokecom2.MainActivity.initial;
+import static tk.horiuchi.pokecom2.MainActivity.listDisp;
 import static tk.horiuchi.pokecom2.MainActivity.pc;
 import static tk.horiuchi.pokecom2.MainActivity.prog;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
@@ -24,7 +26,7 @@ public class SBasic {
     final int NONE = 0;
     final int DELIMITER = 1;
     final int VARIABLE = 2;
-    final int NUBMER = 3;
+    final int NUMBER = 3;
     final int COMMAND = 4;
     final int QUTEDSTR = 5;
 
@@ -62,6 +64,7 @@ public class SBasic {
     final int END = 11;
     final int EOL = 12;
     final int RUN = 13;
+    final int LIST = 14;
 
     //
     final String EOP = "\0";
@@ -97,7 +100,8 @@ public class SBasic {
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
             new Keyword("end", END),
-            new Keyword("run", RUN)
+            new Keyword("run", RUN),
+            new Keyword("list", LIST)
     };
 
     //private char[] prog;
@@ -108,6 +112,8 @@ public class SBasic {
 
     private boolean nextLine = true;
     private Double lastAns;
+    private int lastBank;
+    private int listIdx;
 
     private Lcd lcd;
 
@@ -248,6 +254,54 @@ public class SBasic {
         sbInterp();
     }
 
+    public String[] listArray = null;
+
+    public void makeListArray() {
+        if (listArray == null || lastBank != bank) {
+            lastBank = bank;
+
+            char[] charArray = new char[idxEnd[bank]];
+            for (int i = 0; i < idxEnd[bank]; i++) {
+                charArray[i] = (char)(prog[i][bank]&0xff);
+            }
+            String str = String.valueOf(charArray);
+            listArray = str.split("\\n", 0);
+            listIdx = 0;
+            Log.w("LIST", "maked listArray");
+            for (int i = 0; i < listArray.length; i++) {
+                Log.w("LIST", String.format("(%d)%s", i, listArray[i]));
+            }
+        }
+    }
+    public String getListTop() {
+        listIdx = 0;
+        listDisp = true;
+        makeListArray();
+        return (listArray[listIdx]);
+    }
+    public String getListBottom() {
+        listDisp = true;
+        makeListArray();
+        listIdx = listArray.length - 1;
+        return (listArray[listIdx]);
+    }
+    public String getList(int num) {
+        listIdx = 0;
+        makeListArray();
+        if (num < listArray.length) listIdx = num;
+        return (listArray[listIdx]);
+    }
+    public String getListNext() {
+        makeListArray();
+        if (listIdx < listArray.length - 1) listIdx++;
+        return (listArray[listIdx]);
+    }
+    public String getListPrev() {
+        makeListArray();
+        if (listIdx > 0) listIdx--;
+        return (listArray[listIdx]);
+    }
+
     public void calc(String s) throws InterpreterException {
         if (s == "") return;
 
@@ -266,7 +320,6 @@ public class SBasic {
             idxEnd[bank] = size - 1;
         }
         sbCmd();
-
     }
 
     private void sbCmd() throws InterpreterException {
@@ -297,6 +350,17 @@ public class SBasic {
                     bank = 0;
                     Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
                     run();
+                    return;
+                    //break;
+                case LIST:
+                    getToken();
+                    String s;
+                    if (tokType == NUMBER) {
+                        s = getList(Integer.parseInt(token));
+                    } else {
+                        s = getListTop();
+                    }
+                    lcd.print(s, 0);
                     return;
                     //break;
                 default:
@@ -371,14 +435,14 @@ public class SBasic {
 
         int id = pc[bank];
         getToken();
-        if (tokType == NUBMER) {
+        if (tokType == NUMBER) {
             labelTable.put(token, new Integer(id));
         }
         findEOL();
         do {
             id = pc[bank];
             getToken();
-            if (tokType == NUBMER) {
+            if (tokType == NUMBER) {
                 result = labelTable.put(token, new Integer(id));
 
                 if (result != null) handleErr(DUPLABEL);
@@ -826,7 +890,7 @@ public class SBasic {
         double result = 0.0;
 
         switch (tokType) {
-            case NUBMER:
+            case NUMBER:
                 try {
                     result = Double.parseDouble(token);
                 } catch (NumberFormatException e) {
@@ -980,7 +1044,7 @@ public class SBasic {
                 pc[bank]++;
                 if (pc[bank] >= idxEnd[bank] + 1) break;
             }
-            tokType = NUBMER;
+            tokType = NUMBER;
             Log.w("getToken", String.format("case NUMBER token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
         } else  if (prog[pc[bank]][bank] == '\"') {
             //Log.w("getToken", "DQ!!!");
