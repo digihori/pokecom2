@@ -4,10 +4,10 @@
 
     <activity
         android:name=".FileLoad"
-        android:windowSoftInputMode="stateAlwaysHidden"></activity>
+        android:windowSoftInputMode="stateAlwaysHidden" />
     <activity
         android:name=".FileSave"
-        android:windowSoftInputMode="stateAlwaysHidden"></activity>
+        android:windowSoftInputMode="stateAlwaysHidden" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -28,7 +28,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MyPreferenceActivity"></activity>
+        <activity android:name=".MyPreferenceActivity" />
+        <activity android:name=".FileLoad" />
+        <activity android:name=".FileSave"></activity>
     </application>
 
 </manifest>

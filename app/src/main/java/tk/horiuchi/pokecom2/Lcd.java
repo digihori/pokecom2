@@ -4,6 +4,9 @@ import android.os.Handler;
 import android.util.Log;
 
 import static tk.horiuchi.pokecom2.Common.cmdTable;
+import static tk.horiuchi.pokecom2.MainActivity.bank;
+import static tk.horiuchi.pokecom2.MainActivity.bankStatus;
+import static tk.horiuchi.pokecom2.MainActivity.idxEnd;
 import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.PbMain.digi;
 
@@ -19,8 +22,11 @@ public class Lcd {
     private int buf_top = 0;
     private final int bufMax = 64;
     private boolean flash = false;
+    private boolean flashBank = false;
     private int charBack = 0;
     private int flashingCnt = 0;
+    private int bankBack = 0;
+    private int flashingBankCnt = 0;
 
     public Lcd() {
         //
@@ -35,6 +41,7 @@ public class Lcd {
             @Override
             public void run() {
                 flashingCursor();
+                flashingBank();
                 //Log.w("LOG", "run.....");
                 _handler1.postDelayed(this, DELAY1);
             }
@@ -63,6 +70,45 @@ public class Lcd {
         flash = false;
     }
 
+    public void printBankStatus() {
+        bankStatus = true;
+        flashingBankCnt = 0;
+        printDigit(0, 'P');
+        printDigit(1, ' ');
+        for (int i = 0; i < 10; i++) {
+            int c;
+            if (idxEnd[i] == 0) {
+                c = '0' + i;
+                //printDigit(2 + i, '0'+i);
+            } else {
+                c = '_';
+                //printDigit(2 + i, '_');
+            }
+            printDigit(2 + i, c);
+            buf[2 + i] = c;
+            //Log.w("Lcd", String.format("idxEnd[%d]=%d -> %c", i, idxEnd[i], '0'+i));
+        }
+    }
+
+    private void flashingBank() {
+        if (!bankStatus) return;
+
+        flashingBankCnt--;
+        if (flashingBankCnt < 1) {
+            flashingBankCnt = 10;
+            if (!flashBank) {
+                //bankBack = buf[2 + bank];
+                printDigit(2 + bank, ' ');
+            } else {
+                printDigit(2 + bank, buf[2 + bank]);
+            }
+            flashBank = !flashBank;
+            listener.refreshScreen();
+
+            //Log.w("Lcd", String.format("flashingBank(%d)", bank));
+        }
+    }
+
     private void flashingCursor() {
         if (initial) return;    // 仮
 
@@ -83,6 +129,8 @@ public class Lcd {
             }
             flash = !flash;
             listener.refreshScreen();
+
+            //Log.w("Lcd", "flashingCursor");
         }
     }
 
@@ -104,6 +152,9 @@ public class Lcd {
     }
 
     public void cls() {
+        initial = false;
+        bankStatus = false;
+
         cursor = 0;
         for (int i = 0; i < digi.length; i++) {
             digi[i] = 0;
@@ -177,12 +228,27 @@ public class Lcd {
     }
 
     public void print(String s) {
+        if (bankStatus) {
+            bankStatus = false;
+        }
+        if (initial) {
+            initial = false;
+            cls();
+        }
         for (int i = 0; i < s.length(); i++) {
             putc(s.charAt(i));
         }
     }
 
     public void putchar(int c) {
+        if (bankStatus) {
+            bankStatus = false;
+        }
+        if (initial) {
+            initial = false;
+            cls();
+        }
+
         if (0x90 <= c && c <=0xdf && !cmdTable[c].equals("\0")) {
             if (buf_top + cursor != 0) putc(' ');
             print(cmdTable[c]);

@@ -2,9 +2,10 @@ package tk.horiuchi.pokecom2;
 
 import android.util.Log;
 
-import static tk.horiuchi.pokecom2.MainActivity.ext;
-import static tk.horiuchi.pokecom2.MainActivity.function;
-import static tk.horiuchi.pokecom2.MainActivity.shift;
+import static tk.horiuchi.pokecom2.MainActivity.keyExt;
+import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
+import static tk.horiuchi.pokecom2.MainActivity.keyShift;
+
 
 /**
  * Created by yoshimine on 2017/11/18.
@@ -17,16 +18,16 @@ public class Keyboard {
 
     public int getKeyCode(int x) {
         int index = 0;
-        if (ext) {
-            if (shift) {
+        if (keyExt) {
+            if (keyShift) {
                 index = 3;
             } else {
                 index = 2;
             }
         } else {
-            if (function) {
+            if (keyFunc) {
                 index = 4;
-            } else if (shift) {
+            } else if (keyShift) {
                 index = 1;
             } else {
                 index = 0;

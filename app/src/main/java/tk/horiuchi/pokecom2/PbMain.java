@@ -9,11 +9,19 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.ImageView;
 
+import static tk.horiuchi.pokecom2.Common.MODE_PRO;
+import static tk.horiuchi.pokecom2.Common.MODE_RUN;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
-import static tk.horiuchi.pokecom2.MainActivity.ext;
-import static tk.horiuchi.pokecom2.MainActivity.function;
-import static tk.horiuchi.pokecom2.MainActivity.shift;
+import static tk.horiuchi.pokecom2.MainActivity.idxEnd;
+import static tk.horiuchi.pokecom2.MainActivity.keyExt;
+import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
+import static tk.horiuchi.pokecom2.MainActivity.keyShift;
+import static tk.horiuchi.pokecom2.MainActivity.mode;
+import static tk.horiuchi.pokecom2.MainActivity.pc;
+import static tk.horiuchi.pokecom2.MainActivity.prog;
+import static tk.horiuchi.pokecom2.MainActivity.bank;
 
 /**
  * Created by yoshimine on 2017/11/18.
@@ -42,14 +50,22 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         for (int i=0; i<digit; i++) {
             digi[i] = 0;
         }
+        prog = new int[2000][11];
+        pc = new int[11];
+        idxEnd = new int[11];
+        for (int i = 0; i < 11; i++) {
+            pc[i] = 0;
+            idxEnd[i] = 0;
+        }
+        bank = 0;
 
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int f, int w, int h) {
 
-        thread = new Thread(this);
-        thread.start();
+        //thread = new Thread(this);
+        //thread.start();
 
         final Handler _handler1 = new Handler();
         final int DELAY1 = 50;
@@ -82,6 +98,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
     @Override
     public void run() {
+
         while (thread != null) {
             //sc.CpuRun();
             //Log.w("LOG", "run");
@@ -135,14 +152,14 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             p.setTextSize(14);
             p.setTypeface(Typeface.DEFAULT_BOLD);
 
-            if (ext) {
+            if (keyExt) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
             }
             c.drawText("EXT", 18, 20, p);
 
-            if (shift) {
+            if (keyShift) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
@@ -151,7 +168,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             c.drawRect(48, 1, 60, 14, p);
             p.setStyle(Paint.Style.FILL);
             c.drawText("S", 50, 13, p);
-            if (function) {
+            if (keyFunc) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
@@ -161,13 +178,13 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             p.setStyle(Paint.Style.FILL);
             c.drawText("F", 50, 27, p);
 
-            if (true) {
+            if (mode == MODE_RUN) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
             }
             c.drawText("RUN", 62, 14, p);
-            if (false) {
+            if (mode == MODE_PRO) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
@@ -213,15 +230,6 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             }
             c.drawText("STOP", 334, 20, p);
 
-            //p.setTextSize(28);
-            //p.setTypeface()
-            //if (false) {
-            //    p.setColor(Color.DKGRAY);
-            //} else {
-            //    p.setColor(Color.LTGRAY);
-            //}
-            //c.drawText("1000", 230, 25, p);
-
             //描画処理を終了
             holder.unlockCanvasAndPost(c);
         }
@@ -237,4 +245,12 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         doDraw(holder);
     }
 
+    public void progStart() {
+        if (thread == null) thread = new Thread(this);
+        thread.start();
+    }
+
+    public void progEnd() {
+        thread = null;
+    }
 }

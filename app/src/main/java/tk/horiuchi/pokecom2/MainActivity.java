@@ -17,7 +17,18 @@ import android.view.View;
 import android.view.Window;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static tk.horiuchi.pokecom2.Common.MODE_PRO;
+import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.Common.type10inch;
 import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
@@ -25,20 +36,28 @@ import static tk.horiuchi.pokecom2.Common.typePhone;
 public class MainActivity extends Activity implements View.OnClickListener {
     public static float dpdx, dpdx_org;
     public static int deviceType;
-    public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/Basic1";
-    private Common define;
+    public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/pokecom2";
+    //private Common define;
     private PbMain pb = null;
     private Keyboard inkey = null;
     public static Lcd lcd = null;
     private static SBasic basic = null;
-    public static boolean shift = false;
-    public static boolean ext = false;
-    public static boolean mode = false;
-    public static boolean function = false;
+    public static boolean keyShift = false;
+    public static boolean keyExt = false;
+    public static boolean keyMode = false;
+    public static boolean keyFunc = false;
     public static boolean vibrate_enable, debug_info;
     private Vibrator vib;
 
     public static boolean initial; // 仮
+    public static boolean bankStatus = false;
+    public static int mode = MODE_RUN;
+    //public static boolean selectBank = false;
+    public static int[][] prog;
+    public static int[] pc, idxEnd;
+    public static int bank;
+    public static final int progLength = 2000;
+
 
     private int[] mBtnResIds = {
             R.id.buttonDA, R.id.buttonUA, R.id.buttonMODE, R.id.buttonLA, R.id.buttonRA,
@@ -68,7 +87,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.activity_main);
 
         // 共通定義
-        define = new Common();
+        //define = new Common();
+
+        // ディレクトリがなければ作成する
+        File dir = new File(src_path);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
 
         // Buttonインスタンスの取得
         // ButtonインスタンスのリスナーをこのActivityクラスそのものにする
@@ -111,8 +137,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Log.w("Main", String.format("deviceType=phone(%d) scale=%f\n", deviceType, dpdx));
         }
 
-
         SurfaceView sv = (SurfaceView) findViewById(R.id.surfaceView);
+
         pb = new PbMain(this, sv);
 
         inkey = new Keyboard();
@@ -139,8 +165,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         changeButtonFrame(mBtnResIds, debug_info);
 
         // 仮
-        initial = true;
         lcd.print("READY P0");
+        initial = true;
+
+        calcMemoryAndDisp(false);
 
         try {
             basic = new SBasic(lcd);
@@ -248,78 +276,164 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         Log.w("Click", String.format("key=%d", c));
 
-        if (initial) {
-            initial = false;
-            lcd.cls();
-        }
+        //if (bankStatus) {
+        //    bankStatus = false;
+        //}
+        //if (initial) {
+        //    initial = false;
+        //    lcd.cls();
+        //}
 
-        switch (c) {
-            case R.id.buttonLA:
-                lcd.moveLeft();
-                break;
-            case R.id.buttonRA:
-                lcd.moveRight();
-                break;
-            case R.id.buttonDEL:
-                if (shift) {
-                    lcd.insert();
-                } else {
-                    lcd.delete();
-                }
-                shift = false;
-                function = false;
-                break;
-            case R.id.buttonAC:
-                lcd.cls();
-                shift = false;
-                function = false;
-                mode = false;
-                break;
-            case R.id.buttonSHIFT:
-                if (!function) {
-                    shift = !shift;
-                    lcd.refresh();
-                }
-                break;
-            case R.id.buttonFANCTION:
-                if (!mode) {
-                    function = !function;
-                    shift = false;
-                    lcd.refresh();
-                }
-                break;
-            case R.id.buttonMODE:
-                mode = true;
-                function = false;
-                break;
-            case R.id.buttonEXE:
-                String s = lcd.getCmdBuf();
-                if (s == null) break;
-                try {
-                    Log.w("EXE", String.format("%s", s));
-                    basic.calc(lcd.getCmdBuf());
-                } catch (InterpreterException e) {
-                    Log.w("Main", String.format("error='%s'", e.toString()));
-                }
-                initial = true;
-                break;
-            case R.id.buttonANS:
-                basic.lastAns();
-                break;
-            case R.id.buttonDOT:
-                if (mode) {
-                    mode = false;
-                    ext = !ext;
+        if (mode == MODE_PRO && bankStatus && keyShift &&
+                (c == R.id.button0 ||
+                c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
+                c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
+                c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
+            keyShift = false;
+            switch (c) {
+                default:
+                case R.id.button0: bank = 0; break;
+                case R.id.button1: bank = 1; break;
+                case R.id.button2: bank = 2; break;
+                case R.id.button3: bank = 3; break;
+                case R.id.button4: bank = 4; break;
+                case R.id.button5: bank = 5; break;
+                case R.id.button6: bank = 6; break;
+                case R.id.button7: bank = 7; break;
+                case R.id.button8: bank = 8; break;
+                case R.id.button9: bank = 9; break;
+            }
+            calcMemoryAndDisp(true);
+            lcd.printBankStatus();
+            Log.w("MainAct", String.format("bank change(%d)", bank));
+        } else if (keyMode && (c == R.id.buttonDOT || c == R.id.button0 ||
+                        c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
+                        c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
+                        c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
+            keyMode = false;
+            //selectBank = false;
+            switch (c) {
+                case R.id.buttonDOT:
+                    keyExt = !keyExt;
                     lcd.refresh();
                     break;
-                }
-                // no break!!
-            default:
-                int code = inkey.getKeyCode(c);
-                if (code != 0) lcd.putchar(code);
-                shift = false;
-                function = false;
-                break;
+                case R.id.button0:
+                    mode = MODE_RUN;
+                    lcd.cls();
+                    lcd.print("READY P0");
+                    lcd.refresh();
+                    initial = true;
+                    calcMemoryAndDisp(false);
+
+                    break;
+                case R.id.button1:
+                    mode = MODE_PRO;
+                    lcd.printBankStatus();
+                    lcd.refresh();
+                    initial = true;
+                    break;
+                default:
+                    break;
+            }
+            if (mode == MODE_PRO) {
+                calcMemoryAndDisp(true);
+            } else {
+                calcMemoryAndDisp(false);
+            }
+        } else if (keyShift &&
+                (c == R.id.button0 ||
+                 c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
+                 c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
+                 c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
+            keyShift = false;
+            switch (c) {
+                default:
+                case R.id.button0: bank = 0; break;
+                case R.id.button1: bank = 1; break;
+                case R.id.button2: bank = 2; break;
+                case R.id.button3: bank = 3; break;
+                case R.id.button4: bank = 4; break;
+                case R.id.button5: bank = 5; break;
+                case R.id.button6: bank = 6; break;
+                case R.id.button7: bank = 7; break;
+                case R.id.button8: bank = 8; break;
+                case R.id.button9: bank = 9; break;
+            }
+            try {
+                basic.run();
+            } catch (InterpreterException e) {
+                Log.w("Main", String.format("error='%s'", e.toString()));
+            }
+            initial = true;
+        } else {
+            if (mode == MODE_PRO) {
+                calcMemoryAndDisp(true);
+            } else {
+                calcMemoryAndDisp(false);
+            }
+            keyMode = false;
+            //selectBank = false;
+            switch (c) {
+                case R.id.buttonLA:
+                    lcd.moveLeft();
+                    break;
+                case R.id.buttonRA:
+                    lcd.moveRight();
+                    break;
+                case R.id.buttonDEL:
+                    if (keyShift) {
+                        lcd.insert();
+                    } else {
+                        lcd.delete();
+                    }
+                    keyShift = false;
+                    keyFunc = false;
+                    break;
+                case R.id.buttonAC:
+                    lcd.cls();
+                    keyShift = false;
+                    keyFunc = false;
+                    keyMode = false;
+                    break;
+                case R.id.buttonSHIFT:
+                    if (!keyFunc) {
+                        keyShift = !keyShift;
+                        lcd.refresh();
+                    }
+                    break;
+                case R.id.buttonFANCTION:
+                    if (!keyMode) {
+                        keyFunc = !keyFunc;
+                        keyShift = false;
+                        lcd.refresh();
+                    }
+                    break;
+                case R.id.buttonMODE:
+                    keyMode = true;
+                    keyFunc = false;
+                    keyShift = false;
+                    break;
+                case R.id.buttonEXE:
+                    String s = lcd.getCmdBuf();
+                    if (s == null) break;
+                    try {
+                        Log.w("EXE", String.format("%s", s));
+                        basic.calc(lcd.getCmdBuf());
+                    } catch (InterpreterException e) {
+                        Log.w("Main", String.format("error='%s'", e.toString()));
+                    }
+                    initial = true;
+                    break;
+                case R.id.buttonANS:
+                    basic.lastAns();
+                    break;
+                default:
+                    int code = inkey.getKeyCode(c);
+                    if (code != 0) lcd.putchar(code);
+                    keyShift = false;
+                    keyFunc = false;
+                    break;
+            }
         }
 
         if (vibrate_enable) {
@@ -340,11 +454,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         switch (item.getItemId()) {
             case R.id.optionsMenu_01:
                 //nosave = true;
-                //actLoad();
+                actLoad();
                 return true;
             case R.id.optionsMenu_02:
                 //nosave = true;
-                //actSave();
+                actSave();
                 return true;
             case R.id.optionsMenu_03:   // reset
                 //modeInit();
@@ -367,5 +481,307 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 return super.onOptionsItemSelected(item);
         }
     }
+
+
+    // BASICプログラムの読み込み
+    protected int load(String filename) {
+        int ret = 0;
+        FileInputStream fis = null;
+
+        try {
+            fis = new FileInputStream(filename);
+
+            byte buf[] = new byte[2000];
+            int len = 0, x;
+            while ((x = fis.read(buf)) != -1) {
+                len += x;
+            }
+
+            int r = 0, w = 0, c = 0;
+            int[] dest = new int[100];
+            String str = "";
+
+            while (r < len) {
+                // 1行読み込み
+                str = "";
+                w = 0;
+                while ((c = buf[r++]) != '\n') {
+                    if (c == '\r') continue;    // \rは読み捨てる
+                    str += String.format("%c", c);
+                    if (r >= len) break;
+                }
+                int llen = str.length();
+                //Log.w("LOG", String.format("%s", str));
+
+                // バンク指定のフィールドかどうかチェックする
+                String regex = "\\[P[0-9]\\]";
+                Pattern p = Pattern.compile(regex);
+                Matcher m = p.matcher(str);
+                if (m.find()) {
+                    //Log.w("AAAAAA", String.format("'%s'", m.group()));
+                    //Log.w("AAAAAA", String.format("'%s'", m.group().substring(2,3)));
+                    bank = Integer.parseInt(m.group().substring(2, 3));
+                    idxEnd[bank] = 0;
+                    w = 0;
+                    continue;
+                }
+
+
+                if (llen != 0) {    // 空行は読み捨てる
+                    for (int i = 0; i < llen; i++) {
+                        c = str.charAt(i);
+                        if (c == '\\') {
+                            if (i + 2 < llen) {
+                                String s = str.substring(i, i + 3);
+                                //Log.w("LOG", String.format("%s", s));
+                                for (int j = 0xe0; j <= 0xff; j++) {
+                                    if (cmdTable[j].equals(s)) {
+                                        dest[w++] = j;  // エスケープ文字を内部コードに変換する
+                                        //Log.w("LOG", String.format("%s=%x", s, j));
+                                    }
+                                }
+                                i += 2;
+                            } else {
+                                // 無効なコードなので読み捨てる
+                            }
+                        } else {
+                            dest[w++] = c;
+                        }
+                    }
+                    dest[w++] = '\n';
+                }
+                for (int i = 0; i < w; i++, idxEnd[bank]++) {
+                    prog[idxEnd[bank]][bank] = dest[i];
+                }
+            }
+
+            Log.w("LOAD", String.format("file=%s length=%04x", filename, len));
+        } catch (IOException e) {
+            Log.d("LOAD", e.toString());
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        for (int i = 0; i < 10; i++) {
+            ret += idxEnd[i];
+        }
+        return ret;
+    }
+
+    // BASIC プログラムの保存
+    protected void save(String filename) {
+        FileOutputStream fos = null;
+
+        try {
+            File dir = new File(src_path);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            fos = new FileOutputStream(filename);
+            byte buf[] = new byte[2000];
+
+            int l = 0;
+            for (int i = 0; i < 10; i++) {
+                if (idxEnd[i] != 0) {
+                    String s = String.format("[P%d]", i);
+                    for (int n = 0; n < s.length(); n++) {
+                        buf[l++] = (byte)s.charAt(n);
+                    }
+                    buf[l++] = '\n';
+                }
+                for (int j = 0; j < idxEnd[i]; j++) {
+                    if (0xe0 <= prog[j][i] && prog[j][i] <= 0xff) {
+                        for (int n = 0; n < cmdTable[prog[j][i]].length(); n++) {
+                            buf[l++] = (byte)cmdTable[prog[j][i]].charAt(n);
+                        }
+                    } else {
+                        buf[l++] = (byte) (prog[j][i] & 0xff);
+                    }
+                }
+            }
+            fos.write(buf, 0, l);
+            fos.flush();
+
+        } catch (IOException e) {
+            Log.d("MainActivity", e.toString());
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    public void actLoad(){
+        Intent intent = new android.content.Intent(getApplication(), FileLoad.class);
+        startActivityForResult(intent, 0);
+    }
+
+    public void actSave() {
+        Intent intent = new android.content.Intent(getApplication(), FileSave.class);
+        startActivityForResult(intent, 1);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        Log.w("LOG", "onActivityResult.");
+
+        switch (requestCode) {
+            case 0:
+                if (resultCode == RESULT_OK) {
+                    String txt1 = data.getExtras().getString("filePath");
+                    if (txt1 != null) {
+                        Log.w("LOG", "path="+txt1);
+                        int len = load(txt1);
+                        Toast.makeText(this, "loaded:"+txt1+"("+len+")", Toast.LENGTH_LONG).show();
+                        //for (int i = 0; i < 10; i++) {
+                        //    System.out.printf("--- P%d --- size=%d\n", i, idxEnd[i]);
+                        //    for (int j = 0; j < idxEnd[i]; j++) {
+                        //        if (0xe0 <= prog[j][i] && prog[j][i] <= 0xff) {
+                        //            System.out.printf("?(0x%02X)", prog[j][i]);
+                        //        } else {
+                        //            System.out.printf("%c", prog[j][i]);
+                        //        }
+                        //    }
+                        //}
+                    } else {
+                        // エラー
+                        Log.w("MainAct", "load error!");
+                    }
+
+                } else {
+                    // 何もしない
+                    Log.w("MainAct", "ファイル読み出しがキャンセルされた");
+                }
+                break;
+            case 1:
+                if (resultCode == RESULT_OK) {
+                    String txt1 = data.getExtras().getString("filePath");
+                    if (txt1 != null) {
+                        txt1 = src_path + "/" + txt1; // オープンするファイルのパスとファイル名
+                        Log.w("LOG", "path=" + txt1);
+                        save(txt1);
+                        Toast.makeText(this, "saved:"+txt1, Toast.LENGTH_LONG).show();
+                    } else {
+                        // エラー
+                        Log.w("MainAct", "save error!");
+                    }
+                } else {
+                    Log.w("MainAct", "ファイル保存がキャンセルされた");
+                }
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    private void calcMemoryAndDisp(boolean disp) {
+        if (!disp) {
+            ((ImageView)findViewById(R.id.d1)).setImageResource(R.drawable.d10);
+            ((ImageView)findViewById(R.id.d2)).setImageResource(R.drawable.d00);
+            ((ImageView)findViewById(R.id.d3)).setImageResource(R.drawable.d00);
+            ((ImageView)findViewById(R.id.d4)).setImageResource(R.drawable.d00);
+            return;
+        }
+
+        int total = 0, remain = 544+1024;
+        for (int i = 0; i < 10; i++) {
+            total += idxEnd[i];
+        }
+        remain -= total;
+        if (remain < 0) remain = 0;
+
+        int digit1000 = remain / 1000;
+        int digit100 = (remain - digit1000 * 1000) / 100;
+        int digit10 = (remain - digit1000 * 1000 - digit100 * 100) / 10;
+        int digit1 = remain - digit1000 * 1000 - digit100 * 100 - digit10 * 10;
+
+        int res;
+        ImageView iv = (ImageView)findViewById(R.id.d1);
+        switch (digit1000) {
+            default:
+            case 0: res = R.drawable.d10; break;
+            case 1: res = R.drawable.d11; break;
+        }
+        iv.setImageResource(res);
+
+        iv = (ImageView)findViewById(R.id.d2);
+        switch (digit100) {
+            default:
+            case 0:
+                if (digit1000 != 0) {
+                    res = R.drawable.d0;
+                } else {
+                    res = R.drawable.d00;
+                }
+                break;
+            case 1: res = R.drawable.d1; break;
+            case 2: res = R.drawable.d2; break;
+            case 3: res = R.drawable.d3; break;
+            case 4: res = R.drawable.d4; break;
+            case 5: res = R.drawable.d5; break;
+            case 6: res = R.drawable.d6; break;
+            case 7: res = R.drawable.d7; break;
+            case 8: res = R.drawable.d8; break;
+            case 9: res = R.drawable.d9; break;
+        }
+        iv.setImageResource(res);
+
+        iv = (ImageView)findViewById(R.id.d3);
+        switch (digit10) {
+            default:
+            case 0:
+                if (digit1000 != 0 && digit100 != 0) {
+                    res = R.drawable.d0;
+                } else {
+                    res = R.drawable.d00;
+                }
+                break;
+            case 1: res = R.drawable.d1; break;
+            case 2: res = R.drawable.d2; break;
+            case 3: res = R.drawable.d3; break;
+            case 4: res = R.drawable.d4; break;
+            case 5: res = R.drawable.d5; break;
+            case 6: res = R.drawable.d6; break;
+            case 7: res = R.drawable.d7; break;
+            case 8: res = R.drawable.d8; break;
+            case 9: res = R.drawable.d9; break;
+        }
+        iv.setImageResource(res);
+
+        iv = (ImageView)findViewById(R.id.d4);
+        switch (digit1) {
+            default:
+            case 0:
+                if (digit1000 != 0 && digit100 != 0 && digit10 != 0) {
+                    res = R.drawable.d0;
+                } else {
+                    res = R.drawable.d00;
+                }
+                break;
+            case 1: res = R.drawable.d1; break;
+            case 2: res = R.drawable.d2; break;
+            case 3: res = R.drawable.d3; break;
+            case 4: res = R.drawable.d4; break;
+            case 5: res = R.drawable.d5; break;
+            case 6: res = R.drawable.d6; break;
+            case 7: res = R.drawable.d7; break;
+            case 8: res = R.drawable.d8; break;
+            case 9: res = R.drawable.d9; break;
+        }
+        iv.setImageResource(res);
+    }
+
 
 }

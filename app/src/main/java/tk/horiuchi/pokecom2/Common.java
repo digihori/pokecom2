@@ -11,6 +11,9 @@ public class Common {
     public final static int type7inch = 1;
     public final static int type10inch = 2;
 
+    public final static int MODE_RUN = 0;
+    public final static int MODE_PRO = 1;
+
     public final static String[] cmdTable = {
     /*00*/  "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0",
     /*10*/  "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0",

@@ -7,6 +7,13 @@ import android.util.Log;
 
 import java.io.*;
 import java.util.*;
+
+import static tk.horiuchi.pokecom2.MainActivity.bank;
+import static tk.horiuchi.pokecom2.MainActivity.idxEnd;
+import static tk.horiuchi.pokecom2.MainActivity.pc;
+import static tk.horiuchi.pokecom2.MainActivity.prog;
+import static tk.horiuchi.pokecom2.MainActivity.progLength;
+
 /**
  *
  */
@@ -54,6 +61,7 @@ public class SBasic {
     final int RETURN = 10;
     final int END = 11;
     final int EOL = 12;
+    final int RUN = 13;
 
     //
     final String EOP = "\0";
@@ -88,11 +96,12 @@ public class SBasic {
             new Keyword("to", TO),
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
-            new Keyword("end", END)
+            new Keyword("end", END),
+            new Keyword("run", RUN)
     };
 
-    private char[] prog;
-    private int progIdx;
+    //private char[] prog;
+    //private int progIdx;
     private String token;
     private int tokType;
     private int kwToken;
@@ -145,6 +154,7 @@ public class SBasic {
         lastAns = new Double(0);
     }
 
+    /*
     public void load(String progName) throws InterpreterException {
         char tempbuf[] = new char[PROG_SIZE];
         int size;
@@ -161,11 +171,14 @@ public class SBasic {
         }
 
     }
+    */
 
     private void lcdPrint(String s) {
+        lcd.print(s);
         System.out.print(s);
     }
     private void lcdPrint(char c) {
+        lcd.putchar(c);
         System.out.print(c);
     }
     private void lcdPrintln() {
@@ -197,14 +210,18 @@ public class SBasic {
 
     private void printTrace() {
         String s = "";
-        for (int id = progIdx; id < prog.length && prog[id] != '\n'; id++) {
-            s += prog[id];
+        //Log.w("TR", String.format("pc[%d]=%d idxEnd[%d]=%d", bank, pc[bank], bank, idxEnd[bank]));
+        for (int id = pc[bank]; id <= idxEnd[bank] && prog[id][bank] != '\n'; id++) {
+            //Log.w("TR", String.format("%c", prog[id][bank]));
+            //s += String.format("%c", prog[id][bank]);
+            s += (char)(prog[id][bank]&0xff);
         }
         if (s != null) {
-            Log.w("TR", String.format("%s", s));
+            Log.w("TR", String.format("(%d):'%s'", bank, s));
         }
     }
 
+    /*
     private int loadProgram(char[] p, String fname) throws InterpreterException {
         int size = 0;
         try {
@@ -221,9 +238,11 @@ public class SBasic {
         if (p[size - 1] == (char) 26) size--;
         return size;
     }
+    */
 
     public void run() throws InterpreterException {
-        progIdx = 0;
+        pc[bank] = 0;
+        labelTable.clear();
         scanLabels();
         Log.w("RUN", String.format("-------- %s", labelTable));
         sbInterp();
@@ -234,15 +253,17 @@ public class SBasic {
 
         //Log.w("calc", "exe");
         lcd.cls();
-        progIdx = 0;
+        bank = 10;
+        pc[bank] = 0;
         nextLine = true;
         int size = s.length();
         if (size != -1) {
-            prog = new char[size];
+            //prog = new char[size];
 
             for (int i = 0; i < size; i++) {
-                prog[i] = s.charAt(i);
+                prog[i][bank] = s.charAt(i);
             }
+            idxEnd[bank] = size - 1;
         }
         sbCmd();
 
@@ -262,17 +283,30 @@ public class SBasic {
                 putBack();
                 assignment();
             } else {
-                //Log.w("sbCmd1", "id="+progIdx);
+                //Log.w("sbCmd1", "id="+pc[bank]);
                 putBack();
                 putBack();
-                //Log.w("sbCmd1", "id="+progIdx);
+                //Log.w("sbCmd1", "id="+pc[bank]);
                 lastAns = evaluate();
                 //Log.w("sbCmd1", String.format("%d", lastAns.intValue()));
             }
+        } else if (tokType == COMMAND) {
+            switch (kwToken) {
+                case RUN:
+                    //lcd.cls();
+                    bank = 0;
+                    Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
+                    run();
+                    return;
+                    //break;
+                default:
+                    break;
+            }
+
         } else {
-            //Log.w("sbCmd2", "id="+progIdx);
+            //Log.w("sbCmd2", String.format("pc[%d]=%d", bank, pc[bank]));
             putBack();
-            //Log.w("sbCmd2", "id="+progIdx);
+            //Log.w("sbCmd2", String.format("pc[%d]=%d", bank, pc[bank]));
             lastAns = evaluate();
             //Log.w("sbCmd2", String.format("%d", lastAns.intValue()));
         }
@@ -322,7 +356,7 @@ public class SBasic {
                         return;
                 }
             } else if (tokType == DELIMITER) {
-                //progIdx++;
+                //pc[bank]++;
                 //Log.w("sbInterp", "DELIMITER");
             } else {
                 //Log.w("sbInterp", "???");
@@ -335,14 +369,14 @@ public class SBasic {
         int i;
         Object result;
 
-        int id = progIdx;
+        int id = pc[bank];
         getToken();
         if (tokType == NUBMER) {
             labelTable.put(token, new Integer(id));
         }
         findEOL();
         do {
-            id = progIdx;
+            id = pc[bank];
             getToken();
             if (tokType == NUBMER) {
                 result = labelTable.put(token, new Integer(id));
@@ -351,12 +385,12 @@ public class SBasic {
             }
             if (kwToken != EOL) findEOL();
         } while (!token.equals(EOP));
-        progIdx = 0;
+        pc[bank] = 0;
     }
 
     private void findEOL() {
-        while (progIdx < prog.length && prog[progIdx] != '\n')
-            progIdx++;
+        while (pc[bank] < idxEnd[bank] + 1 && prog[pc[bank]][bank] != '\n')
+            pc[bank]++;
     }
 
     private void assignment() throws InterpreterException {
@@ -465,7 +499,7 @@ public class SBasic {
         if (loc == null) {
             handleErr(UNDEFLABEL);
         } else {
-            progIdx = loc.intValue();
+            pc[bank] = loc.intValue();
             nextLine = true;
             //Log.w("GOTO", String.format("goto %s(%d)", token, loc));
         }
@@ -513,7 +547,7 @@ public class SBasic {
         stckvar.target = evaluate();
 
         if (value >= vars[stckvar.var]) {
-            stckvar.loc = progIdx;
+            stckvar.loc = pc[bank];
             fStack.push(stckvar);
         } else {
             while (kwToken != NEXT) getToken();
@@ -532,7 +566,7 @@ public class SBasic {
                 return;
             }
             fStack.push(stckvar);
-            progIdx = stckvar.loc;
+            pc[bank] = stckvar.loc;
         } catch (EmptyStackException e) {
             //Log.w("NEXT", "exception occered.");
             handleErr(NEXTWITHOUTFOR);
@@ -566,9 +600,9 @@ public class SBasic {
         if (loc == null)
             handleErr(UNDEFLABEL);
         else {
-            gStack.push(new Integer(progIdx));
+            gStack.push(new Integer(pc[bank]));
 
-            progIdx = loc.intValue();
+            pc[bank] = loc.intValue();
             nextLine = true;
         }
     }
@@ -577,7 +611,7 @@ public class SBasic {
         Integer t;
         try {
             t = (Integer) gStack.pop();
-            progIdx = t.intValue();
+            pc[bank] = t.intValue();
             nextLine = true;
         } catch (EmptyStackException e) {
             handleErr(RETURNWITHOUTGOSUB);
@@ -822,9 +856,9 @@ public class SBasic {
 
     private void putBack() {
         //if  (token == EOP) return;
-        if (progIdx < 1) return;
+        if (pc[bank] < 1) return;
         for (int i = 0; i < token.length(); i++) {
-            if (progIdx > 0) progIdx--;
+            if (pc[bank] > 0) pc[bank]--;
         }
     }
 
@@ -860,24 +894,25 @@ public class SBasic {
 
         //Log.w("getToken", String.format("exec!"));
 
-        if (progIdx == prog.length) {
+        if (pc[bank] == idxEnd[bank] + 1) {
             token = EOP;
             return;
         }
 
-        while (progIdx < prog.length && isSpaceorTab(prog[progIdx]))
-            progIdx++;
+        while (pc[bank] < idxEnd[bank] + 1 && isSpaceorTab(prog[pc[bank]][bank])) {
+            pc[bank]++;
+        }
 
-        if (progIdx == prog.length) {
+        if (pc[bank] == idxEnd[bank] + 1) {
             token = EOP;
             tokType = DELIMITER;
             //Log.w("getToken", "return(EOP)");
             return;
         }
 
-        if (prog[progIdx] == '\n') {
-            //progIdx += 2;
-            progIdx += 1;
+        if (prog[pc[bank]][bank] == '\n') {
+            //pc[bank] += 2;
+            pc[bank] += 1;
             kwToken = EOL;
             //token = "\r\n";
             token = "\n";
@@ -886,29 +921,29 @@ public class SBasic {
             return;
         }
 
-        ch = prog[progIdx];
+        ch = (char)(prog[pc[bank]][bank]&0xff);
         if (ch == '<' || ch == '>') {
-            if (progIdx + 1 == prog.length) handleErr(SYNTAX);
+            if (pc[bank] + 1 == idxEnd[bank] + 1) handleErr(SYNTAX);
 
             switch (ch) {
                 case '<':
-                    if (prog[progIdx + 1] == '>') {
-                        progIdx += 2;
+                    if (prog[pc[bank] + 1][bank] == '>') {
+                        pc[bank] += 2;
                         token = String.valueOf(NE);
-                    } else if (prog[progIdx + 1] == '=') {
-                        progIdx += 2;
+                    } else if (prog[pc[bank] + 1][bank] == '=') {
+                        pc[bank] += 2;
                         token = String.valueOf(LE);
                     } else {
-                        progIdx++;
+                        pc[bank]++;
                         token = "<";
                     }
                     break;
                 case '>':
-                    if (prog[progIdx + 1] == '=') {
-                        progIdx +=2;
+                    if (prog[pc[bank] + 1][bank] == '=') {
+                        pc[bank] +=2;
                         token = String.valueOf(GE);
                     } else {
-                        progIdx++;
+                        pc[bank]++;
                         token = ">";
                     }
                     break;
@@ -920,42 +955,46 @@ public class SBasic {
 
         //Log.w("getToken", "!!!!!!");
 
-        if (isDelim(prog[progIdx])) {
-            token += prog[progIdx];
-            progIdx++;
+        if (isDelim(prog[pc[bank]][bank])) {
+            token += (char)(prog[pc[bank]][bank]&0xff);
+            pc[bank]++;
             tokType = DELIMITER;
-            Log.w("getToken", String.format("case DELIMITER token='%s' progIdx=%d tokType=%d kwToken=%d", token, progIdx, tokType, kwToken));
-        } else if (Character.isLetter(prog[progIdx])) {
-            while (!isDelim(prog[progIdx])) {
-                token += prog[progIdx];
-                progIdx++;
-                if (progIdx >= prog.length) break;
+            Log.w("getToken", String.format("case DELIMITER token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
+        } else if (Character.isLetter(prog[pc[bank]][bank])) {
+            while (!isDelim(prog[pc[bank]][bank])) {
+                token += (char)(prog[pc[bank]][bank]&0xff);
+                pc[bank]++;
+                if (pc[bank] >= idxEnd[bank] + 1) break;
             }
             kwToken = lookUp(token);
             if (kwToken == UNKNCOM) tokType = VARIABLE;
             else tokType = COMMAND;
-            Log.w("getToken", String.format("case VARIABLE/COMMAND token='%s' progIdx=%d tokType=%d kwToken=%d", token, progIdx, tokType, kwToken));
-        } else if (Character.isDigit(prog[progIdx])) {
-            while (!isDelim(prog[progIdx])) {
-                token += prog[progIdx];
-                progIdx++;
-                if (progIdx >= prog.length) break;
+            if (tokType == VARIABLE) {
+                Log.w("getToken", String.format("case VARIABLE token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
+            } else {
+                Log.w("getToken", String.format("case COMMAND token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
+            }
+        } else if (Character.isDigit(prog[pc[bank]][bank])) {
+            while (!isDelim(prog[pc[bank]][bank])) {
+                token += (char)(prog[pc[bank]][bank]&0xff);
+                pc[bank]++;
+                if (pc[bank] >= idxEnd[bank] + 1) break;
             }
             tokType = NUBMER;
-            Log.w("getToken", String.format("case NUMBER token='%s' progIdx=%d tokType=%d kwToken=%d", token, progIdx, tokType, kwToken));
-        } else  if (prog[progIdx] == '\"') {
+            Log.w("getToken", String.format("case NUMBER token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
+        } else  if (prog[pc[bank]][bank] == '\"') {
             //Log.w("getToken", "DQ!!!");
-            progIdx++;
-            ch = prog[progIdx];
+            pc[bank]++;
+            ch = (char)(prog[pc[bank]][bank]&0xff);
             while (ch != '\"' && ch != '\n') {
                 token += ch;
-                progIdx++;
+                pc[bank]++;
                 tokType = QUTEDSTR;
-                ch = prog[progIdx];
+                ch = (char)(prog[pc[bank]][bank]&0xff);
                 //Log.w("while", String.format("%c", ch));
             }
-            progIdx++;
-            Log.w("getToken", String.format("case DQ token='%s' progIdx=%d tokType=%d kwToken=%d", token, progIdx, tokType, kwToken));
+            pc[bank]++;
+            Log.w("getToken", String.format("case DQ token='%s' pc[bank]=%d tokType=%d kwToken=%d", token, pc[bank], tokType, kwToken));
         } else {
             token = EOP;
             Log.w("getToken", "return(EOP)");
@@ -964,21 +1003,21 @@ public class SBasic {
         //Log.w("getToken", "func-end");
     }
 
-    private boolean isDelim(char c) {
+    private boolean isDelim(int c) {
         if (" \n,;<>+-/*%^=():".indexOf(c) != -1) {
             return true;
         }
         return false;
     }
 
-    private boolean isSpaceorTab(char c) {
+    private boolean isSpaceorTab(int c) {
         if (c == ' ' || c == '\t') {
             return true;
         }
         return false;
     }
 
-    private boolean isRelop(char c) {
+    private boolean isRelop(int c) {
         if (relops.indexOf(c) != -1) {
             return true;
         }
