@@ -29,6 +29,7 @@ public class SBasic {
     final int NUMBER = 3;
     final int COMMAND = 4;
     final int QUTEDSTR = 5;
+    final int FUNCTION = 6;
 
     //
     final int SYNTAX = 0;
@@ -66,6 +67,28 @@ public class SBasic {
     final int RUN = 13;
     final int LIST = 14;
 
+    final int FUNC_DUMMY = 30;
+    final int SET  = 31;
+    final int LEN  = 32;
+    final int MID  = 33;
+    final int VAL  = 34;
+    final int SIN  = 35;
+    final int COS  = 36;
+    final int TAN  = 37;
+    final int ASN  = 38;
+    final int ACS  = 39;
+    final int ATN  = 40;
+    final int LOG  = 41;
+    final int LN   = 42;
+    final int EXP  = 43;
+    final int SQR  = 44;
+    final int ABS  = 45;
+    final int SGN  = 46;
+    final int INT  = 47;
+    final int FRAC = 48;
+    final int RND  = 49;
+    final int RAN  = 50;
+
     //
     final String EOP = "\0";
 
@@ -99,6 +122,7 @@ public class SBasic {
             new Keyword("to", TO),
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
+            new Keyword("sin", SIN),
             new Keyword("end", END),
             new Keyword("run", RUN),
             new Keyword("list", LIST)
@@ -682,6 +706,25 @@ public class SBasic {
         }
     }
 
+    /*
+    private void execSin() throws InterpreterException {
+        Log.w("SIN", "execSin");
+        int param;
+        Double ans;
+        getToken();
+
+
+        try {
+            param = Integer.parseInt(token);
+            ans = Math.sin(param);
+            Log.w("SIN", String.format("sin(%d)=%e", param, ans));
+        } catch (NumberFormatException e) {
+            handleErr(SYNTAX);
+        }
+
+    }
+    */
+
     //****************************************************
     private double evaluate() throws InterpreterException {
         //Log.w("eval", "exec");
@@ -690,9 +733,10 @@ public class SBasic {
         if (token.equals(EOP)) {
             handleErr(NOEXP);
         }
+        //Log.w("eval", String.format("token=%s", token));
         result = evalExp1();
         putBack();
-        //Log.w("eval", String.format("ret=%e", result));
+        //Log.w("eval-end", String.format("ret=%e", result));
         return  result;
     }
 
@@ -704,14 +748,19 @@ public class SBasic {
 
         result = evalExp2();
 
-        if (token.equals(EOP)) return  result;
+        if (token.equals(EOP)) {
+            //Log.w("eval1", String.format("EOP!!! ret=%e", result));
+            return  result;
+        }
 
         op = token.charAt(0);
         if (isRelop(op)) {
+            //Log.w("eval1", String.format("op='%c'", op));
             l_temp = result;
             getToken();
             r_temp = evalExp1();
 
+            //Log.w("eval1", String.format("compare!!! L=%e R=%e", l_temp, r_temp));
             switch (op) {
                 case '<':
                     if (l_temp < r_temp) {
@@ -759,7 +808,7 @@ public class SBasic {
                     break;
             }
         }
-        //Log.w("eval1", String.format("ret=%e", result));
+        //Log.w("eval1-end", String.format("ret=%e", result));
         return  result;
     }
 
@@ -772,7 +821,9 @@ public class SBasic {
         result = evalExp3();
 
         while ((op = token.charAt(0)) == '+' || op == '-') {
+            //Log.w("eval2", String.format("op=%c", op));
             getToken();
+            //Log.w("eval2", String.format("next token=%s", token));
             partialResult = evalExp3();
             switch (op) {
                 case '-':
@@ -856,6 +907,7 @@ public class SBasic {
         if ((tokType == DELIMITER) && token.equals("+") || token.equals("-")) {
             op = token;
             getToken();
+            //Log.w("eval5", String.format("type=DELIMITER op='%s' nexttoken='%s'", op, token));
         }
         result = evalExp6();
 
@@ -893,14 +945,38 @@ public class SBasic {
             case NUMBER:
                 try {
                     result = Double.parseDouble(token);
+                    //Log.w("atom", String.format("result=%e", result));
                 } catch (NumberFormatException e) {
                     handleErr(SYNTAX);
                 }
                 getToken();
+                //Log.w("atom", String.format("next token='%s'", token));
                 break;
             case VARIABLE:
                 result = findVar(token);
+                //Log.w("atom", String.format("var=%s result=%e", token, result));
                 getToken();
+                //Log.w("atom", String.format("next token='%s'", token));
+                break;
+            case FUNCTION:
+                switch (kwToken) {
+                    case SIN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.sin(Math.toRadians(temp));
+                                //Log.w("atom", String.format("SIN result=%e", result));
+                            } catch (NumberFormatException e) {
+                                handleErr(SYNTAX);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+                    default:
+                        break;
+                }
                 break;
             default:
                 handleErr(SYNTAX);
@@ -1031,10 +1107,18 @@ public class SBasic {
                 if (pc[bank] >= idxEnd[bank] + 1) break;
             }
             kwToken = lookUp(token);
-            if (kwToken == UNKNCOM) tokType = VARIABLE;
-            else tokType = COMMAND;
+            if (kwToken == UNKNCOM) {
+                tokType = VARIABLE;
+            } else if (kwToken > FUNC_DUMMY) {
+                tokType = FUNCTION;
+            } else {
+                tokType = COMMAND;
+            }
+
             if (tokType == VARIABLE) {
                 Log.w("getToken", String.format("case VARIABLE token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
+            } else if (tokType == FUNCTION) {
+                Log.w("getToken", String.format("case FUNCTION token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
             } else {
                 Log.w("getToken", String.format("case COMMAND token='%s' pc[%d]=%d tokType=%d kwToken=%d", token, bank, pc[bank], tokType, kwToken));
             }
