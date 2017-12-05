@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,7 +44,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private PbMain pb = null;
     private Keyboard inkey = null;
     public static Lcd lcd = null;
-    private static SBasic basic = null;
+    public static SBasic basic = null;
+    public static SourceFile source = null;
     public static boolean keyShift = false;
     public static boolean keyExt = false;
     public static boolean keyMode = false;
@@ -52,16 +56,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static boolean initial; // 仮
     public static boolean bankStatus = false;
     public static int mode = MODE_RUN;
-    //public static boolean selectBank = false;
-    public static int[][] prog;
-    public static int[] pc, idxEnd;
+    public static boolean selectBank = false;
+    //public static int[][] prog;
+    //public static int[] pc, idxEnd;
     public static int bank;
-    public static final int progLength = 2000;
+    public static final int progLength = 2000;  // 仮
+    public static final int bankMax = 10;
 
 
     private int[] mBtnResIds = {
             R.id.buttonDA, R.id.buttonUA, R.id.buttonMODE, R.id.buttonLA, R.id.buttonRA,
-            R.id.buttonSHIFT, R.id.buttonFANCTION,
+            R.id.buttonSHIFT, R.id.buttonFUNC,
 
             R.id.buttonQ, R.id.buttonW, R.id.buttonE, R.id.buttonR, R.id.buttonT,
             R.id.buttonY, R.id.buttonU, R.id.buttonI, R.id.buttonO, R.id.buttonP,
@@ -171,6 +176,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         calcMemoryAndDisp(false);
         listDisp = false;
 
+        source = new SourceFile();
         try {
             basic = new SBasic(lcd);
             //basic.load(src_path + "/sample1.bas");
@@ -181,6 +187,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
             //Log.w("Main", "----- prog completed!!! -----");
         } catch (InterpreterException e) {
             Log.w("Main", String.format("error='%s'", e.toString()));
+        }
+
+        Map<String, String> map = new TreeMap<String, String>(new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return Integer.parseInt(o1) - Integer.parseInt(o2);
+            }
+        });
+
+        map.put("20", "PRINT A");
+        map.put("100", "END");
+        map.put("10", "INPUT A");
+
+        for (String s: map.keySet()) {
+            Log.w("AAAAAAAAA", String.format("key=%s body='%s'", s, map.get(s)));
         }
     }
 
@@ -287,184 +308,61 @@ public class MainActivity extends Activity implements View.OnClickListener {
         //    lcd.cls();
         //}
 
-        if (mode == MODE_PRO && bankStatus && keyShift &&
-                (c == R.id.button0 ||
-                c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
-                c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
-                c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
-            keyShift = false;
-            switch (c) {
-                default:
-                case R.id.button0:
-                    bank = 0;
-                    break;
-                case R.id.button1:
-                    bank = 1;
-                    break;
-                case R.id.button2:
-                    bank = 2;
-                    break;
-                case R.id.button3:
-                    bank = 3;
-                    break;
-                case R.id.button4:
-                    bank = 4;
-                    break;
-                case R.id.button5:
-                    bank = 5;
-                    break;
-                case R.id.button6:
-                    bank = 6;
-                    break;
-                case R.id.button7:
-                    bank = 7;
-                    break;
-                case R.id.button8:
-                    bank = 8;
-                    break;
-                case R.id.button9:
-                    bank = 9;
-                    break;
-            }
-            calcMemoryAndDisp(true);
-            lcd.printBankStatus();
-            Log.w("MainAct", String.format("bank change(%d)", bank));
-        } else if (mode == MODE_PRO &&
-                    (c == R.id.buttonUA || c == R.id.buttonDA)) {
-            String s;
-            switch (c) {
-                case R.id.buttonDA:
-                    if (listDisp) {
-                        s = basic.getListNext();
-                        Log.w("Main", "listNext");
-                    } else {
-                        s = basic.getListTop();
-                        Log.w("Main", "listTop");
-                    }
-                    lcd.print(s, 0);
-                    initial = true;
-                    break;
-                case R.id.buttonUA:
-                    if (listDisp) {
-                        s = basic.getListPrev();
-                        Log.w("Main", "listPrev");
-                    } else {
-                        s = basic.getListBottom();
-                        Log.w("Main", "listBottom");
-                    }
-                    lcd.print(s, 0);
-                    initial = true;
-                    break;
-            }
-        } else if (keyMode && (c == R.id.buttonDOT || c == R.id.button0 ||
-                        c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
-                        c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
-                        c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
-            keyMode = false;
-            //selectBank = false;
-            switch (c) {
-                case R.id.buttonDOT:
-                    keyExt = !keyExt;
-                    lcd.refresh();
-                    break;
-                case R.id.button0:
-                    mode = MODE_RUN;
-                    lcd.cls();
-                    lcd.print("READY P0");
-                    lcd.refresh();
-                    initial = true;
-                    calcMemoryAndDisp(false);
-                    listDisp = false;
-                    break;
-                case R.id.button1:
-                    mode = MODE_PRO;
-                    lcd.printBankStatus();
-                    lcd.refresh();
-                    initial = true;
-                    break;
-                default:
-                    break;
-            }
-            if (mode == MODE_PRO) {
-                calcMemoryAndDisp(true);
-            } else {
-                calcMemoryAndDisp(false);
-                listDisp = false;
-            }
-        } else if (keyShift &&
-                (c == R.id.button0 ||
-                 c == R.id.button1 || c == R.id.button2 || c == R.id.button3 ||
-                 c == R.id.button4 || c == R.id.button5 || c == R.id.button6 ||
-                 c == R.id.button7 || c == R.id.button8 || c == R.id.button9)) {
-            keyShift = false;
-            switch (c) {
-                default:
-                case R.id.button0: bank = 0; break;
-                case R.id.button1: bank = 1; break;
-                case R.id.button2: bank = 2; break;
-                case R.id.button3: bank = 3; break;
-                case R.id.button4: bank = 4; break;
-                case R.id.button5: bank = 5; break;
-                case R.id.button6: bank = 6; break;
-                case R.id.button7: bank = 7; break;
-                case R.id.button8: bank = 8; break;
-                case R.id.button9: bank = 9; break;
-            }
-            try {
-                basic.run();
-            } catch (InterpreterException e) {
-                Log.w("Main", String.format("error='%s'", e.toString()));
-            }
-            initial = true;
-        } else {
-            listDisp = false;
-            if (mode == MODE_PRO) {
-                calcMemoryAndDisp(true);
-            } else {
-                calcMemoryAndDisp(false);
-            }
-            keyMode = false;
-            //selectBank = false;
-            switch (c) {
-                case R.id.buttonLA:
-                    lcd.moveLeft();
-                    break;
-                case R.id.buttonRA:
-                    lcd.moveRight();
-                    break;
-                case R.id.buttonDEL:
-                    if (keyShift) {
-                        lcd.insert();
-                    } else {
-                        lcd.delete();
-                    }
-                    keyShift = false;
-                    keyFunc = false;
-                    break;
-                case R.id.buttonAC:
-                    lcd.cls();
-                    keyShift = false;
-                    keyFunc = false;
+        // モードの切り替え
+        boolean modeChange = true;
+        switch (c) {
+            case R.id.buttonMODE:
+                keyMode = !keyMode;
+                break;
+            case R.id.buttonSHIFT:
+                keyShift = !keyShift;
+                break;
+            case R.id.buttonFUNC:
+                keyFunc = !keyFunc;
+                break;
+            case R.id.buttonDOT:
+                if (keyMode) {
                     keyMode = false;
-                    break;
-                case R.id.buttonSHIFT:
-                    if (!keyFunc) {
-                        keyShift = !keyShift;
-                        lcd.refresh();
-                    }
-                    break;
-                case R.id.buttonFANCTION:
-                    if (!keyMode) {
-                        keyFunc = !keyFunc;
-                        keyShift = false;
-                        lcd.refresh();
-                    }
-                    break;
-                case R.id.buttonMODE:
-                    keyMode = true;
-                    keyFunc = false;
-                    keyShift = false;
-                    break;
+                    keyExt = !keyExt;
+                } else {
+                    modeChange = false;
+                }
+                break;
+            case R.id.button0:
+                if (keyMode) {
+                    keyMode = false;
+                    mode = MODE_RUN;
+                    calcMemoryAndDisp(false);
+                    lcd.print(String.format("READY P%d", bank));
+                    initial = true;
+                } else {
+                    modeChange = false;
+                }
+                break;
+            case R.id.button1:
+                if (keyMode) {
+                    keyMode = false;
+                    mode = MODE_PRO;
+                    calcMemoryAndDisp(true);
+                    lcd.printBankStatus();
+                    initial = true;
+                    listDisp = false;
+                } else {
+                    modeChange = false;
+                }
+                break;
+            default:
+                modeChange = false;
+                break;
+        }
+        if (modeChange) {
+            lcd.refresh();  // 表示の更新
+            return; // モード切り替えのキー入力はこれ以降の処理をしない
+        }
+
+        // 通常のキー入力処理
+        if (mode == MODE_RUN) {
+            switch (c) {
                 case R.id.buttonEXE:
                     String s = lcd.getCmdBuf();
                     if (s == null) break;
@@ -482,11 +380,65 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 default:
                     int code = inkey.getKeyCode(c);
                     if (code != 0) lcd.putchar(code);
-                    keyShift = false;
-                    keyFunc = false;
                     break;
             }
+
+        } else if (mode == MODE_PRO) {
+            String s;
+            switch (c) {
+                case R.id.buttonDA:
+                    if (listDisp) {
+                        s = source.getSourceNext(bank);
+                        listDisp = true;
+                        Log.w("Main", "listNext");
+                    } else {
+                        s = source.getSourceTop(bank);
+                        listDisp = true;
+                        Log.w("Main", "listTop");
+                    }
+                    if (s != null) {
+                        lcd.print(s, 0);
+                        initial = true;
+                    }
+                    break;
+                case R.id.buttonUA:
+                    if (listDisp) {
+                        s = source.getSourcePrev(bank);
+                        listDisp = true;
+                        Log.w("Main", "listPrev");
+                    } else {
+                        s = source.getSourceBottom(bank);
+                        listDisp = true;
+                        Log.w("Main", "listBottom");
+                    }
+                    if (s != null) {
+                        lcd.print(s, 0);
+                        initial = true;
+                    }
+                    break;
+
+                case R.id.buttonEXE:
+                    s = lcd.getCmdBuf();
+                    if (s == null) break;
+
+                    // プログラムの入力確定処理
+                    source.addSource(bank, s);
+                    initial = true;
+                    //lcd.cls();
+                    calcMemoryAndDisp(true);
+                    break;
+                case R.id.buttonANS:
+                    break;
+                default:
+                    int code = inkey.getKeyCode(c);
+                    if (code != 0) lcd.putchar(code);
+                    break;
+            }
+
         }
+        keyShift = false;
+        keyFunc = false;
+
 
         if (vibrate_enable) {
             vib.vibrate(10);
@@ -538,12 +490,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
     // BASICプログラムの読み込み
     protected int load(String filename) {
         int ret = 0;
+        int b = 0;
+        int[] idx = new int[bankMax];
+
+        char[][] ch = new char[progLength][bankMax];
         FileInputStream fis = null;
 
         try {
             fis = new FileInputStream(filename);
 
-            byte buf[] = new byte[2000];
+            byte buf[] = new byte[progLength];
             int len = 0, x;
             while ((x = fis.read(buf)) != -1) {
                 len += x;
@@ -553,7 +509,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             int[] dest = new int[100];
             String str = "";
 
-            bank = 0;
+            b = 0;
             while (r < len) {
                 // 1行読み込み
                 str = "";
@@ -573,9 +529,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 if (m.find()) {
                     //Log.w("AAAAAA", String.format("'%s'", m.group()));
                     //Log.w("AAAAAA", String.format("'%s'", m.group().substring(2,3)));
-                    bank = Integer.parseInt(m.group().substring(2, 3));
-                    idxEnd[bank] = 0;
+                    b = Integer.parseInt(m.group().substring(2, 3));
+                    //idxEnd[bank] = 0;
                     w = 0;
+                    idx[b] = 0;
                     continue;
                 }
 
@@ -603,8 +560,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     }
                     dest[w++] = '\n';
                 }
-                for (int i = 0; i < w; i++, idxEnd[bank]++) {
-                    prog[idxEnd[bank]][bank] = dest[i];
+                for (int i = 0; i < w; i++, idx[b]++) {
+                    ch[idx[b]][b] = (char)dest[i];
                 }
             }
 
@@ -622,18 +579,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         // ロードしたサイズを計算する
-        for (int i = 0; i < 10; i++) {
-            ret += idxEnd[i];
+        for (int i = 0; i < bankMax; i++) {
+            ret += idx[i];
         }
 
         // プログラムがロードされているバンクの最小値をbankにセットする
         bank = 0;
-        for (int i = 0; i < 10; i++) {
-            if (idxEnd[i] != 0) {
+        for (int i = 0; i < bankMax; i++) {
+            if (idx[i] != 0) {
                 bank = i;
                 break;
             }
         }
+
+        for (int i = 0; i < bankMax; i++) {
+            if (idx[i] == 0) continue;
+            char[] charArray = new char[idx[i]];
+            for (int j = 0; j < idx[i]; j++) {
+                charArray[j] = ch[j][i];
+            }
+            String str1 = String.valueOf(charArray);
+            String str2[] = str1.split("\\n", 0);
+
+            source.loadSource(i, str2);
+        }
+
         return ret;
     }
 
@@ -647,25 +617,32 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 dir.mkdirs();
             }
             fos = new FileOutputStream(filename);
-            byte buf[] = new byte[2000];
+            byte buf[] = new byte[progLength];
 
             int l = 0;
-            for (int i = 0; i < 10; i++) {
-                if (idxEnd[i] != 0) {
+            for (int i = 0; i < bankMax; i++) {
+                String[] temp = source.getSourceAll(i);
+                if (temp != null) {
                     String s = String.format("[P%d]", i);
                     for (int n = 0; n < s.length(); n++) {
                         buf[l++] = (byte)s.charAt(n);
                     }
                     buf[l++] = '\n';
-                }
-                for (int j = 0; j < idxEnd[i]; j++) {
-                    if (0xe0 <= prog[j][i] && prog[j][i] <= 0xff) {
-                        for (int n = 0; n < cmdTable[prog[j][i]].length(); n++) {
-                            buf[l++] = (byte)cmdTable[prog[j][i]].charAt(n);
+
+                    for (int j = 0; j < temp.length; j++) {
+                        for (int k = 0; k < temp[j].length(); k++) {
+                            char c = temp[j].charAt(k);
+                            if (0xe0 <= c && c <= 0xff) {
+                                for (int n = 0; n < cmdTable[c].length(); n++) {
+                                    buf[l++] = (byte) cmdTable[c].charAt(n);
+                                }
+                            } else {
+                                buf[l++] = (byte)c;
+                            }
                         }
-                    } else {
-                        buf[l++] = (byte) (prog[j][i] & 0xff);
+                        buf[l++] = '\n';
                     }
+                    buf[l++] = '\n';
                 }
             }
             fos.write(buf, 0, l);
@@ -708,16 +685,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         Log.w("LOG", "path="+txt1);
                         int len = load(txt1);
                         Toast.makeText(this, "loaded:"+txt1+"("+len+")", Toast.LENGTH_LONG).show();
-                        //for (int i = 0; i < 10; i++) {
-                        //    System.out.printf("--- P%d --- size=%d\n", i, idxEnd[i]);
-                        //    for (int j = 0; j < idxEnd[i]; j++) {
-                        //        if (0xe0 <= prog[j][i] && prog[j][i] <= 0xff) {
-                        //            System.out.printf("?(0x%02X)", prog[j][i]);
-                        //        } else {
-                        //            System.out.printf("%c", prog[j][i]);
-                        //        }
-                        //    }
-                        //}
                     } else {
                         // エラー
                         Log.w("MainAct", "load error!");
@@ -760,9 +727,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
 
         int total = 0, remain = 544+1024;
-        for (int i = 0; i < 10; i++) {
-            total += idxEnd[i];
-        }
+        total = source.getUsedMemorySize();
+        //for (int i = 0; i < 10; i++) {
+        //    total += idxEnd[i];
+        //}
         remain -= total;
         if (remain < 0) remain = 0;
 

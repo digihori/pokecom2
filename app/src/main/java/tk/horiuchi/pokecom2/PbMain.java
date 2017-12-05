@@ -14,13 +14,10 @@ import android.widget.ImageView;
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
-import static tk.horiuchi.pokecom2.MainActivity.idxEnd;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
 import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
 import static tk.horiuchi.pokecom2.MainActivity.keyShift;
 import static tk.horiuchi.pokecom2.MainActivity.mode;
-import static tk.horiuchi.pokecom2.MainActivity.pc;
-import static tk.horiuchi.pokecom2.MainActivity.prog;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 
 /**
@@ -50,13 +47,13 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         for (int i=0; i<digit; i++) {
             digi[i] = 0;
         }
-        prog = new int[2000][11];
-        pc = new int[11];
-        idxEnd = new int[11];
-        for (int i = 0; i < 11; i++) {
-            pc[i] = 0;
-            idxEnd[i] = 0;
-        }
+        //prog = new int[2000][11];
+        //pc = new int[11];
+        //idxEnd = new int[11];
+        //for (int i = 0; i < 11; i++) {
+        //    pc[i] = 0;
+        //    idxEnd[i] = 0;
+        //}
         bank = 0;
 
     }

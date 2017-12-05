@@ -49,7 +49,7 @@
         style="@style/charButton"
         android:layout_column="9"
         android:layout_row="0"
-        android:id="@+id/buttonFANCTION"/>
+        android:id="@+id/buttonFUNC"/>
 
     <!--          -->
 
