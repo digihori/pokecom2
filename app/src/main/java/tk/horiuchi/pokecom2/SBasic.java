@@ -7,6 +7,8 @@ import java.io.*;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.MainActivity.bank;
+import static tk.horiuchi.pokecom2.MainActivity.inkey;
+import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
 import static tk.horiuchi.pokecom2.MainActivity.source;
 
@@ -24,6 +26,7 @@ public class SBasic {
     final int COMMAND = 4;
     final int QUTEDSTR = 5;
     final int FUNCTION = 6;
+    final int SVARIABLE = 7;
 
     //
     final int SYNTAX = 0;
@@ -60,6 +63,7 @@ public class SBasic {
     final int EOL = 12;
     final int RUN = 13;
     final int LIST = 14;
+    final int CSR = 15;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -82,6 +86,7 @@ public class SBasic {
     final int FRAC = 48;
     final int RND  = 49;
     final int RAN  = 50;
+    final int KEY  = 51;
 
     //
     final String EOP = "\0";
@@ -92,7 +97,9 @@ public class SBasic {
     final char NE = 3;
 
     //
-    private double vars[];
+    private double[] vars;
+    private String[] svars;
+    private boolean forcedExit = false;
 
     //
     class Keyword {
@@ -116,7 +123,28 @@ public class SBasic {
             new Keyword("to", TO),
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
+            new Keyword("csr", CSR),
+            new Keyword("key", KEY),
+            new Keyword("int", INT),
+            new Keyword("ran#", RAN),
+            new Keyword("set", SET),
+            new Keyword("len", LEN),
+            new Keyword("mid", MID),
+            new Keyword("val", VAL),
             new Keyword("sin", SIN),
+            new Keyword("cos", COS),
+            new Keyword("tan", TAN),
+            new Keyword("asn", ASN),
+            new Keyword("acs", ACS),
+            new Keyword("atn", ATN),
+            new Keyword("log", LOG),
+            new Keyword("ln", LN),
+            new Keyword("exp", EXP),
+            new Keyword("sqr", SQR),
+            new Keyword("abs", ABS),
+            new Keyword("sgn", SGN),
+            new Keyword("frac", FRAC),
+            new Keyword("rnd", RND),
             new Keyword("end", END),
             new Keyword("run", RUN),
             new Keyword("list", LIST)
@@ -147,15 +175,15 @@ public class SBasic {
     private  Stack fStack;
 
     //
-    class Label {
-        String name;
-        int loc;
+    //class Label {
+    //    String name;
+    //    int loc;
 
-        public Label(String str, int i) {
-            name = str;
-            loc = i;
-        }
-    }
+    //    public Label(String str, int i) {
+    //        name = str;
+    //        loc = i;
+    //    }
+    //}
 
     //
     private TreeMap labelTable;
@@ -174,6 +202,7 @@ public class SBasic {
     public SBasic(Lcd lcd) throws InterpreterException {
         this.lcd = lcd;
         vars = new double[26];
+        svars = new String[27];
         fStack = new Stack();
         labelTable = new TreeMap();
         gStack = new Stack();
@@ -185,9 +214,17 @@ public class SBasic {
     }
 
 
-    private void lcdPrint(String s) {
-        lcd.print(s);
+    private void lcdPrintAndPause(String s) {
+        lcd.bprint(s);
         System.out.print(s);
+        pb.progStop();
+    }
+    private void lcdPrint(String s) {
+        lcd.bprint(s);
+        System.out.print(s);
+    }
+    private void lcdPrint(int pos, String s) {
+        lcd.bprint(s);
     }
     private void lcdPrint(char c) {
         lcd.putchar(c);
@@ -215,6 +252,27 @@ public class SBasic {
         }
     }
 
+    private String double2string(Double d) {
+        if (d == null) return null;
+        //Log.w("lcdPrint", String.format("%d", d.intValue()));
+
+        int i = d.intValue();
+        String ret;
+        if (d < 10000000000d) {
+            if (d == (double)i) {
+                ret = String.format("%d", i);
+                //System.out.printf("%d", i);
+            } else {
+                ret = String.format("%f", d);
+                //System.out.printf("%f", d);
+            }
+        } else {
+            ret = String.format("%e", d);
+            //System.out.printf("%e", d);
+        }
+        return ret;
+    }
+
     public void lastAns() {
         //lcd.cls();
         lcdPrint(lastAns);
@@ -235,6 +293,7 @@ public class SBasic {
 
     public void loadProg() {
         String[] temp = source.getSourceAll(bank);
+        if (temp == null) return;
         int p = 0;
         for (int i = 0; i < temp.length; i++) {
             for (int j = 0; j < temp[i].length(); j++) {
@@ -252,6 +311,11 @@ public class SBasic {
         labelTable.clear();
         scanLabels();
         Log.w("RUN", String.format("-------- %s", labelTable));
+        forcedExit = false;
+        sbInterp();
+    }
+
+    public void cont() throws InterpreterException {
         sbInterp();
     }
 
@@ -282,7 +346,10 @@ public class SBasic {
             printTrace();
         }
         getToken();
-        if (tokType == VARIABLE) {
+        if (tokType == VARIABLE || tokType == SVARIABLE) {
+            putBack();
+            assignment();
+            /*
             getToken();
             if (!token.equals(EOL) && tokType == DELIMITER && token.equals("=")) {
                 putBack();
@@ -296,16 +363,18 @@ public class SBasic {
                 lastAns = evaluate();
                 //Log.w("sbCmd1", String.format("%d", lastAns.intValue()));
             }
+            */
         } else if (tokType == COMMAND) {
             switch (kwToken) {
                 case RUN:
                     //lcd.cls();
-                    bank = 0;
+                    //bank = 0;
                     Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
-                    run();
+                    pb.progStart();
                     return;
                     //break;
                 case LIST:
+                    Log.w("SBasic", String.format("--- LIST(%d) ---", bank));
                     getToken();
                     String s;
                     if (tokType == NUMBER) {
@@ -333,14 +402,31 @@ public class SBasic {
         lcdPrintln();
     }
 
+    public void sbExit() {
+        forcedExit = true;
+    }
     private void sbInterp() throws InterpreterException {
+        long oldTime, newTime;
+
         do {
+            oldTime = System.currentTimeMillis();
+            if (pb.isProgStop()) {
+                try{
+                    Thread.sleep(200);
+                }catch(InterruptedException e){}
+
+                //Log.w("SBasic", "prog stop...");
+                continue;
+            }
+            if (forcedExit) {
+                break;
+            }
             if (nextLine) {
                 nextLine = false;
                 printTrace();
             }
             getToken();
-            if (tokType == VARIABLE) {
+            if (tokType == VARIABLE || tokType == SVARIABLE) {
                 putBack();
                 assignment();
             } else if (tokType == COMMAND) {
@@ -362,7 +448,7 @@ public class SBasic {
                         break;
                     case INPUT:
                         input();
-                        break;
+                        return;
                     case GOSUB:
                         gosub();
                         break;
@@ -378,6 +464,21 @@ public class SBasic {
             } else {
                 //Log.w("sbInterp", "???");
             }
+
+            // 処理速度の調整
+            newTime = System.currentTimeMillis();
+            long sleepTime = 10 - (newTime - oldTime);
+
+
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    ;
+                }
+            }
+
+
         } while (!token.equals(EOP));
 
     }
@@ -418,34 +519,88 @@ public class SBasic {
         char vname;
 
         getToken();
-        vname = token.charAt(0);
-        Log.w("assign", String.format("%c", vname));
+        Log.w("assignment", String.format("%s", token));
+        if (isSval(token)) {
+            // 文字列変数の処理
+            vname = token.charAt(0);
+            if (vname == '$') {
+                var = 26;
+            } else {
+                var = (int) Character.toUpperCase(vname) - 'A';
+            }
 
-        if (!Character.isLetter(vname)) {
-            handleErr(NOTVAR);
-            Log.w("assign", "NOTVAR");
-            return;
+            String lastToken = token;
+            getToken();
+            if (!token.equals("=")) {
+                //handleErr(EQUALEXPECTED);
+                putBack();
+                token = lastToken;
+                putBack();
+                // エラー処理
+                return;
+            }
+
+            getToken();
+            switch (tokType) {
+                case QUTEDSTR:
+                    svars[var] = token;
+                    break;
+                case FUNCTION:
+                    if (kwToken == KEY) {
+                        svars[var] = String.valueOf((char)inkey.getPressKeyCode());
+                    } else {
+                        return;
+                    }
+                    break;
+                default:
+                    return;
+            }
+            //if (tokType != QUTEDSTR) {
+            //    handleErr(EQUALEXPECTED);
+            //    return;
+            //}
+            //svars[var] = token;
+
+        } else {
+            // 数値変数の処理
+            vname = token.charAt(0);
+            Log.w("assign", String.format("%c(%02x)", vname, (int)vname));
+
+            if (!Character.isLetter(vname)) {
+                handleErr(NOTVAR);
+                Log.w("assign", "NOTVAR");
+                return;
+            }
+
+            var = (int) Character.toUpperCase(vname) - 'A';
+
+            String lastToken = token;
+            getToken();
+            if (!token.equals("=")) {
+                //handleErr(EQUALEXPECTED);
+                //return;
+                putBack();
+                token = lastToken;
+                putBack();
+                lastAns = evaluate();
+                return;
+            }
+
+            value = evaluate();
+            lastAns = value;
+            //Log.w("assig", String.format("%d", lastAns.intValue()));
+
+            vars[var] = value;
         }
-
-        var = (int) Character.toUpperCase(vname) - 'A';
-
-        getToken();
-        if (!token.equals("=")) {
-            handleErr(EQUALEXPECTED);
-            return;
-        }
-
-        value = evaluate();
-        lastAns = value;
-        //Log.w("assig", String.format("%d", lastAns.intValue()));
-
-        vars[var] = value;
     }
 
     private void print() throws InterpreterException {
         double result;
         int len = 0, spaces;
         String lastDelim = "";
+        int pos = 0;
+        String prtStr = "";
+        StringBuilder sb = null;
 
         //Log.w("PRT", "Exec PRINT !!!!");
 
@@ -462,22 +617,66 @@ public class SBasic {
             if (tokType == QUTEDSTR) {
                 //Log.w("PRT", String.format("tokType=QUTEDSTR(%d)", tokType));
                 //System.out.print(token);
-                lcdPrint(token);
+                //lcdPrint(token);
+                if (sb == null) {
+                    prtStr += token;
+                } else {
+                    sb.replace(pos, pos + token.length(), token);
+                    Log.w("print", String.format("sb='%s'", sb.toString()));
+                }
                 //Log.w("PRT", String.format("%s", token));
                 len += token.length();
                 getToken();
-            } else {
+            } else if (tokType == VARIABLE) {
                 //Log.w("PRT", String.format("tokType!=QUTEDSTR(%d)", tokType));
                 putBack();
                 result = evaluate();
                 getToken();
                 //Log.w("PRT", String.format("AAAAA=%s", token));
                 //System.out.print(result);
-                lcdPrint(result);
+                //lcdPrint(result);
+                //String s = String.valueOf(result);
+                //int l = s.length();
+                //prtStr += s.substring(0, l < 12 ? l : 12);
+                prtStr += double2string(result);
                 //Log.w("PRT", String.format("%d", result));
 
                 Double t = new Double(result);
                 len += t.toString().length();
+            } else if (tokType == SVARIABLE) {
+                //putBack();
+                String s = findSVer(token);
+                if (s != null) {
+                    //lcdPrint(s);
+                    //prtStr += s;
+                    if (sb == null) {
+                        prtStr += s;
+                    } else {
+                        sb.replace(pos, pos + s.length(), s);
+                        Log.w("print", String.format("sb='%s'", sb.toString()));
+                    }
+
+                }
+                len += s.length();
+                getToken();
+            } else if (tokType == COMMAND) {
+                if (kwToken == CSR) {
+                    result = evaluate();
+                    if (result < 12) {
+                        pos = (int) result;
+                        String s = "";
+                        if (prtStr.length() < 11) {
+                            for (int i = 0; i < 11 - prtStr.length(); i++) {
+                                s += " ";
+                            }
+                        }
+                        if (sb == null) {
+                            Log.w("print", String.format("sb=new '%s'", prtStr+s));
+                            sb = new StringBuilder(prtStr + s);
+                        }
+                        Log.w("print", String.format("sb='%s'", sb.toString()));
+                    }
+                }
             }
             lastDelim = token;
             //Log.w("PRT", String.format("lastDelim='%s'", lastDelim));
@@ -489,7 +688,8 @@ public class SBasic {
                 len += spaces;
                 while (spaces != 0) {
                     //System.out.print(" ");
-                    lcdPrint(" ");
+                    //lcdPrint(" ");
+                    prtStr += " ";
                     spaces--;
                 }
             } else if (token.equals(";")) {
@@ -500,10 +700,16 @@ public class SBasic {
                 handleErr(SYNTAX);
             }
         } while (lastDelim.equals(";") || lastDelim.equals(","));
+        if (sb != null) prtStr = sb.toString();
         if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
-            if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
+            //if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
                 //System.out.println();
-                lcdPrintln();
+                //lcdPrintln();
+            //}
+            if (lastDelim.equals(";")) {
+                lcdPrint(prtStr);
+            } else {
+                lcdPrintAndPause(prtStr);
             }
         } else {
             handleErr(SYNTAX);
@@ -597,7 +803,7 @@ public class SBasic {
         int var;
         double val = 0.0;
         String str;
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        //BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         getToken();
         if (tokType == QUTEDSTR) {
             //System.out.print(token);
@@ -605,10 +811,9 @@ public class SBasic {
             getToken();
             if (!token.equals(",")) handleErr(SYNTAX);
             getToken();
-        } else {
-            //System.out.print("? ");
-            lcdPrint("? ");
         }
+        //System.out.print("? ");
+        lcdPrint("?");
     }
 
     private void gosub() throws InterpreterException {
@@ -905,6 +1110,24 @@ public class SBasic {
                         getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
+                    case KEY:
+                        result = inkey.getPressKeyCode();
+                        Log.w("atom", String.format("KEY result=%d", result));
+                        getToken();
+                        break;
+                    case RAN:
+                        result = Math.random();
+                        getToken();
+                        break;
+                    case INT:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            result = (int)temp;
+                        }
+                        getToken();
+                        break;
+
                     default:
                         break;
                 }
@@ -925,12 +1148,24 @@ public class SBasic {
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
 
+    private String findSVer(String vname) throws InterpreterException {
+        if (vname.equals("$")) {
+            return svars[26];
+        }
+        if (!Character.isLetter(vname.charAt(0))) {
+            handleErr(SYNTAX);
+            return null;
+        }
+        return svars[Character.toUpperCase(vname.charAt(0)) - 'A'];
+    }
+
     private void putBack() {
         //if  (token == EOP) return;
         if (pc < 1) return;
         for (int i = 0; i < token.length(); i++) {
             if (pc > 0) pc--;
         }
+        Log.w("putBack", "pc="+pc);
     }
 
     private void handleErr(int error) throws InterpreterException {
@@ -1031,7 +1266,7 @@ public class SBasic {
             pc++;
             tokType = DELIMITER;
             Log.w("getToken", String.format("case DELIMITER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
-        } else if (Character.isLetter(prog[pc])) {
+        } else if (Character.isLetter(prog[pc]) || prog[pc] == '$') {
             while (!isDelim(prog[pc])) {
                 token += (char)(prog[pc]&0xff);
                 pc++;
@@ -1039,7 +1274,11 @@ public class SBasic {
             }
             kwToken = lookUp(token);
             if (kwToken == UNKNCOM) {
-                tokType = VARIABLE;
+                if (isSval(token)) {
+                    tokType = SVARIABLE;
+                } else {
+                    tokType = VARIABLE;
+                }
             } else if (kwToken > FUNC_DUMMY) {
                 tokType = FUNCTION;
             } else {
@@ -1048,6 +1287,8 @@ public class SBasic {
 
             if (tokType == VARIABLE) {
                 Log.w("getToken", String.format("case VARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            } else if (tokType == SVARIABLE) {
+                    Log.w("getToken", String.format("case SVARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             } else if (tokType == FUNCTION) {
                 Log.w("getToken", String.format("case FUNCTION token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             } else {
@@ -1112,6 +1353,18 @@ public class SBasic {
             }
         }
         return UNKNCOM;
+    }
+
+    private boolean isSval(String s) {
+        if (s == null) return false;
+
+        char c = Character.toUpperCase(s.charAt(0));
+        if (c == '$') return true;
+        if (s.length() > 1 && 'A' <= c && c < 'Z' && s.charAt(1) == '$') {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 

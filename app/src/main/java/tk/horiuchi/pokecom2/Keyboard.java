@@ -5,6 +5,8 @@ import android.util.Log;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
 import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
 import static tk.horiuchi.pokecom2.MainActivity.keyShift;
+import static tk.horiuchi.pokecom2.MainActivity.mBtnResIds;
+import static tk.horiuchi.pokecom2.MainActivity.mBtnStatus;
 
 
 /**
@@ -38,6 +40,23 @@ public class Keyboard {
             if (keyTable[i].keyCode == x) {
                 Log.w("Keyboard", String.format("getKeyCode=%x", keyTable[i].charCode[index]));
                 return (keyTable[i].charCode[index]);
+            }
+        }
+        return 0;
+    }
+
+    public int getPressKeyCode() {
+        int btnId = 0;
+        for (int idx = 0; idx < mBtnStatus.length; idx++) {
+            if (mBtnStatus[idx]) {
+                btnId = mBtnResIds[idx];
+                break;
+            }
+        }
+        for (int i = 0; i < keyTable.length; i++) {
+            if (keyTable[i].keyCode == btnId) {
+                //Log.w("Keyboard", String.format("getKeyCode=%x", keyTable[i].charCode[0]));
+                return (keyTable[i].charCode[0]);
             }
         }
         return 0;
@@ -113,7 +132,7 @@ public class Keyboard {
             new KeyTable(R.id.buttonMLT,   '*', '>',  '*', '>',  0),
             new KeyTable(R.id.buttonDIV,   '/', '<',  '/', '<',  0),
             new KeyTable(R.id.buttonAC,   0x1a, 0, 0, 0, 0),
-            new KeyTable(R.id.buttonEXE,  0x1b, 0, 0, 0, 0),
+            new KeyTable(R.id.buttonEXE,  0x1b, 0x1b, 0x1b, 0x1b, 0x1b),
             new KeyTable(R.id.buttonSTOP, 0x1c, 0, 0, 0, 0),
             new KeyTable(R.id.buttonDEL,  0x1d, 0x1e, 0, 0, 0),
             new KeyTable(R.id.buttonLA,   0x10, 0x10, 0x10, 0x10, 0),

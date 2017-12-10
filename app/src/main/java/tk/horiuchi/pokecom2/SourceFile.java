@@ -79,21 +79,26 @@ public class SourceFile {
         return total;
     }
 
-    public void addSource(int n, String src) {
-        if (n > 9) return;
+    public int addSource(int n, String src) {
+        if (n > 9) return -1;
 
+        int ret;
         BasicSource temp = new BasicSource(src);
         if (list[n].contains(temp)) {
             int i = list[n].indexOf(temp);
             if (temp.body != null) {
                 list[n].set(i, temp);
+                ret = 1;
             } else {
                 list[n].remove(i);
+                ret = -1;
             }
         } else {
             list[n].add(temp);
+            ret = 0;
         }
         Collections.sort(list[n], new MyComparator());
+        return ret;
     }
 
     public void clearSource(int n) {
@@ -168,9 +173,15 @@ public class SourceFile {
         if (n > 9) return null;
         int size = list[n].size();
         if (size == 0) return null;
-        idx[n] = m;
-        if (idx[n] < 0) idx[n] = 0;
-        if (idx[n] >= size) idx[n] = size - 1;
+        BasicSource temp = new BasicSource(String.valueOf(m));
+        int i = list[n].indexOf(temp);
+        if (i != -1) {
+            idx[n] = i;
+        } else {
+            idx[n] = 0;
+        }
+        //if (idx[n] < 0) idx[n] = 0;
+        //if (idx[n] >= size) idx[n] = size - 1;
         return ((BasicSource)list[n].get(idx[n])).body;
     }
 

@@ -12,11 +12,13 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -36,13 +38,13 @@ import static tk.horiuchi.pokecom2.Common.type10inch;
 import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 
-public class MainActivity extends Activity implements View.OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
     public static float dpdx, dpdx_org;
     public static int deviceType;
     public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/pokecom2";
     //private Common define;
-    private PbMain pb = null;
-    private Keyboard inkey = null;
+    public static PbMain pb = null;
+    public static Keyboard inkey = null;
     public static Lcd lcd = null;
     public static SBasic basic = null;
     public static SourceFile source = null;
@@ -57,14 +59,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public static boolean bankStatus = false;
     public static int mode = MODE_RUN;
     public static boolean selectBank = false;
-    //public static int[][] prog;
-    //public static int[] pc, idxEnd;
     public static int bank;
     public static final int progLength = 2000;  // 仮
     public static final int bankMax = 10;
 
 
-    private int[] mBtnResIds = {
+    public static int[] mBtnResIds = {
             R.id.buttonDA, R.id.buttonUA, R.id.buttonMODE, R.id.buttonLA, R.id.buttonRA,
             R.id.buttonSHIFT, R.id.buttonFUNC,
 
@@ -83,6 +83,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             R.id.button1, R.id.button2, R.id.button3, R.id.buttonPLS,
             R.id.button0, R.id.buttonDOT, R.id.buttonEXE
     };
+
+    public static Boolean[] mBtnStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -163,8 +165,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         // Buttonインスタンスの取得
         // ButtonインスタンスのリスナーをこのActivityクラスそのものにする
+        mBtnStatus = new Boolean[mBtnResIds.length];
         for (int i = 0; i < mBtnResIds.length; i++) {
+            mBtnStatus[i] = false;
             findViewById(mBtnResIds[i]).setOnClickListener(this);
+            findViewById(mBtnResIds[i]).setOnTouchListener(this);
         }
         // ボタンの枠表示を切り替える
         changeButtonFrame(mBtnResIds, debug_info);
@@ -179,30 +184,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
         source = new SourceFile();
         try {
             basic = new SBasic(lcd);
-            //basic.load(src_path + "/sample1.bas");
-            //basic.run();
-
-            //basic.calc("A=1+2*3");
-            //basic.calc("A");
             //Log.w("Main", "----- prog completed!!! -----");
         } catch (InterpreterException e) {
             Log.w("Main", String.format("error='%s'", e.toString()));
         }
 
-        Map<String, String> map = new TreeMap<String, String>(new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                return Integer.parseInt(o1) - Integer.parseInt(o2);
-            }
-        });
-
-        map.put("20", "PRINT A");
-        map.put("100", "END");
-        map.put("10", "INPUT A");
-
-        for (String s: map.keySet()) {
-            Log.w("AAAAAAAAA", String.format("key=%s body='%s'", s, map.get(s)));
-        }
     }
 
     @Override
@@ -300,13 +286,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         Log.w("Click", String.format("key=%d", c));
 
-        //if (bankStatus) {
-        //    bankStatus = false;
-        //}
-        //if (initial) {
-        //    initial = false;
-        //    lcd.cls();
-        //}
+        if (c != R.id.buttonSTOP && pb.isProgRunning()) return;
 
         // モードの切り替え
         boolean modeChange = true;
@@ -333,6 +313,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     keyMode = false;
                     mode = MODE_RUN;
                     calcMemoryAndDisp(false);
+                    lcd.cls();
                     lcd.print(String.format("READY P%d", bank));
                     initial = true;
                 } else {
@@ -364,15 +345,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
         if (mode == MODE_RUN) {
             switch (c) {
                 case R.id.buttonEXE:
-                    String s = lcd.getCmdBuf();
-                    if (s == null) break;
-                    try {
-                        Log.w("EXE", String.format("%s", s));
-                        basic.calc(lcd.getCmdBuf());
-                    } catch (InterpreterException e) {
-                        Log.w("Main", String.format("error='%s'", e.toString()));
+                    if (pb.isProgStop()) {
+                        lcd.putchar(inkey.getKeyCode(c));
+                    } else {
+                        String s = lcd.getCmdBuf();
+                        if (s == null) break;
+                        try {
+                            Log.w("EXE", String.format("%s", s));
+                            basic.calc(lcd.getCmdBuf());
+                        } catch (InterpreterException e) {
+                            Log.w("Main", String.format("error='%s'", e.toString()));
+                        }
+                        initial = true;
                     }
-                    initial = true;
                     break;
                 case R.id.buttonANS:
                     basic.lastAns();
@@ -397,8 +382,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         Log.w("Main", "listTop");
                     }
                     if (s != null) {
-                        lcd.print(s, 0);
-                        initial = true;
+                        lcd.printSourceList(s);
+                        //initial = true;
                     }
                     break;
                 case R.id.buttonUA:
@@ -412,8 +397,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         Log.w("Main", "listBottom");
                     }
                     if (s != null) {
-                        lcd.print(s, 0);
-                        initial = true;
+                        lcd.printSourceList(s);
+                        //initial = true;
                     }
                     break;
 
@@ -421,11 +406,49 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     s = lcd.getCmdBuf();
                     if (s == null) break;
 
-                    // プログラムの入力確定処理
-                    source.addSource(bank, s);
-                    initial = true;
-                    //lcd.cls();
-                    calcMemoryAndDisp(true);
+                    String[] temp = s.split("\\s+");
+                    if (temp[0].equals("LIST")) {
+                        String ss;
+                        if (temp.length == 1) {
+                            ss = source.getSourceTop(bank);
+                        } else {
+                            int num = Integer.parseInt(temp[1]);
+                            ss = source.getSource(bank, num);
+                        }
+                        listDisp = true;
+                        if (ss != null) lcd.printSourceList(ss);
+                    } else if (temp[0].equals("CLEAR")) {
+                        if (temp.length == 1) {
+                            source.clearSource(bank);
+                        } else if (temp[1].equals("A")) {
+                            source.clearSourceAll();
+                        } else {
+                            ;
+                        }
+                        lcd.cls();
+                        calcMemoryAndDisp(true);
+                    } else {
+                        // プログラムの入力確定処理
+                        int ret = source.addSource(bank, s);
+                        if (ret == 0) {
+                            // 新規の行の追加の場合はそのまま内容を表示する
+                            initial = true;
+                            lcd.print(s);
+                            initial = true;
+                        } else if (ret == 1) {
+                            // 行の更新の場合は次の行を表示する
+                            s = source.getSourceNext(bank);
+                            listDisp = true;
+                            if (s != null) {
+                                lcd.printSourceList(s);
+                            }
+                        } else if (ret == -1) {
+                            // 行の削除の場合は表示クリア
+                            lcd.cls();
+                        }
+                        //lcd.cls();
+                        calcMemoryAndDisp(true);
+                    }
                     break;
                 case R.id.buttonANS:
                     break;
@@ -815,5 +838,59 @@ public class MainActivity extends Activity implements View.OnClickListener {
         iv.setImageResource(res);
     }
 
+    private int getBtnIdx(int id) {
+        for (int idx = 0; idx < mBtnResIds.length; idx++) {
+            if (id == mBtnResIds[idx]) return idx;
+        }
+        return -1;
+    }
+
+    private void setBtnStatus(int id, boolean sts) {
+        int idx = getBtnIdx(id);
+        if (idx != -1) mBtnStatus[idx] = sts;
+    }
+
+    public int getPressBtnId() {
+        for (int idx = 0; idx < mBtnResIds.length; idx++) {
+            if (mBtnStatus[idx]) return mBtnResIds[idx];
+        }
+        return 0;
+    }
+
+    public boolean onTouch(View v, MotionEvent event) {
+        int id = v.getId();
+        String str = "";
+
+        int eventAction = event.getActionMasked();
+        //int pointerIndex = event.getActionIndex();
+        //int pointerId = event.getPointerId(pointerIndex);
+
+        switch (eventAction) {
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                setBtnStatus(id, true);
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                setBtnStatus(id, false);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                break;
+        }
+
+
+        /*
+        str = String.format("mBtnStatus=[%s %s %s %s]",
+                String.valueOf(mBtnStatus[0]),
+                String.valueOf(mBtnStatus[1]),
+                String.valueOf(mBtnStatus[2]),
+                String.valueOf(mBtnStatus[3])  );
+
+        ((TextView)findViewById(R.id.text1)).setText(str);
+        Log.w("OnTouch", str);
+        */
+        return false;
+    }
 
 }

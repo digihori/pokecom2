@@ -13,6 +13,7 @@ import android.widget.ImageView;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.MainActivity.basic;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
 import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
@@ -33,6 +34,8 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     private final int column = 12;
     private final int digit = 5 * column;
     public static byte digi[];
+
+    private boolean pause = false;
 
 
     public PbMain(Context context, SurfaceView sv) {
@@ -96,6 +99,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     @Override
     public void run() {
 
+        /*
         while (thread != null) {
             //sc.CpuRun();
             //Log.w("LOG", "run");
@@ -107,6 +111,16 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             }
             //Log.w("PbMain", "--- run ---");
         }
+        */
+
+        Log.w("PbMain", "Thread start !!!");
+        try {
+            basic.run();
+        } catch (InterpreterException e) {
+
+        }
+        thread = null;
+        Log.w("PbMain", "Thread finish !!!");
     }
 
     protected void doDraw(SurfaceHolder holder) {
@@ -220,7 +234,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
                 p.setColor(Color.LTGRAY);
             }
             c.drawText("PRT", 300, 20, p);
-            if (false) {
+            if (pause) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
@@ -236,6 +250,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
     public void refreshScreen() {
         refresh_cnt++;
+        //Log.w("ref", "refreshScreen called.....");
     }
 
     private void _refreshScreen() {
@@ -243,8 +258,32 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     }
 
     public void progStart() {
-        if (thread == null) thread = new Thread(this);
-        thread.start();
+        if (thread == null) {
+            thread = new Thread(this);
+            thread.start();
+        }
+    }
+
+    public void progStop() {
+        pause = true;
+        Log.w("PbMain", "progStop");
+    }
+
+    public void progRestart() {
+        pause = false;
+        Log.w("PbMain", "progRestart");
+    }
+
+    public boolean isProgStop() {
+        return pause;
+    }
+
+    public boolean isProgExist() {
+        return (thread == null ? false : true);
+    }
+
+    public boolean isProgRunning() {
+        return ((thread != null && !pause) ? true : false);
     }
 
     public void progEnd() {

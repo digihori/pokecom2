@@ -12,6 +12,7 @@ import static tk.horiuchi.pokecom2.MainActivity.basic;
 import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.MainActivity.listDisp;
 import static tk.horiuchi.pokecom2.MainActivity.mode;
+import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.source;
 import static tk.horiuchi.pokecom2.PbMain.digi;
 
@@ -232,6 +233,52 @@ public class Lcd {
         debug();
     }
 
+    public void printSourceList(String s) {
+        if (bankStatus) {
+            bankStatus = false;
+        }
+        cls();
+        for (int i = 0; i < s.length(); i++) {
+            buf[i] = s.charAt(i);
+        }
+        for (int i = 0; i < 12 && i < s.length(); i++) {
+            printDigit(i, buf[i]);
+        }
+        buf_top = 0;
+        buf_index = s.length();
+        cursor = buf_index < 12 ? buf_index : 11;
+    }
+
+    public void bprint(String s) {
+        if (bankStatus) {
+            bankStatus = false;
+        }
+
+        cls();
+        initial = true;
+
+        for (int i = 0; i < s.length() && i < 12; i++) {
+            printDigit(i, s.charAt(i));
+        }
+        listener.refreshScreen();
+        if (s.length() >= 12) {
+            try{
+                Thread.sleep(1000);
+            }catch(InterruptedException e){}
+
+            for (int i = 0; i < s.length() - 12; i++) {
+                try{
+                    Thread.sleep(500);
+                }catch(InterruptedException e){}
+
+                for (int j = 0; j < 12; j++) {
+                    printDigit(j, s.charAt(i + 1 + j));
+                }
+                listener.refreshScreen();
+            }
+        }
+    }
+
     public void print(String s) {
         if (bankStatus) {
             bankStatus = false;
@@ -240,6 +287,7 @@ public class Lcd {
             initial = false;
             cls();
         }
+
         for (int i = 0; i < s.length(); i++) {
             putc(s.charAt(i));
         }
@@ -292,7 +340,12 @@ public class Lcd {
                     cls();
                     break;
                 case 0x1b:  // EXE
+                    Log.w("putChar", "EXE!!!!!");
+
                     String s = getCmdBuf();
+                    if (mode == MODE_RUN && pb.isProgStop()) {
+                        pb.progRestart();
+                    }
                     if (s == null) break;
                     //try {
                     //    Log.w("EXE", String.format("%s", s));
@@ -302,6 +355,10 @@ public class Lcd {
                     //}
                     break;
                 case 0x1c:  // STOP
+                    if (mode == MODE_RUN && pb.isProgExist()) {
+                        //pb.progStop();
+                        basic.sbExit();
+                    }
                     break;
                 case 0x1d:  // DEL
                     delete();
@@ -315,13 +372,15 @@ public class Lcd {
         } else if (0x80 <= c && c <=0x8f && !cmdTable[c].equals("\0")) {
             if (mode == MODE_RUN && (c & 0x0f) < 10) {
                 bank = c & 0x0f;
+                pb.progStart();
+/*
                 try {
                     Log.w("lcd", String.format("run! P=%d", bank));
                     basic.run();
                 } catch (InterpreterException e) {
                     Log.w("Main", String.format("error='%s'", e.toString()));
                 }
-
+*/
             } else if (mode == MODE_PRO && (c & 0x0f) < 10) {
                 bank = c & 0x0f;
                 printBankStatus();
@@ -332,7 +391,7 @@ public class Lcd {
             // バンクの切り替え
         } else if (0x90 <= c && c <=0xdf && !cmdTable[c].equals("\0")) {
             // 予約語の入力
-            if (buf_top + cursor != 0) putc(' ');
+            if (buf_top + cursor != 0 && buf[buf_top + cursor - 1] != ' ') putc(' ');
             print(cmdTable[c]);
             putc(' ');
             Log.w("Lcd", String.format("putchar='%s'", cmdTable[c]));
