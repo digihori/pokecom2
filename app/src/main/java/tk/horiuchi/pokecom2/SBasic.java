@@ -27,6 +27,7 @@ public class SBasic {
     final int QUTEDSTR = 5;
     final int FUNCTION = 6;
     final int SVARIABLE = 7;
+    final int BANKNUM = 8;
 
     //
     final int SYNTAX = 0;
@@ -64,6 +65,7 @@ public class SBasic {
     final int RUN = 13;
     final int LIST = 14;
     final int CSR = 15;
+    final int VAC = 16;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -100,6 +102,7 @@ public class SBasic {
     private double[] vars;
     private String[] svars;
     private boolean forcedExit = false;
+    private String resultStr;
 
     //
     class Keyword {
@@ -124,6 +127,7 @@ public class SBasic {
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
             new Keyword("csr", CSR),
+            new Keyword("vac", VAC),
             new Keyword("key", KEY),
             new Keyword("int", INT),
             new Keyword("ran#", RAN),
@@ -189,6 +193,15 @@ public class SBasic {
     private TreeMap labelTable;
 
     //
+    class GosubInfo {
+        int bank;
+        int pc;
+
+        public GosubInfo(int b, int p) {
+            bank = b;
+            pc = p;
+        }
+    }
     private Stack gStack;
 
     //
@@ -315,6 +328,22 @@ public class SBasic {
         sbInterp();
     }
 
+    private void bankChange(int b) throws InterpreterException {
+        bankChange(b, 0);
+    }
+
+    private void bankChange(int b, int l) throws InterpreterException {
+        bank = b;
+        loadProg();
+        pc = 0;
+        labelTable.clear();
+        scanLabels();
+        pc = l;
+        Log.w("bank change", String.format("-------- %s", labelTable));
+        getToken();
+        putBack();
+    }
+
     public void cont() throws InterpreterException {
         sbInterp();
     }
@@ -405,6 +434,7 @@ public class SBasic {
     public void sbExit() {
         forcedExit = true;
     }
+
     private void sbInterp() throws InterpreterException {
         long oldTime, newTime;
 
@@ -431,6 +461,9 @@ public class SBasic {
                 assignment();
             } else if (tokType == COMMAND) {
                 switch (kwToken) {
+                    case VAC:
+                        vac();
+                        break;
                     case PRINT:
                         print();
                         break;
@@ -467,7 +500,7 @@ public class SBasic {
 
             // 処理速度の調整
             newTime = System.currentTimeMillis();
-            long sleepTime = 10 - (newTime - oldTime);
+            long sleepTime = 5 - (newTime - oldTime);
 
 
             if (sleepTime > 0) {
@@ -540,7 +573,10 @@ public class SBasic {
                 return;
             }
 
-            getToken();
+            //getToken();
+            strOpe();
+            svars[var] = resultStr;
+            /*
             switch (tokType) {
                 case QUTEDSTR:
                     svars[var] = token;
@@ -555,6 +591,7 @@ public class SBasic {
                 default:
                     return;
             }
+            */
             //if (tokType != QUTEDSTR) {
             //    handleErr(EQUALEXPECTED);
             //    return;
@@ -592,6 +629,16 @@ public class SBasic {
 
             vars[var] = value;
         }
+    }
+
+    private void vac() {
+        Log.w("VAC", "variable cleared.");
+        for (int i = 0; i < 26; i++) {
+            vars[i] = 0;
+            svars[i] = "";
+        }
+        svars[26] = "";
+        lastAns = 0.0;
     }
 
     private void print() throws InterpreterException {
@@ -644,8 +691,19 @@ public class SBasic {
                 Double t = new Double(result);
                 len += t.toString().length();
             } else if (tokType == SVARIABLE) {
-                //putBack();
-                String s = findSVer(token);
+                putBack();
+                strOpe();
+                //String s = findSVer(token);
+                if (resultStr != "") {
+                    if (sb == null) {
+                        prtStr += resultStr;
+                    } else {
+                        sb.replace(pos, pos + resultStr.length(), resultStr);
+                        Log.w("print", String.format("sb='%s'", sb.toString()));
+                    }
+
+                }
+                /*
                 if (s != null) {
                     //lcdPrint(s);
                     //prtStr += s;
@@ -657,7 +715,8 @@ public class SBasic {
                     }
 
                 }
-                len += s.length();
+                */
+                len += resultStr.length();
                 getToken();
             } else if (tokType == COMMAND) {
                 if (kwToken == CSR) {
@@ -719,31 +778,62 @@ public class SBasic {
     private void execGoto() throws InterpreterException {
         Integer loc;
         getToken();
+        Log.w("GOTO", String.format("%s", token));
 
-        loc = (Integer) labelTable.get(token);
-        if (loc == null) {
-            handleErr(UNDEFLABEL);
+        if (token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+            // バンク切り替え
+            int b = token.charAt(1) - '0';
+            Log.w("GOTO", String.format("bank change -> #%d", b));
+            bankChange(b);
         } else {
-            pc = loc.intValue();
-            nextLine = true;
-            //Log.w("GOTO", String.format("goto %s(%d)", token, loc));
+            loc = (Integer) labelTable.get(token);
+            if (loc == null) {
+                handleErr(UNDEFLABEL);
+            } else {
+                pc = loc.intValue();
+                nextLine = true;
+                //Log.w("GOTO", String.format("goto %s(%d)", token, loc));
+            }
         }
     }
 
 
     private void execIf() throws InterpreterException {
         double result;
-        result = evaluate();
-
-        Log.w("IF", String.format("if (%d)", result));
-        if (result != 0.0) {
-            getToken();
-            if (kwToken != THEN) {
-                handleErr(THENECPECTED);
-                return;
+        getToken();
+        if (tokType == SVARIABLE) {
+            putBack();
+            boolean ret = strOpe();
+            Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
+            if (ret) {
+                getToken();
+                /*
+                if (kwToken != THEN) {
+                    Log.w("IF", "handleErr");
+                    handleErr(THENECPECTED);
+                    return;
+                }
+                */
+            } else {
+                findEOL();
             }
-        } else
-            findEOL();
+        } else {
+            putBack();
+            result = evaluate();
+
+            Log.w("IF", String.format("if (%d)", (int)result));
+            if (result != 0.0) {
+                getToken();
+                /*
+                if (kwToken != THEN) {
+                    handleErr(THENECPECTED);
+                    return;
+                }
+                */
+            } else {
+                findEOL();
+            }
+        }
     }
 
     private void execFor() throws InterpreterException {
@@ -820,46 +910,169 @@ public class SBasic {
         Integer loc;
         getToken();
 
-        loc = (Integer) labelTable.get(token);
-        if (loc == null)
-            handleErr(UNDEFLABEL);
-        else {
-            gStack.push(new Integer(pc));
+        if (tokType == BANKNUM) {
+            gStack.push(new GosubInfo(bank, pc));
+            // バンク切り替え
+            int b = token.charAt(1) - '0';
+            Log.w("GOSUB", String.format("bank change -> #%d(%d)", b, pc));
+            bankChange(b);
+        } else {
+            loc = (Integer) labelTable.get(token);
+            if (loc == null) {
+                handleErr(UNDEFLABEL);
+            } else {
+                //gStack.push(new Integer(pc));
+                gStack.push(new GosubInfo(bank, pc));
 
-            pc = loc.intValue();
-            nextLine = true;
+                pc = loc.intValue();
+                nextLine = true;
+            }
         }
     }
 
     private void greturn() throws InterpreterException {
-        Integer t;
+        //Integer t;
+        GosubInfo gi;
+
         try {
-            t = (Integer) gStack.pop();
-            pc = t.intValue();
-            nextLine = true;
+            //t = (Integer) gStack.pop();
+            //pc = t.intValue();
+            gi = (GosubInfo)gStack.pop();
+            Log.w("GOSUB-RETURN", String.format("return #%d(%d)", gi.bank, gi.pc));
+            if (bank != gi.bank) {
+                bankChange(gi.bank, gi.pc);
+                nextLine = true;
+            } else {
+                pc = gi.pc;
+                nextLine = true;
+            }
         } catch (EmptyStackException e) {
             handleErr(RETURNWITHOUTGOSUB);
         }
     }
 
-    /*
-    private void execSin() throws InterpreterException {
-        Log.w("SIN", "execSin");
-        int param;
-        Double ans;
+    //****************************************************
+    private boolean strOpe() throws InterpreterException {
+        boolean result = false;
         getToken();
+        if (token.equals(EOP)) {
+            handleErr(NOEXP);
+        }
+        result = strOpe1();
+        putBack();
+        return result;
+    }
 
+    private boolean strOpe1() throws InterpreterException {
+        Log.w("strOpe1", String.format("exec : token='%s' tokType=%d", token, tokType));
+        String l_temp, r_temp;
+        boolean result = false;
+        char op;
 
-        try {
-            param = Integer.parseInt(token);
-            ans = Math.sin(param);
-            Log.w("SIN", String.format("sin(%d)=%e", param, ans));
-        } catch (NumberFormatException e) {
-            handleErr(SYNTAX);
+        result = strOpe2();
+
+        if (token.equals(EOP)) {
+            //Log.w("eval1", String.format("EOP!!! ret=%e", result));
+            return  result;
         }
 
+        op = token.charAt(0);
+        if (isRelop(op)) {
+            //Log.w("eval1", String.format("op='%c'", op));
+            l_temp = resultStr;
+            getToken();
+            strOpe1();
+            r_temp = resultStr;
+
+            Log.w("strOpe1", String.format("compare!!! L='%s' R='%s'", l_temp, r_temp));
+            switch (op) {
+                case '=':
+                    result = l_temp.equals(r_temp);
+                    break;
+                case NE:
+                    result = !l_temp.equals(r_temp);
+                    break;
+                default:
+                    break;
+            }
+            resultStr = l_temp;
+        }
+        Log.w("strOpe1-end", String.format("result=%d ret='%s'", (result ? 1 : 0), resultStr));
+        return  result;
     }
-    */
+
+    private boolean strOpe2() throws InterpreterException {
+        Log.w("strOpe2", String.format("exec : token='%s' tokType=%d", token, tokType));
+        char op;
+        boolean result = false;
+        String str1, str2;
+
+        result = strOpe3();
+        str1 = resultStr;
+
+        while ((op = token.charAt(0)) == '+') {
+            //Log.w("eval2", String.format("op=%c", op));
+            getToken();
+            //Log.w("eval2", String.format("next token=%s", token));
+            strOpe3();
+            str2 = resultStr;
+
+            switch (op) {
+                case '+':
+                    str1 += str2;
+                    break;
+                default:
+                    break;
+            }
+        }
+        Log.w("strOpe2-end", String.format("ret='%s'", resultStr));
+        resultStr = str1;
+        return result;
+    }
+
+    private boolean strOpe3() throws InterpreterException {
+        Log.w("strOpe3", String.format("exec : token='%s' tokType=%d", token, tokType));
+        boolean result = false;
+
+        switch (tokType) {
+            case SVARIABLE:
+                Log.w("strOpe3", "SVARIABLE");
+                resultStr = findSVer(token);
+                getToken();
+                break;
+            case QUTEDSTR:
+                Log.w("strOpe3", "QUTERSTR");
+                resultStr = token;
+                getToken();
+                break;
+            case FUNCTION:
+                switch (kwToken) {
+                    case KEY:
+                        Log.w("strOpe3", "KEY");
+                        char c = (char)inkey.getPressKeyCode();
+                        if (c == 0) {
+                            resultStr = "";
+                        } else {
+                            resultStr = String.valueOf(c);
+                        }
+                        result = true;
+                        //Log.w("atom", String.format("KEY result=%d", result));
+                        getToken();
+                        break;
+                    default:
+                        Log.w("strOpe3", "No function");
+                        break;
+                }
+                break;
+            default:
+                Log.w("strOpe3", "handleErr");
+                handleErr(SYNTAX);
+                break;
+        }
+        Log.w("strOpe3", String.format("ret='%s'", resultStr));
+        return result;
+
+    }
 
     //****************************************************
     private double evaluate() throws InterpreterException {
@@ -1128,6 +1341,21 @@ public class SBasic {
                         getToken();
                         break;
 
+                    case SGN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            if (temp > 0) {
+                                result = 1;
+                            } else if (temp < 0) {
+                                result = -1;
+                            } else {
+                                result = 0;
+                            }
+                        }
+                        getToken();
+                        break;
+
                     default:
                         break;
                 }
@@ -1304,17 +1532,25 @@ public class SBasic {
             Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else  if (prog[pc] == '\"') {
             //Log.w("getToken", "DQ!!!");
+            tokType = QUTEDSTR;
             pc++;
-            ch = (char)(prog[pc]&0xff);
+            ch = (char) (prog[pc] & 0xff);
             while (ch != '\"' && ch != '\n') {
                 token += ch;
                 pc++;
-                tokType = QUTEDSTR;
-                ch = (char)(prog[pc]&0xff);
+                //tokType = QUTEDSTR;
+                ch = (char) (prog[pc] & 0xff);
                 //Log.w("while", String.format("%c", ch));
             }
             pc++;
-            Log.w("getToken", String.format("case DQ token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+        } else if (prog[pc] == '#') {
+            tokType = BANKNUM;
+            pc++;
+            ch = (char) (prog[pc] & 0xff);
+            token = "#"+ch;
+            pc++;
+            Log.w("getToken", String.format("case BANKNUM token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else {
             token = EOP;
             Log.w("getToken", "return(EOP)");

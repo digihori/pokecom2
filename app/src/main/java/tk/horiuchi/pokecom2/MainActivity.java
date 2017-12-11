@@ -100,6 +100,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         File dir = new File(src_path);
         if (!dir.exists()) {
             dir.mkdirs();
+            Log.w("Main", "mkdir");
         }
 
 
@@ -566,11 +567,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         if (c == '\\') {
                             if (i + 2 < llen) {
                                 String s = str.substring(i, i + 3);
-                                //Log.w("LOG", String.format("%s", s));
+                                //Log.w("LOG", String.format("s='%s'(%d) %02x %02x %02x", s, s.length(), (int)str.charAt(i), (int)str.charAt(i+1), (int)str.charAt(i+2)));
+                                //Log.w("LOG", String.format("s='%s'", s));
                                 for (int j = 0xe0; j <= 0xff; j++) {
+                                    //Log.w("LOG", String.format("j=%02x='%s'(%d)", j, cmdTable[j], cmdTable[j].length()));
                                     if (cmdTable[j].equals(s)) {
                                         dest[w++] = j;  // エスケープ文字を内部コードに変換する
-                                        //Log.w("LOG", String.format("%s=%x", s, j));
+                                        //Log.w("LOG", String.format("s='%s'(%d)=%x", cmdTable[j], cmdTable[j].length(), j));
                                     }
                                 }
                                 i += 2;

@@ -27,7 +27,7 @@ public class Lcd {
     private int[] buf;
     private int buf_index = 0;
     private int buf_top = 0;
-    private final int bufMax = 64;
+    private final int bufMax = 128;
     private boolean flash = false;
     private boolean flashBank = false;
     private int charBack = 0;
@@ -261,7 +261,7 @@ public class Lcd {
             printDigit(i, s.charAt(i));
         }
         listener.refreshScreen();
-        if (s.length() >= 12) {
+        if (s.length() > 12) {
             try{
                 Thread.sleep(1000);
             }catch(InterruptedException e){}

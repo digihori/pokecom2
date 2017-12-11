@@ -2,16 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="tk.horiuchi.pokecom2">
 
-    <activity
-        android:name=".FileLoad"
-        android:windowSoftInputMode="stateAlwaysHidden" />
-    <activity
-        android:name=".FileSave"
-        android:windowSoftInputMode="stateAlwaysHidden" />
-
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -29,8 +19,18 @@
             </intent-filter>
         </activity>
         <activity android:name=".MyPreferenceActivity" />
-        <activity android:name=".FileLoad" />
-        <activity android:name=".FileSave"></activity>
+        <activity
+            android:name=".FileLoad"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+        <activity
+            android:name=".FileSave"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+
     </application>
+
+
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
 </manifest>
