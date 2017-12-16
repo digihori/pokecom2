@@ -103,6 +103,7 @@ public class SBasic {
     private String[] svars;
     private boolean forcedExit = false;
     private String resultStr;
+    private StringBuilder sb = null;
 
     //
     class Keyword {
@@ -325,6 +326,7 @@ public class SBasic {
         scanLabels();
         Log.w("RUN", String.format("-------- %s", labelTable));
         forcedExit = false;
+        sb = null;
         sbInterp();
     }
 
@@ -436,10 +438,13 @@ public class SBasic {
     }
 
     private void sbInterp() throws InterpreterException {
-        long oldTime, newTime;
+        long oldTime = 0, newTime;
+        int loopCnt = 0;
 
         do {
-            oldTime = System.currentTimeMillis();
+            if (loopCnt == 0) {
+                oldTime = System.currentTimeMillis();
+            }
             if (pb.isProgStop()) {
                 try{
                     Thread.sleep(200);
@@ -499,18 +504,21 @@ public class SBasic {
             }
 
             // 処理速度の調整
-            newTime = System.currentTimeMillis();
-            long sleepTime = 5 - (newTime - oldTime);
+            if (++loopCnt > 5) {
+                loopCnt = 0;
+                newTime = System.currentTimeMillis();
+                long sleepTime = 30 - (newTime - oldTime);
 
 
-            if (sleepTime > 0) {
-                try {
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
-                    ;
+                if (sleepTime > 0) {
+                    try {
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        ;
+                    }
                 }
-            }
 
+            }
 
         } while (!token.equals(EOP));
 
@@ -613,7 +621,16 @@ public class SBasic {
 
             String lastToken = token;
             getToken();
-            if (!token.equals("=")) {
+            if (token.equals("(")) {
+                // 配列
+                getToken();
+                double result = evalExp2();
+                var += result;
+                if (!token.equals(")")) {
+                    handleErr(UNBALPARENS);
+                }
+                getToken();
+            } else if (!token.equals("=")) {
                 //handleErr(EQUALEXPECTED);
                 //return;
                 putBack();
@@ -647,20 +664,38 @@ public class SBasic {
         String lastDelim = "";
         int pos = 0;
         String prtStr = "";
-        StringBuilder sb = null;
+        //StringBuilder sb = null;
 
         //Log.w("PRT", "Exec PRINT !!!!");
 
+        boolean paramExist = false;
         do {
             //Log.w("PRT", "Exec PRINT do !!!!");
             getToken();
             //Log.w("PRT", String.format("token=%s", token));
-            if (kwToken == EOL || token.equals(EOP)) break;
-            if (/*tokType == DELIMITER &&*/ token.equals(":")) {
+            /*
+            if (!paramExist && (kwToken == EOL || token.equals(":"))) {
+                prtStr = "";
+                sb = null;
+                break;
+            }
+            if (token.equals(EOP)) break;
+            //if (tokType == DELIMITER && token.equals(":")) {
+            if (token.equals(":")) {
                 //Log.w("PRT", String.format("DELIMITER(:)"));
                 break;
             }
+            */
 
+            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+                if (!paramExist) {
+                    prtStr = "";
+                    sb = null;
+                }
+                break;
+            }
+
+            paramExist = true;
             if (tokType == QUTEDSTR) {
                 //Log.w("PRT", String.format("tokType=QUTEDSTR(%d)", tokType));
                 //System.out.print(token);
@@ -669,6 +704,7 @@ public class SBasic {
                     prtStr += token;
                 } else {
                     sb.replace(pos, pos + token.length(), token);
+                    pos += token.length();
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
                 //Log.w("PRT", String.format("%s", token));
@@ -685,8 +721,17 @@ public class SBasic {
                 //String s = String.valueOf(result);
                 //int l = s.length();
                 //prtStr += s.substring(0, l < 12 ? l : 12);
-                prtStr += double2string(result);
+                //prtStr += double2string(result);
                 //Log.w("PRT", String.format("%d", result));
+
+                String s = double2string(result);
+                if (sb == null) {
+                    prtStr += s;
+                } else {
+                    sb.replace(pos, pos + s.length(), s);
+                    pos += s.length();
+                    Log.w("print", String.format("sb='%s'", sb.toString()));
+                }
 
                 Double t = new Double(result);
                 len += t.toString().length();
@@ -699,6 +744,7 @@ public class SBasic {
                         prtStr += resultStr;
                     } else {
                         sb.replace(pos, pos + resultStr.length(), resultStr);
+                        pos += resultStr.length();
                         Log.w("print", String.format("sb='%s'", sb.toString()));
                     }
 
@@ -762,17 +808,48 @@ public class SBasic {
         if (sb != null) prtStr = sb.toString();
         if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
             //if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
-                //System.out.println();
-                //lcdPrintln();
+            //System.out.println();
+            //lcdPrintln();
             //}
-            if (lastDelim.equals(";")) {
+            if (prtStr.isEmpty() || lastDelim.equals(";")) {
+                Log.w("print", "lcdPrint");
                 lcdPrint(prtStr);
             } else {
+                Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
                 lcdPrintAndPause(prtStr);
             }
         } else {
             handleErr(SYNTAX);
         }
+
+
+
+
+
+
+
+
+        /*
+        if (sb != null) prtStr = sb.toString();
+        if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+            //if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
+                //System.out.println();
+                //lcdPrintln();
+            //}
+
+
+
+            if (prtStr.isEmpty() || lastDelim.equals(";")) {
+                Log.w("print", "lcdPrint");
+                lcdPrint(prtStr);
+            } else {
+                Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
+                lcdPrintAndPause(prtStr);
+            }
+        } else {
+            handleErr(SYNTAX);
+        }
+        */
     }
 
     private void execGoto() throws InterpreterException {
@@ -807,13 +884,13 @@ public class SBasic {
             Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
             if (ret) {
                 getToken();
-                /*
-                if (kwToken != THEN) {
+
+                if (kwToken != THEN && token.charAt(0) != ';') {
                     Log.w("IF", "handleErr");
                     handleErr(THENECPECTED);
                     return;
                 }
-                */
+
             } else {
                 findEOL();
             }
@@ -1037,8 +1114,25 @@ public class SBasic {
         switch (tokType) {
             case SVARIABLE:
                 Log.w("strOpe3", "SVARIABLE");
-                resultStr = findSVer(token);
-                getToken();
+                char ch = token.charAt(0);
+                if (ch == '$') {
+                    resultStr = findSVar(token);
+                    getToken();
+                } else {
+                    getToken();
+                    if (token.equals("(")) {
+                        // 配列
+                        getToken();
+                        double r = evalExp2();
+                        ch += r;
+                        if (!token.equals(")")) {
+                            handleErr(UNBALPARENS);
+                        }
+                        getToken();
+                    }
+                    resultStr = findSVar(String.valueOf(ch));
+                }
+
                 break;
             case QUTEDSTR:
                 Log.w("strOpe3", "QUTERSTR");
@@ -1302,9 +1396,23 @@ public class SBasic {
                 //Log.w("atom", String.format("next token='%s'", token));
                 break;
             case VARIABLE:
-                result = findVar(token);
-                //Log.w("atom", String.format("var=%s result=%e", token, result));
+                char ch = token.charAt(0);
                 getToken();
+                if (token.equals("(")) {
+                    // 配列
+                    getToken();
+                    double r = evalExp2();
+                    ch += r;
+                    if (!token.equals(")")) {
+                        handleErr(UNBALPARENS);
+                    }
+                    getToken();
+                }
+
+                result = findVar(String.valueOf(ch));
+                //result = findVar(token);
+                //Log.w("atom", String.format("var=%s result=%e", token, result));
+                //getToken();
                 //Log.w("atom", String.format("next token='%s'", token));
                 break;
             case FUNCTION:
@@ -1356,10 +1464,34 @@ public class SBasic {
                         getToken();
                         break;
 
+                    case LEN:
+                        String str = "";
+                        do {
+                            getToken();
+                            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) break;
+
+                            if (tokType == QUTEDSTR) {
+                                str += token;
+                                getToken();
+                            } else if (tokType == SVARIABLE) {
+                                putBack();
+                                strOpe();
+                                if (!resultStr.isEmpty()) {
+                                    str += resultStr;
+                                }
+                                getToken();
+                            } else {
+                                handleErr(SYNTAX);
+                            }
+                        } while (kwToken != EOL && !token.equals(EOP));
+                        result = str.length();
+                        break;
+
                     default:
                         break;
                 }
                 break;
+
             default:
                 handleErr(SYNTAX);
                 break;
@@ -1376,7 +1508,7 @@ public class SBasic {
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
 
-    private String findSVer(String vname) throws InterpreterException {
+    private String findSVar(String vname) throws InterpreterException {
         if (vname.equals("$")) {
             return svars[26];
         }

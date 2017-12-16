@@ -434,7 +434,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         if (ret == 0) {
                             // 新規の行の追加の場合はそのまま内容を表示する
                             initial = true;
-                            lcd.print(s);
+                            lcd.printSourceList(s);
                             initial = true;
                         } else if (ret == 1) {
                             // 行の更新の場合は次の行を表示する
