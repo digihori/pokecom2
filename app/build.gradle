@@ -8,13 +8,28 @@ android {
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 1
-        versionName "1.0"
+        versionName "0.00.10"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    applicationVariants.all { variant ->
+        /* リリースビルド時 */
+        if (variant.buildType.name.equals("release")) {
+            variant.outputs.each { output ->
+                if (output.outputFile != null && output.outputFile.name.endsWith('.apk')) {
+                    def applicationId = defaultConfig.applicationId
+                    def apps = applicationId.split("\\.")
+                    def name = apps[apps.length-1]
+                    def versionName = defaultConfig.versionName
+                    def newName = "${name}-${versionName}.apk"
+                    output.outputFile = new File(output.outputFile.parent, newName)
+                }
+            }
         }
     }
 }

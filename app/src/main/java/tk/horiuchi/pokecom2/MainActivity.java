@@ -1,13 +1,16 @@
 package tk.horiuchi.pokecom2;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.os.Environment;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
@@ -39,6 +42,11 @@ import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 
 public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
     public static float dpdx, dpdx_org;
     public static int deviceType;
     public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/pokecom2";
@@ -95,6 +103,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // 共通定義
         //define = new Common();
+
+        // ファイルIOのパーミッション関係の設定
+        verifyStoragePermissions(this);
 
         // ディレクトリがなければ作成する
         File dir = new File(src_path);
@@ -190,6 +201,20 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             Log.w("Main", String.format("error='%s'", e.toString()));
         }
 
+    }
+
+    private static void verifyStoragePermissions(Activity activity) {
+        // Check if we have read or write permission
+        int writePermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int readPermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE);
+
+        if (writePermission != PackageManager.PERMISSION_GRANTED || readPermission != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
     }
 
     @Override
