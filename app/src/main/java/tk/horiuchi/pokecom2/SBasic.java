@@ -1,9 +1,7 @@
 package tk.horiuchi.pokecom2;
 
-import android.content.Context;
 import android.util.Log;
 
-import java.io.*;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.MainActivity.bank;
@@ -29,24 +27,15 @@ public class SBasic {
     final int SVARIABLE = 7;
     final int BANKNUM = 8;
 
-    //
-    final int SYNTAX = 0;
-    final int UNBALPARENS = 1;
-    final int NOEXP = 2;
-    final int DIVBYZERO = 3;
-    final int EQUALEXPECTED = 4;
-    final int NOTVAR = 5;
-    final int LABELTABLEFULL = 6;
-    final int DUPLABEL = 7;
-    final int UNDEFLABEL = 8;
-    final int THENECPECTED = 9;
-    final int TOEXPECTED = 10;
-    final int NEXTWITHOUTFOR = 11;
-    final int RETURNWITHOUTGOSUB = 12;
-    final int MISSINGQOUTE = 13;
-    final int FILENOUFOUND = 14;
-    final int FILEIOERROR = 15;
-    final int INPUTIOERROR = 16;
+    final int ERR_SYSTEM = 0;
+    final int ERR_MEMORYOVER = 1;
+    final int ERR_SYNTAX = 2;
+    final int ERR_MATH = 3;
+    final int ERR_UNDEFLINE = 4;
+    final int ERR_ARGUMENT = 5;
+    final int ERR_VARIABLE = 6;
+    final int ERR_NESTING = 7;
+    final int ERR_OPTIN = 9;
 
     //
     final int UNKNCOM = 0;
@@ -66,6 +55,7 @@ public class SBasic {
     final int LIST = 14;
     final int CSR = 15;
     final int VAC = 16;
+    final int STOP = 17;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -94,9 +84,9 @@ public class SBasic {
     final String EOP = "\0";
 
     //
-    final char LE = 1;
-    final char GE = 2;
-    final char NE = 3;
+    final char LE = 0xf3;
+    final char GE = 0xf4;
+    final char NE = 0xf1;
 
     //
     private double[] vars;
@@ -217,6 +207,9 @@ public class SBasic {
         this.lcd = lcd;
         vars = new double[26];
         svars = new String[27];
+        for (int i = 0; i < svars.length; i++) {
+            svars[i] = "";
+        }
         fStack = new Stack();
         labelTable = new TreeMap();
         gStack = new Stack();
@@ -327,6 +320,7 @@ public class SBasic {
         Log.w("RUN", String.format("-------- %s", labelTable));
         forcedExit = false;
         sb = null;
+        prtStr = "";
         sbInterp();
     }
 
@@ -372,12 +366,16 @@ public class SBasic {
 
     private void sbCmd() throws InterpreterException {
 
+        boolean strOpe = false;
+
         if (nextLine) {
             nextLine = false;
             printTrace();
         }
         getToken();
         if (tokType == VARIABLE || tokType == SVARIABLE) {
+            if (tokType == SVARIABLE) strOpe = true;
+
             putBack();
             assignment();
             /*
@@ -428,13 +426,23 @@ public class SBasic {
             //Log.w("sbCmd2", String.format("%d", lastAns.intValue()));
         }
 
-        Log.w("sbCmd", String.format("ans=%d", lastAns.intValue()));
-        lcdPrint(lastAns);
-        lcdPrintln();
+        if (strOpe) {
+            Log.w("sbCmd", String.format("ans=%s", resultStr));
+            lcdPrint(resultStr);
+
+        } else {
+            Log.w("sbCmd", String.format("ans=%d", lastAns.intValue()));
+            lcdPrint(lastAns);
+            //lcdPrintln();
+        }
     }
 
     public void sbExit() {
         forcedExit = true;
+    }
+
+    public boolean isForcedExitReq() {
+        return forcedExit;
     }
 
     private void sbInterp() throws InterpreterException {
@@ -542,7 +550,7 @@ public class SBasic {
             if (tokType == NUMBER) {
                 result = labelTable.put(token, new Integer(id));
 
-                if (result != null) handleErr(DUPLABEL);
+                if (result != null) handleErr(ERR_SYSTEM);
             }
             if (kwToken != EOL) findEOL();
         } while (!token.equals(EOP));
@@ -572,39 +580,26 @@ public class SBasic {
 
             String lastToken = token;
             getToken();
-            if (!token.equals("=")) {
-                //handleErr(EQUALEXPECTED);
+            if (token.equals("(")) {
+                // 配列
+                getToken();
+                double result = evalExp2();
+                var += result;
+                if (!token.equals(")")) {
+                    handleErr(ERR_SYNTAX);
+                }
+                getToken();
+            } else if (!token.equals("=")) {
                 putBack();
                 token = lastToken;
                 putBack();
-                // エラー処理
+                strOpe();
                 return;
             }
 
             //getToken();
             strOpe();
             svars[var] = resultStr;
-            /*
-            switch (tokType) {
-                case QUTEDSTR:
-                    svars[var] = token;
-                    break;
-                case FUNCTION:
-                    if (kwToken == KEY) {
-                        svars[var] = String.valueOf((char)inkey.getPressKeyCode());
-                    } else {
-                        return;
-                    }
-                    break;
-                default:
-                    return;
-            }
-            */
-            //if (tokType != QUTEDSTR) {
-            //    handleErr(EQUALEXPECTED);
-            //    return;
-            //}
-            //svars[var] = token;
 
         } else {
             // 数値変数の処理
@@ -612,7 +607,7 @@ public class SBasic {
             Log.w("assign", String.format("%c(%02x)", vname, (int)vname));
 
             if (!Character.isLetter(vname)) {
-                handleErr(NOTVAR);
+                handleErr(ERR_SYSTEM);
                 Log.w("assign", "NOTVAR");
                 return;
             }
@@ -627,7 +622,7 @@ public class SBasic {
                 double result = evalExp2();
                 var += result;
                 if (!token.equals(")")) {
-                    handleErr(UNBALPARENS);
+                    handleErr(ERR_SYNTAX);
                 }
                 getToken();
             } else if (!token.equals("=")) {
@@ -658,12 +653,13 @@ public class SBasic {
         lastAns = 0.0;
     }
 
+    String prtStr = "";
     private void print() throws InterpreterException {
         double result;
         int len = 0, spaces;
         String lastDelim = "";
         int pos = 0;
-        String prtStr = "";
+        //String prtStr = "";
         //StringBuilder sb = null;
 
         //Log.w("PRT", "Exec PRINT !!!!");
@@ -710,7 +706,7 @@ public class SBasic {
                 //Log.w("PRT", String.format("%s", token));
                 len += token.length();
                 getToken();
-            } else if (tokType == VARIABLE) {
+            } else if (tokType == VARIABLE || tokType == NUMBER) {
                 //Log.w("PRT", String.format("tokType!=QUTEDSTR(%d)", tokType));
                 putBack();
                 result = evaluate();
@@ -735,11 +731,11 @@ public class SBasic {
 
                 Double t = new Double(result);
                 len += t.toString().length();
-            } else if (tokType == SVARIABLE) {
+            } else if (tokType == SVARIABLE || tokType == FUNCTION && kwToken == MID) {
                 putBack();
                 strOpe();
                 //String s = findSVer(token);
-                if (resultStr != "") {
+                if (!resultStr.isEmpty()) {
                     if (sb == null) {
                         prtStr += resultStr;
                     } else {
@@ -767,6 +763,7 @@ public class SBasic {
             } else if (tokType == COMMAND) {
                 if (kwToken == CSR) {
                     result = evaluate();
+                    Log.w("CSR", "pos="+result);
                     if (result < 12) {
                         pos = (int) result;
                         String s = "";
@@ -783,8 +780,13 @@ public class SBasic {
                     }
                 }
             }
+
+            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+                break;
+            }
+
             lastDelim = token;
-            //Log.w("PRT", String.format("lastDelim='%s'", lastDelim));
+            Log.w("PRT", String.format("lastDelim='%s'", lastDelim));
 
             if (lastDelim.equals(":")) {
                 ;
@@ -802,7 +804,7 @@ public class SBasic {
                 //lcdPrint(" ");
                 //len++;
             } else if (kwToken != EOL && !token.equals(EOP)) {
-                handleErr(SYNTAX);
+                handleErr(ERR_SYNTAX);
             }
         } while (lastDelim.equals(";") || lastDelim.equals(","));
         if (sb != null) prtStr = sb.toString();
@@ -817,39 +819,12 @@ public class SBasic {
             } else {
                 Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
                 lcdPrintAndPause(prtStr);
+                prtStr = "";
             }
         } else {
-            handleErr(SYNTAX);
+            handleErr(ERR_SYNTAX);
         }
 
-
-
-
-
-
-
-
-        /*
-        if (sb != null) prtStr = sb.toString();
-        if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
-            //if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
-                //System.out.println();
-                //lcdPrintln();
-            //}
-
-
-
-            if (prtStr.isEmpty() || lastDelim.equals(";")) {
-                Log.w("print", "lcdPrint");
-                lcdPrint(prtStr);
-            } else {
-                Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
-                lcdPrintAndPause(prtStr);
-            }
-        } else {
-            handleErr(SYNTAX);
-        }
-        */
     }
 
     private void execGoto() throws InterpreterException {
@@ -865,7 +840,7 @@ public class SBasic {
         } else {
             loc = (Integer) labelTable.get(token);
             if (loc == null) {
-                handleErr(UNDEFLABEL);
+                handleErr(ERR_UNDEFLINE);
             } else {
                 pc = loc.intValue();
                 nextLine = true;
@@ -878,7 +853,8 @@ public class SBasic {
     private void execIf() throws InterpreterException {
         double result;
         getToken();
-        if (tokType == SVARIABLE) {
+        if (tokType == SVARIABLE ||
+                tokType == FUNCTION && (kwToken == KEY || kwToken == MID) ) {
             putBack();
             boolean ret = strOpe();
             Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
@@ -886,9 +862,26 @@ public class SBasic {
                 getToken();
 
                 if (kwToken != THEN && token.charAt(0) != ';') {
-                    Log.w("IF", "handleErr");
-                    handleErr(THENECPECTED);
+                    //Log.w("IF", "handleErr");
+                    handleErr(ERR_SYNTAX);
                     return;
+                }
+                if (kwToken == THEN) {
+                    //Log.w("IF", "THEN");
+                    getToken();
+                    if (token == EOP) {
+                        handleErr(ERR_SYNTAX);
+                    }
+                    if (tokType == NUMBER || tokType == VARIABLE ||
+                            token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+                        putBack();
+                        Log.w("IF", "THEN -> GOTO");
+                        execGoto();
+                    } else {
+                        putBack();
+                    }
+                } else {
+                    //Log.w("IF", "not THEN");
                 }
 
             } else {
@@ -901,12 +894,29 @@ public class SBasic {
             Log.w("IF", String.format("if (%d)", (int)result));
             if (result != 0.0) {
                 getToken();
-                /*
-                if (kwToken != THEN) {
-                    handleErr(THENECPECTED);
+
+                if (kwToken != THEN && token.charAt(0) != ';') {
+                    //Log.w("IF", "handleErr");
+                    handleErr(ERR_SYNTAX);
                     return;
                 }
-                */
+                if (kwToken == THEN) {
+                    //Log.w("IF", "THEN");
+                    getToken();
+                    if (token == EOP) {
+                        handleErr(ERR_SYNTAX);
+                    }
+                    if (tokType == NUMBER || tokType == VARIABLE ||
+                            token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+                        putBack();
+                        Log.w("IF", "THEN -> GOTO");
+                        execGoto();
+                    } else {
+                        putBack();
+                    }
+                } else {
+                    //Log.w("IF", "not THEN");
+                }
             } else {
                 findEOL();
             }
@@ -920,7 +930,7 @@ public class SBasic {
         getToken();
         vname = token.charAt(0);
         if (!Character.isLetter(vname)) {
-            handleErr(NOTVAR);
+            handleErr(ERR_SYSTEM);
             return;
         }
 
@@ -928,14 +938,14 @@ public class SBasic {
 
         getToken();
         if (token.charAt(0) != '=') {
-            handleErr(EQUALEXPECTED);
+            handleErr(ERR_SYNTAX);
             return;
         }
 
         value = evaluate();
         vars[stckvar.var] = value;
         getToken();
-        if (kwToken != TO) handleErr(TOEXPECTED);
+        if (kwToken != TO) handleErr(ERR_SYNTAX);
         stckvar.target = evaluate();
 
         if (value >= vars[stckvar.var]) {
@@ -961,7 +971,7 @@ public class SBasic {
             pc = stckvar.loc;
         } catch (EmptyStackException e) {
             //Log.w("NEXT", "exception occered.");
-            handleErr(NEXTWITHOUTFOR);
+            handleErr(ERR_SYNTAX);
         }
         //Log.w("NEXT", "continue.");
     }
@@ -976,7 +986,7 @@ public class SBasic {
             //System.out.print(token);
             lcdPrint(token);
             getToken();
-            if (!token.equals(",")) handleErr(SYNTAX);
+            if (!token.equals(",")) handleErr(ERR_SYNTAX);
             getToken();
         }
         //System.out.print("? ");
@@ -996,7 +1006,7 @@ public class SBasic {
         } else {
             loc = (Integer) labelTable.get(token);
             if (loc == null) {
-                handleErr(UNDEFLABEL);
+                handleErr(ERR_UNDEFLINE);
             } else {
                 //gStack.push(new Integer(pc));
                 gStack.push(new GosubInfo(bank, pc));
@@ -1024,7 +1034,7 @@ public class SBasic {
                 nextLine = true;
             }
         } catch (EmptyStackException e) {
-            handleErr(RETURNWITHOUTGOSUB);
+            handleErr(ERR_SYNTAX);
         }
     }
 
@@ -1033,7 +1043,7 @@ public class SBasic {
         boolean result = false;
         getToken();
         if (token.equals(EOP)) {
-            handleErr(NOEXP);
+            handleErr(ERR_SYSTEM);
         }
         result = strOpe1();
         putBack();
@@ -1126,7 +1136,7 @@ public class SBasic {
                         double r = evalExp2();
                         ch += r;
                         if (!token.equals(")")) {
-                            handleErr(UNBALPARENS);
+                            handleErr(ERR_SYNTAX);
                         }
                         getToken();
                     }
@@ -1153,14 +1163,60 @@ public class SBasic {
                         //Log.w("atom", String.format("KEY result=%d", result));
                         getToken();
                         break;
+
+                    case MID:
+                        //Log.w("MID", "MID");
+                        int m, n;
+                        getToken();
+                        //Log.w("MID", token);
+                        if (token.equals("(")) {
+                            getToken();
+                            //Log.w("--- MID", token);
+                            putBack();
+                            m = (int)evaluate();
+                            m--;
+                            getToken();
+                            //Log.w("---- MID", token);
+                            if (token.equals(")")) {
+                                if (m < 0 || m >= svars[26].length()) {
+                                    Log.w("MID", String.format("len=%d, m=%d", svars[26].length(), m));
+                                    handleErr(ERR_ARGUMENT);
+                                }
+                                resultStr = svars[26].substring(m);
+                                result = true;
+                                //Log.w("strOpe3", String.format("m=%d ret='%s'", m, resultStr));
+                                getToken();
+                            } else if (token.equals(",")) {
+                                getToken();
+                                putBack();
+                                n = (int)evaluate();
+                                getToken();
+                                if (!token.equals(")")) {
+                                    handleErr(ERR_SYNTAX);
+                                }
+                                if (m < 0 || m >= svars[26].length() || n <= 0 || m + n > svars[26].length()) {
+                                    Log.w("MID", String.format("len=%d, m=%d, n=%d", svars[26].length(), m, m + n));
+                                    handleErr(ERR_ARGUMENT);
+                                }
+                                resultStr = svars[26].substring(m, m + n);
+                                result = true;
+                                //Log.w("strOpe3", String.format("m=%d n=%d ret='%s'", m, n, resultStr));
+                                getToken();
+                            }
+                            //getToken();
+                        } else {
+                            handleErr(ERR_SYNTAX);
+                        }
+                        break;
+
                     default:
                         Log.w("strOpe3", "No function");
                         break;
                 }
                 break;
             default:
-                Log.w("strOpe3", "handleErr");
-                handleErr(SYNTAX);
+                //Log.w("strOpe3", "handleErr");
+                handleErr(ERR_SYNTAX);
                 break;
         }
         Log.w("strOpe3", String.format("ret='%s'", resultStr));
@@ -1174,7 +1230,7 @@ public class SBasic {
         double result = 0.0;
         getToken();
         if (token.equals(EOP)) {
-            handleErr(NOEXP);
+            handleErr(ERR_SYSTEM);
         }
         //Log.w("eval", String.format("token=%s", token));
         result = evalExp1();
@@ -1300,12 +1356,12 @@ public class SBasic {
                     break;
                 case '/':
                     if (partialResult == 0.0)
-                        handleErr(DIVBYZERO);
+                        handleErr(ERR_MATH);
                     result = result / partialResult;
                     break;
                 case '%':
                     if (partialResult == 0.0)
-                        handleErr(DIVBYZERO);
+                        handleErr(ERR_MATH);
                     result = result % partialResult;
                     break;
                 default:
@@ -1370,7 +1426,7 @@ public class SBasic {
             getToken();
             result = evalExp2();
             if (!token.equals(")")) {
-                handleErr(UNBALPARENS);
+                handleErr(ERR_SYNTAX);
             }
             getToken();
         } else {
@@ -1390,7 +1446,7 @@ public class SBasic {
                     result = Double.parseDouble(token);
                     //Log.w("atom", String.format("result=%e", result));
                 } catch (NumberFormatException e) {
-                    handleErr(SYNTAX);
+                    handleErr(ERR_SYNTAX);
                 }
                 getToken();
                 //Log.w("atom", String.format("next token='%s'", token));
@@ -1404,7 +1460,7 @@ public class SBasic {
                     double r = evalExp2();
                     ch += r;
                     if (!token.equals(")")) {
-                        handleErr(UNBALPARENS);
+                        handleErr(ERR_SYNTAX);
                     }
                     getToken();
                 }
@@ -1416,35 +1472,187 @@ public class SBasic {
                 //Log.w("atom", String.format("next token='%s'", token));
                 break;
             case FUNCTION:
+                String str;
                 switch (kwToken) {
                     case SIN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp2();
                             try {
                                 result = Math.sin(Math.toRadians(temp));
                                 //Log.w("atom", String.format("SIN result=%e", result));
                             } catch (NumberFormatException e) {
-                                handleErr(SYNTAX);
+                                handleErr(ERR_MATH);
                             }
                         }
                         getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
+                    case COS:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp2();
+                            try {
+                                result = Math.cos(Math.toRadians(temp));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case TAN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp2();
+                            try {
+                                result = Math.tan(Math.toRadians(temp));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case ASN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.toDegrees(Math.asin(temp));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case ACS:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.toDegrees(Math.acos(temp));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case ATN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.toDegrees(Math.atan(temp));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case ABS:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.abs(temp);
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case LOG:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.log10(temp);
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case LN:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.log(temp);
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case SQR:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.sqrt(temp);
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
+                    case EXP:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            try {
+                                result = Math.exp(temp);
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_MATH);
+                            }
+                        }
+                        getToken();
+                        //Log.w("atom", String.format("next token='%s'", token));
+                        break;
+
                     case KEY:
                         result = inkey.getPressKeyCode();
-                        Log.w("atom", String.format("KEY result=%d", result));
+                        Log.w("atom", String.format("KEY result=%d", (int)result));
                         getToken();
                         break;
+
                     case RAN:
                         result = Math.random();
                         getToken();
                         break;
+
                     case INT:
                         getToken();
                         if (!token.equals(EOP)) {
                             double temp = evalExp1();
                             result = (int)temp;
+                        }
+                        getToken();
+                        break;
+
+                    case FRAC:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            double temp = evalExp1();
+                            result = temp - (int)temp;
                         }
                         getToken();
                         break;
@@ -1465,7 +1673,7 @@ public class SBasic {
                         break;
 
                     case LEN:
-                        String str = "";
+                        str = "";
                         do {
                             getToken();
                             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) break;
@@ -1481,10 +1689,38 @@ public class SBasic {
                                 }
                                 getToken();
                             } else {
-                                handleErr(SYNTAX);
+                                handleErr(ERR_SYNTAX);
                             }
                         } while (kwToken != EOL && !token.equals(EOP));
                         result = str.length();
+                        break;
+
+                    case VAL:
+                        str = "";
+                        do {
+                            getToken();
+                            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) break;
+
+                            if (tokType == QUTEDSTR) {
+                                str += token;
+                                getToken();
+                            } else if (tokType == SVARIABLE) {
+                                putBack();
+                                strOpe();
+                                if (!resultStr.isEmpty()) {
+                                    str += resultStr;
+                                }
+                                getToken();
+                            } else {
+                                handleErr(ERR_SYNTAX);
+                            }
+                        } while (kwToken != EOL && !token.equals(EOP));
+
+                        try {
+                            result = Integer.parseInt(str);
+                        } catch (NumberFormatException e) {
+                            handleErr(ERR_SYNTAX);
+                        }
                         break;
 
                     default:
@@ -1493,7 +1729,7 @@ public class SBasic {
                 break;
 
             default:
-                handleErr(SYNTAX);
+                handleErr(ERR_SYNTAX);
                 break;
         }
         Log.w("atom", String.format("ret=%e", result));
@@ -1502,7 +1738,7 @@ public class SBasic {
 
     private double findVar(String vname) throws InterpreterException {
         if (!Character.isLetter(vname.charAt(0))) {
-            handleErr(SYNTAX);
+            handleErr(ERR_SYSTEM);
             return 0.0;
         }
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
@@ -1513,7 +1749,7 @@ public class SBasic {
             return svars[26];
         }
         if (!Character.isLetter(vname.charAt(0))) {
-            handleErr(SYNTAX);
+            handleErr(ERR_SYSTEM);
             return null;
         }
         return svars[Character.toUpperCase(vname.charAt(0)) - 'A'];
@@ -1526,30 +1762,6 @@ public class SBasic {
             if (pc > 0) pc--;
         }
         Log.w("putBack", "pc="+pc);
-    }
-
-    private void handleErr(int error) throws InterpreterException {
-        String[] err = {
-                "Syntax Error",
-                "Unbalanced Parentheses",
-                "No Expression Present",
-                "Division by Zero",
-                "Equal sign expected",
-                "Not a variable",
-                "Label table full",
-                "Duplicate label",
-                "Underfined label",
-                "THEN expected",
-                "TO expected",
-                "NEXT without FOR",
-                "RETURN without GOSUB",
-                "Closing quotes needed",
-                "File not found",
-                "I/O error while loading file",
-                "I/O error on INPUT statement"
-        };
-
-        throw  new InterpreterException(err[error]);
     }
 
     private void getToken() throws InterpreterException {
@@ -1589,7 +1801,7 @@ public class SBasic {
 
         ch = (char)(prog[pc]&0xff);
         if (ch == '<' || ch == '>') {
-            if (pc + 1 == idxEnd + 1) handleErr(SYNTAX);
+            if (pc + 1 == idxEnd + 1) handleErr(ERR_SYNTAX);
 
             switch (ch) {
                 case '<':
@@ -1692,7 +1904,10 @@ public class SBasic {
     }
 
     private boolean isDelim(int c) {
-        if (" \n,;<>+-/*%^=():".indexOf(c) != -1) {
+        char ne = 0xf1;
+        char le = 0xf3;
+        char ge = 0xf4;
+        if ((" \n,;<>+-/*%^=():"+ne+le+ge).indexOf(c) != -1) {
             return true;
         }
         return false;
@@ -1734,5 +1949,24 @@ public class SBasic {
             return false;
         }
     }
+
+    private void handleErr(int error) throws InterpreterException {
+        String[] err = {
+                "System error",
+                "Memory overflow",
+                "Syntax error",
+                "Mathematical error",
+                "Undefines line number",
+                "Argument error",
+                "Variable error",
+                "Nesting error",
+                "dummy",
+                "Option error"
+        };
+
+        Log.w("handleErr", String.format("%s(%d)", err[error], error));
+        throw  new InterpreterException(err[error]);
+    }
+
 }
 

@@ -263,12 +263,13 @@ public class Lcd {
         listener.refreshScreen();
         if (s.length() > 12) {
             try{
-                Thread.sleep(1000);
+                Thread.sleep(800);
             }catch(InterruptedException e){}
 
             for (int i = 0; i < s.length() - 12; i++) {
+                if (basic.isForcedExitReq()) break;
                 try{
-                    Thread.sleep(500);
+                    Thread.sleep(300);
                 }catch(InterruptedException e){}
 
                 for (int j = 0; j < 12; j++) {
