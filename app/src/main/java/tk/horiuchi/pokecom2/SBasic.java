@@ -5,6 +5,7 @@ import android.util.Log;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.MainActivity.bank;
+import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
@@ -81,6 +82,7 @@ public class SBasic {
     final int KEY  = 51;
 
     //
+    //final int EOL = '\n';
     final String EOP = "\0";
 
     //
@@ -94,6 +96,8 @@ public class SBasic {
     private boolean forcedExit = false;
     private String resultStr;
     private StringBuilder sb = null;
+    private int currentLine;
+    private int currentBank;
 
     //
     class Keyword {
@@ -181,7 +185,8 @@ public class SBasic {
     //}
 
     //
-    private TreeMap labelTable;
+    //private TreeMap labelTable;
+    private Map<String, Integer> labelTable;
 
     //
     class GosubInfo {
@@ -211,7 +216,9 @@ public class SBasic {
             svars[i] = "";
         }
         fStack = new Stack();
-        labelTable = new TreeMap();
+        //labelTable = new TreeMap();
+        //Map<String, Integer> labelTable = new TreeMap<String, Integer>();
+        labelTable = new TreeMap<String, Integer>();
         gStack = new Stack();
         lastAns = new Double(0);
         prog = new char[progLength];
@@ -220,6 +227,16 @@ public class SBasic {
         //source = new SourceFile();
     }
 
+    private void nop20ms() {
+        if (cpuClockEmulateEnable) {
+            Log.w("NOP", "--- WAIT ---");
+            try {
+                Thread.sleep(20L);
+            } catch (InterruptedException e) {
+                ;
+            }
+        }
+    }
 
     private void lcdPrintAndPause(String s) {
         lcd.bprint(s);
@@ -227,6 +244,7 @@ public class SBasic {
         pb.progStop();
     }
     private void lcdPrint(String s) {
+        Log.w("lcdPrint", s);
         lcd.bprint(s);
         System.out.print(s);
     }
@@ -450,8 +468,10 @@ public class SBasic {
         int loopCnt = 0;
 
         do {
-            if (loopCnt == 0) {
-                oldTime = System.currentTimeMillis();
+            if (cpuClockEmulateEnable) {
+                if (loopCnt == 0) {
+                    oldTime = System.currentTimeMillis();
+                }
             }
             if (pb.isProgStop()) {
                 try{
@@ -512,20 +532,21 @@ public class SBasic {
             }
 
             // 処理速度の調整
-            if (++loopCnt > 5) {
-                loopCnt = 0;
-                newTime = System.currentTimeMillis();
-                long sleepTime = 30 - (newTime - oldTime);
+            if (cpuClockEmulateEnable) {
+                if (++loopCnt > 5) {
+                    loopCnt = 0;
+                    newTime = System.currentTimeMillis();
+                    long sleepTime = 30 - (newTime - oldTime);
 
-
-                if (sleepTime > 0) {
-                    try {
-                        Thread.sleep(sleepTime);
-                    } catch (InterruptedException e) {
-                        ;
+                    if (sleepTime > 0) {
+                        try {
+                            Thread.sleep(sleepTime);
+                        } catch (InterruptedException e) {
+                            ;
+                        }
                     }
-                }
 
+                }
             }
 
         } while (!token.equals(EOP));
@@ -762,7 +783,8 @@ public class SBasic {
                 getToken();
             } else if (tokType == COMMAND) {
                 if (kwToken == CSR) {
-                    result = evaluate();
+                    //lcdPrint(prtStr);
+                    result = evaluate() + 0.01; // イマイチ！！
                     Log.w("CSR", "pos="+result);
                     if (result < 12) {
                         pos = (int) result;
@@ -777,9 +799,12 @@ public class SBasic {
                             sb = new StringBuilder(prtStr + s);
                         }
                         Log.w("print", String.format("sb='%s'", sb.toString()));
+                        //lcdPrint(prtStr);
                     }
                 }
             }
+            if (sb != null) prtStr = sb.toString();
+            lcdPrint(prtStr);
 
             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
                 break;
@@ -1177,7 +1202,7 @@ public class SBasic {
                             m--;
                             getToken();
                             //Log.w("---- MID", token);
-                            if (token.equals(")")) {
+                            if (token.equals(")") || token.equals(":") || kwToken == EOL) {
                                 if (m < 0 || m >= svars[26].length()) {
                                     Log.w("MID", String.format("len=%d, m=%d", svars[26].length(), m));
                                     handleErr(ERR_ARGUMENT);
@@ -1191,7 +1216,7 @@ public class SBasic {
                                 putBack();
                                 n = (int)evaluate();
                                 getToken();
-                                if (!token.equals(")")) {
+                                if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
                                     handleErr(ERR_SYNTAX);
                                 }
                                 if (m < 0 || m >= svars[26].length() || n <= 0 || m + n > svars[26].length()) {
@@ -1320,9 +1345,9 @@ public class SBasic {
         result = evalExp3();
 
         while ((op = token.charAt(0)) == '+' || op == '-') {
-            //Log.w("eval2", String.format("op=%c", op));
+            Log.w("eval2", String.format("op=%c", op));
             getToken();
-            //Log.w("eval2", String.format("next token=%s", token));
+            Log.w("eval2", String.format("next token=%s", token));
             partialResult = evalExp3();
             switch (op) {
                 case '-':
@@ -1425,7 +1450,7 @@ public class SBasic {
         if (token.equals("(")) {
             getToken();
             result = evalExp2();
-            if (!token.equals(")")) {
+            if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
                 handleErr(ERR_SYNTAX);
             }
             getToken();
@@ -1437,7 +1462,7 @@ public class SBasic {
     }
 
     private double atom() throws InterpreterException {
-        //Log.w("atom", "exec");
+        Log.w("atom", "exec");
         double result = 0.0;
 
         switch (tokType) {
@@ -1477,154 +1502,159 @@ public class SBasic {
                     case SIN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp2();
+                            //double temp = evalExp2();
+                            double temp = evalExp6();
                             try {
                                 result = Math.sin(Math.toRadians(temp));
+                                nop20ms();
                                 //Log.w("atom", String.format("SIN result=%e", result));
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
+
                     case COS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp2();
+                            double temp = evalExp6();
                             try {
                                 result = Math.cos(Math.toRadians(temp));
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case TAN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp2();
+                            double temp = evalExp6();
                             try {
                                 result = Math.tan(Math.toRadians(temp));
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case ASN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.asin(temp));
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case ACS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.acos(temp));
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case ATN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.atan(temp));
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case ABS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.abs(temp);
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case LOG:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.log10(temp);
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case LN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.log(temp);
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case SQR:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.sqrt(temp);
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
                     case EXP:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             try {
                                 result = Math.exp(temp);
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
                         }
-                        getToken();
+                        //getToken();
                         //Log.w("atom", String.format("next token='%s'", token));
                         break;
 
@@ -1642,25 +1672,25 @@ public class SBasic {
                     case INT:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             result = (int)temp;
                         }
-                        getToken();
+                        //getToken();
                         break;
 
                     case FRAC:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             result = temp - (int)temp;
                         }
-                        getToken();
+                        //getToken();
                         break;
 
                     case SGN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp1();
+                            double temp = evalExp6();
                             if (temp > 0) {
                                 result = 1;
                             } else if (temp < 0) {
@@ -1669,7 +1699,7 @@ public class SBasic {
                                 result = 0;
                             }
                         }
-                        getToken();
+                        //getToken();
                         break;
 
                     case LEN:
@@ -1964,7 +1994,26 @@ public class SBasic {
                 "Option error"
         };
 
-        Log.w("handleErr", String.format("%s(%d)", err[error], error));
+
+        int idx = 0;
+        String key = "";
+        boolean findValue = false;
+        for (Map.Entry<String, Integer>map : labelTable.entrySet()) {
+            if (pc >= map.getValue()) {
+                if (idx < map.getValue()) {
+                    idx = map.getValue();
+                    key = map.getKey();
+                    findValue = true;
+                }
+            }
+        }
+        if (!findValue) {
+            Log.w("handleErr", String.format("%s(%d)", err[error], error));
+            lcdPrintAndPause(String.format("ERR%d", error));
+        } else {
+            Log.w("handleErr", String.format("%s(%d) P%d-%s", err[error], error, bank, key));
+            lcdPrintAndPause(String.format("ERR%d P%d-%s", error, bank, key));
+        }
         throw  new InterpreterException(err[error]);
     }
 

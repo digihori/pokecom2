@@ -61,6 +61,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean keyMode = false;
     public static boolean keyFunc = false;
     public static boolean vibrate_enable, debug_info;
+    public static boolean cpuClockEmulateEnable = true;
     private Vibrator vib;
 
     public static boolean initial; // 仮
