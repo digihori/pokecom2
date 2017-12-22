@@ -1,5 +1,6 @@
 package tk.horiuchi.pokecom2;
 
+import android.nfc.FormatException;
 import android.util.Log;
 
 import java.util.*;
@@ -514,7 +515,7 @@ public class SBasic {
                         break;
                     case INPUT:
                         input();
-                        return;
+                        break;
                     case GOSUB:
                         gosub();
                         break;
@@ -1003,19 +1004,66 @@ public class SBasic {
 
     private void input() throws InterpreterException {
         int var;
+        //String vname;
         double val = 0.0;
-        String str;
+        String str = "";
         //BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         getToken();
         if (tokType == QUTEDSTR) {
             //System.out.print(token);
-            lcdPrint(token);
+            //lcdPrint(token);
+            str = token;
             getToken();
             if (!token.equals(",")) handleErr(ERR_SYNTAX);
             getToken();
         }
+        lcdPrint(str+"?");
+        getInputStream();
+        int idx;
+        if (tokType == VARIABLE) {
+            Log.w("input", String.format("input=%s", inText));
+            idx = Character.toUpperCase(token.charAt(0)) - 'A';
+            try {
+                vars[idx] = Integer.parseInt(inText);
+            } catch (NumberFormatException e) {
+                handleErr(ERR_ARGUMENT);
+            }
+            getToken();
+        } else if (tokType == SVARIABLE) {
+            if (token.charAt(0) == '$') {
+                idx = 26;
+            } else {
+                idx = Character.toUpperCase(token.charAt(0)) - 'A';
+            }
+            svars[idx] = inText;
+            getToken();
+        } else {
+            handleErr(ERR_SYNTAX);
+        }
         //System.out.print("? ");
-        lcdPrint("?");
+        //lcdPrint(str+"?");
+        //getInputStream();
+        //pb.progStop();
+    }
+
+    public static String inText;
+    public static boolean inputWait = false;
+    private void getInputStream() {
+        inText = "";
+        inputWait = true;
+        do {
+            if (pb.isProgStop()) {
+                break;
+            }
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+                ;
+            }
+        } while (inText.isEmpty());
+
+        inputWait = false;
+        return;
     }
 
     private void gosub() throws InterpreterException {

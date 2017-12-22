@@ -40,6 +40,7 @@ import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.Common.type10inch;
 import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
+import static tk.horiuchi.pokecom2.SBasic.inputWait;
 
 public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -313,7 +314,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         Log.w("Click", String.format("key=%d", c));
 
-        if (c != R.id.buttonSTOP && pb.isProgRunning()) return;
+        if (c != R.id.buttonSTOP && (pb.isProgRunning() && !inputWait)) return;
 
         // モードの切り替え
         boolean modeChange = true;
@@ -372,7 +373,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         if (mode == MODE_RUN) {
             switch (c) {
                 case R.id.buttonEXE:
-                    if (pb.isProgStop()) {
+                    if (pb.isProgStop() || inputWait) {
                         lcd.putchar(inkey.getKeyCode(c));
                     } else {
                         String s = lcd.getCmdBuf();

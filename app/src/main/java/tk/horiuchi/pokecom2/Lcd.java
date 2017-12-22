@@ -15,6 +15,7 @@ import static tk.horiuchi.pokecom2.MainActivity.mode;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.source;
 import static tk.horiuchi.pokecom2.PbMain.digi;
+import static tk.horiuchi.pokecom2.SBasic.inText;
 
 
 /**
@@ -348,6 +349,7 @@ public class Lcd {
                         pb.progRestart();
                     }
                     if (s == null) break;
+                    inText = s;
                     //try {
                     //    Log.w("EXE", String.format("%s", s));
                     //    calc(getCmdBuf());
