@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
@@ -23,6 +24,8 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,6 +75,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static int bank;
     public static final int progLength = 2000;  // 仮
     public static final int bankMax = 10;
+    public static TextView debugWindow;
+    public static String debugText = "";
+    private boolean nosave = false;
 
 
     public static int[] mBtnResIds = {
@@ -195,7 +201,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         calcMemoryAndDisp(false);
         listDisp = false;
 
-        source = new SourceFile();
+        if (source == null) {
+            source = new SourceFile();
+        }
         try {
             basic = new SBasic(lcd);
             //Log.w("Main", "----- prog completed!!! -----");
@@ -203,6 +211,50 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             Log.w("Main", String.format("error='%s'", e.toString()));
         }
 
+        debugWindow = (TextView)findViewById(R.id.debugWindow);
+        //if (debug_info) {
+        //    debugText = "hoge";
+        //}
+
+        final Handler _handler1 = new Handler();
+        final int DELAY1 = 500;
+        _handler1.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (debug_info) debugPrint();
+                _handler1.postDelayed(this, DELAY1);
+            }
+        }, DELAY1);
+
+    }
+
+    private void deviceReset() {
+        // プログラムが動いていたら停止する
+        if (mode == MODE_RUN && pb.isProgExist()) {
+            basic.sbExit();
+        }
+        // 変数の初期化
+        basic.vac();
+        // プログラムのオールクリア
+        source.clearSourceAll();
+        // モードの初期化
+        mode = MODE_RUN;
+        keyShift = false;
+        keyExt = false;
+        keyMode = false;
+        keyFunc = false;
+        lcd.print("READY P0");
+        initial = true;
+
+        calcMemoryAndDisp(false);
+        listDisp = false;
+
+        lcd.refresh();
+    }
+
+    private void debugPrint() {
+        debugWindow.setText(debugText);
+        //Log.w("debug", "exec!!!");
     }
 
     private static void verifyStoragePermissions(Activity activity) {
@@ -285,7 +337,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     // ボタンのリソースファイルを更新する処理
     // 位置調整用のボタン枠表示の切り替え
     protected void changeButtonFrame(int[] ids, boolean flg) {
-
         for (int i = 0; i < ids.length; i++) {
             if (flg) {
                 findViewById(ids[i]).setBackgroundResource(R.drawable.button_debug);
@@ -296,14 +347,64 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (nosave) {
+            nosave = false;
+            return;
+        }
+        if (source != null) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            Gson gson = new Gson();
+
+            for (int i = 0; i < bankMax; i++) {
+                String[] src = source.getSourceAll(i);
+
+                if (src != null) {
+                    // objectをjson文字列へ変換
+                    String jsonInstanceString = gson.toJson(src);
+                    // 変換後の文字列をputStringで保存
+                    prefs.edit().putString("PREF_P" + i, jsonInstanceString).apply();
+                }
+            }
+
+            Log.w("Main", "------------- onPause()");
+            if (debug_info) {
+                Toast.makeText(this, String.format("Activity saved."), Toast.LENGTH_SHORT).show();
+            }
+        }
+
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        for (int i = 0; i < bankMax; i++) {
+            // 保存されているjson文字列を取得
+            String s = prefs.getString("PREF_P"+i, "");
+            prefs.edit().putString("PREF_P"+i, "").apply();  // 読み出した部分はクリア
+
+            if (s != null && !s.isEmpty()) {
+                Gson gson = new Gson();
+                String[] src = gson.fromJson(s, String[].class);
+
+                source.setSourceAll(i, src);
+            }
+
+        }
+        Log.w("Main", "------------ onResume()    source restored!!! ---------");
 
         // ボタン表示枠の更新
         if (debug_info) {
             changeButtonFrame(mBtnResIds, true);
         } else {
             changeButtonFrame(mBtnResIds, false);
+            debugText = "";
+            debugPrint();
         }
     }
 
@@ -508,18 +609,18 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.optionsMenu_01:
-                //nosave = true;
+                nosave = true;
                 actLoad();
                 return true;
             case R.id.optionsMenu_02:
-                //nosave = true;
+                nosave = true;
                 actSave();
                 return true;
             case R.id.optionsMenu_03:   // reset
-                //modeInit();
+                deviceReset();
                 return true;
             case R.id.optionsMenu_04:   // settings
-                //nosave = true;
+                nosave = true;
                 Intent intent1 = new android.content.Intent(this, MyPreferenceActivity.class);
                 startActivity(intent1);
                 return true;
@@ -736,6 +837,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     String txt1 = data.getExtras().getString("filePath");
                     if (txt1 != null) {
                         Log.w("LOG", "path="+txt1);
+                        source.clearSourceAll();
                         int len = load(txt1);
                         Toast.makeText(this, "loaded:"+txt1+"("+len+")", Toast.LENGTH_LONG).show();
                     } else {
@@ -787,6 +889,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         remain -= total;
         if (remain < 0) remain = 0;
 
+        //Log.w("Memory", "remain="+remain);
+
         int digit1000 = remain / 1000;
         int digit100 = (remain - digit1000 * 1000) / 100;
         int digit10 = (remain - digit1000 * 1000 - digit100 * 100) / 10;
@@ -805,10 +909,10 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         switch (digit100) {
             default:
             case 0:
-                if (digit1000 != 0) {
-                    res = R.drawable.d0;
-                } else {
+                if (digit1000 == 0) {
                     res = R.drawable.d00;
+                } else {
+                    res = R.drawable.d0;
                 }
                 break;
             case 1: res = R.drawable.d1; break;
@@ -827,10 +931,10 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         switch (digit10) {
             default:
             case 0:
-                if (digit1000 != 0 && digit100 != 0) {
-                    res = R.drawable.d0;
-                } else {
+                if (digit1000 == 0 && digit100 == 0) {
                     res = R.drawable.d00;
+                } else {
+                    res = R.drawable.d0;
                 }
                 break;
             case 1: res = R.drawable.d1; break;
@@ -848,13 +952,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         iv = (ImageView)findViewById(R.id.d4);
         switch (digit1) {
             default:
-            case 0:
-                if (digit1000 != 0 && digit100 != 0 && digit10 != 0) {
-                    res = R.drawable.d0;
-                } else {
-                    res = R.drawable.d00;
-                }
-                break;
+            case 0: res = R.drawable.d0; break;
             case 1: res = R.drawable.d1; break;
             case 2: res = R.drawable.d2; break;
             case 3: res = R.drawable.d3; break;

@@ -665,7 +665,7 @@ public class SBasic {
         }
     }
 
-    private void vac() {
+    public void vac() {
         Log.w("VAC", "variable cleared.");
         for (int i = 0; i < 26; i++) {
             vars[i] = 0;

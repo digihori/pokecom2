@@ -137,6 +137,16 @@ public class SourceFile {
         return src;
     }
 
+    public boolean setSourceAll(int n, String[] src) {
+        int ret = 0;
+        for (int i = 0; i < src.length; i++) {
+            ret = addSource(n, src[i]);
+            if (ret != 0) break;
+        }
+
+        return (ret == 0 ? true : false);
+    }
+
     public String getSourceTop(int n) {
         if (n > 9) return null;
         if (list[n].size() == 0) return null;
