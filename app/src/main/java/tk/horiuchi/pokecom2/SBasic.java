@@ -5,6 +5,7 @@ import android.util.Log;
 
 import java.util.*;
 
+import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
@@ -81,6 +82,7 @@ public class SBasic {
     final int RND  = 49;
     final int RAN  = 50;
     final int KEY  = 51;
+    final int PI   = 52;
 
     //
     //final int EOL = '\n';
@@ -145,6 +147,7 @@ public class SBasic {
             new Keyword("sgn", SGN),
             new Keyword("frac", FRAC),
             new Keyword("rnd", RND),
+            new Keyword("pi", PI),
             new Keyword("end", END),
             new Keyword("run", RUN),
             new Keyword("list", LIST)
@@ -715,6 +718,7 @@ public class SBasic {
 
             paramExist = true;
             if (tokType == QUTEDSTR) {
+                lastDelim = "";
                 //Log.w("PRT", String.format("tokType=QUTEDSTR(%d)", tokType));
                 //System.out.print(token);
                 //lcdPrint(token);
@@ -729,6 +733,7 @@ public class SBasic {
                 len += token.length();
                 getToken();
             } else if (tokType == VARIABLE || tokType == NUMBER) {
+                lastDelim = "";
                 //Log.w("PRT", String.format("tokType!=QUTEDSTR(%d)", tokType));
                 putBack();
                 result = evaluate();
@@ -754,6 +759,7 @@ public class SBasic {
                 Double t = new Double(result);
                 len += t.toString().length();
             } else if (tokType == SVARIABLE || tokType == FUNCTION && kwToken == MID) {
+                lastDelim = "";
                 putBack();
                 strOpe();
                 //String s = findSVer(token);
@@ -781,9 +787,10 @@ public class SBasic {
                 }
                 */
                 len += resultStr.length();
-                getToken();
+                //getToken();
             } else if (tokType == COMMAND) {
                 if (kwToken == CSR) {
+                    lastDelim = "";
                     //lcdPrint(prtStr);
                     result = evaluate() + 0.01; // イマイチ！！
                     Log.w("CSR", "pos="+result);
@@ -804,8 +811,10 @@ public class SBasic {
                     }
                 }
             }
-            if (sb != null) prtStr = sb.toString();
-            lcdPrint(prtStr);
+            if (sb != null) {
+                prtStr = sb.toString();
+                lcdPrint(prtStr);
+            }
 
             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
                 break;
@@ -1124,7 +1133,7 @@ public class SBasic {
     }
 
     private boolean strOpe1() throws InterpreterException {
-        Log.w("strOpe1", String.format("exec : token='%s' tokType=%d", token, tokType));
+        //Log.w("strOpe1", String.format("exec : token='%s' tokType=%d", token, tokType));
         String l_temp, r_temp;
         boolean result = false;
         char op;
@@ -1157,12 +1166,12 @@ public class SBasic {
             }
             resultStr = l_temp;
         }
-        Log.w("strOpe1-end", String.format("result=%d ret='%s'", (result ? 1 : 0), resultStr));
+        //Log.w("strOpe1-end", String.format("result=%d ret='%s'", (result ? 1 : 0), resultStr));
         return  result;
     }
 
     private boolean strOpe2() throws InterpreterException {
-        Log.w("strOpe2", String.format("exec : token='%s' tokType=%d", token, tokType));
+        //Log.w("strOpe2", String.format("exec : token='%s' tokType=%d", token, tokType));
         char op;
         boolean result = false;
         String str1, str2;
@@ -1185,13 +1194,13 @@ public class SBasic {
                     break;
             }
         }
-        Log.w("strOpe2-end", String.format("ret='%s'", resultStr));
+        //Log.w("strOpe2-end", String.format("ret='%s'", resultStr));
         resultStr = str1;
         return result;
     }
 
     private boolean strOpe3() throws InterpreterException {
-        Log.w("strOpe3", String.format("exec : token='%s' tokType=%d", token, tokType));
+        //Log.w("strOpe3", String.format("exec : token='%s' tokType=%d", token, tokType));
         boolean result = false;
 
         switch (tokType) {
@@ -1249,7 +1258,7 @@ public class SBasic {
                             m = (int)evaluate();
                             m--;
                             getToken();
-                            //Log.w("---- MID", token);
+                            Log.w("---- MID", token);
                             if (token.equals(")") || token.equals(":") || kwToken == EOL) {
                                 if (m < 0 || m >= svars[26].length()) {
                                     Log.w("MID", String.format("len=%d, m=%d", svars[26].length(), m));
@@ -1267,6 +1276,7 @@ public class SBasic {
                                 if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
                                     handleErr(ERR_SYNTAX);
                                 }
+                                Log.w("MID", String.format("len=%d, m=%d, n=%d", svars[26].length(), m, m + n));
                                 if (m < 0 || m >= svars[26].length() || n <= 0 || m + n > svars[26].length()) {
                                     Log.w("MID", String.format("len=%d, m=%d, n=%d", svars[26].length(), m, m + n));
                                     handleErr(ERR_ARGUMENT);
@@ -1492,20 +1502,23 @@ public class SBasic {
     }
 
     private double evalExp6() throws InterpreterException {
-        //Log.w("eval6", "exec");
+        Log.w("eval6", "exec");
         double result;
 
         if (token.equals("(")) {
             getToken();
             result = evalExp2();
-            if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
+            if (!token.equals(")") && !token.equals(":") && !token.equals(",") && kwToken != EOL) {
                 handleErr(ERR_SYNTAX);
             }
-            getToken();
+            if (!token.equals(",")) {
+                // デリミターが','の時は何かの関数の中でカッコが省略されているのでトークンを進めない
+                getToken();
+            }
         } else {
             result = atom();
         }
-        //Log.w("eval6", String.format("ret=%e", result));
+        Log.w("eval6", String.format("ret=%e", result));
         return result;
     }
 
@@ -1647,7 +1660,7 @@ public class SBasic {
                             }
                         }
                         //getToken();
-                        //Log.w("atom", String.format("next token='%s'", token));
+                        //Log.w("atom", String.format("---ABS   next token='%s'", token));
                         break;
 
                     case LOG:
@@ -1750,6 +1763,11 @@ public class SBasic {
                         //getToken();
                         break;
 
+                    case PI:
+                        result = Math.PI;
+                        getToken();;
+                        break;
+
                     case LEN:
                         str = "";
                         do {
@@ -1819,6 +1837,10 @@ public class SBasic {
             handleErr(ERR_SYSTEM);
             return 0.0;
         }
+        if (Character.toUpperCase(vname.charAt(0)) - 'A' >= 26) {
+            Log.w("findVar", String.format("'%s'", vname));
+            handleErr(ERR_SYNTAX);
+        }
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
 
@@ -1840,6 +1862,10 @@ public class SBasic {
             if (pc > 0) pc--;
         }
         Log.w("putBack", "pc="+pc);
+    }
+
+    private boolean isLetter(char c) {
+        return ('A' <= c && c <= 'Z' || 'a' <= c && c <= 'z') ? true : false;
     }
 
     private void getToken() throws InterpreterException {
@@ -1916,10 +1942,15 @@ public class SBasic {
             pc++;
             tokType = DELIMITER;
             Log.w("getToken", String.format("case DELIMITER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
-        } else if (Character.isLetter(prog[pc]) || prog[pc] == '$') {
+        } else if (isLetter(prog[pc]) || prog[pc] == '$' || prog[pc] == 0xf2/*PI*/) {
             while (!isDelim(prog[pc])) {
-                token += (char)(prog[pc]&0xff);
+                if (prog[pc] == 0xf2) {
+                    token += "PI";
+                } else {
+                    token += (char) (prog[pc] & 0xff);
+                }
                 pc++;
+                if (isReserveWord(token)) break;
                 if (pc >= idxEnd + 1) break;
             }
             kwToken = lookUp(token);
@@ -2028,6 +2059,13 @@ public class SBasic {
         }
     }
 
+    private boolean isReserveWord(String s) {
+        for (int i = 0x90; i < 0xe0; i++) {
+            if (cmdTable[i].equals("\0")) continue;
+            if (cmdTable[i].equals(s)) return true;
+        }
+        return false;
+    }
     private void handleErr(int error) throws InterpreterException {
         String[] err = {
                 "System error",

@@ -73,7 +73,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static int mode = MODE_RUN;
     public static boolean selectBank = false;
     public static int bank;
-    public static final int progLength = 2000;  // 仮
+    public static final int progLength = 3000;  // 仮
     public static final int bankMax = 10;
     public static TextView debugWindow;
     public static String debugText = "";

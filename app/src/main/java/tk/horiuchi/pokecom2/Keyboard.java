@@ -131,7 +131,7 @@ public class Keyboard {
             new KeyTable(R.id.buttonMINUS, '-', 0xf3, '-', 0xf3, 0),
             new KeyTable(R.id.buttonMLT,   '*', '>',  '*', '>',  0),
             new KeyTable(R.id.buttonDIV,   '/', '<',  '/', '<',  0),
-            new KeyTable(R.id.buttonAC,   0x1a, 0, 0, 0, 0),
+            new KeyTable(R.id.buttonAC,   0x1a, 0x1a, 0x1a, 0x1a, 0x1a),
             new KeyTable(R.id.buttonEXE,  0x1b, 0x1b, 0x1b, 0x1b, 0x1b),
             new KeyTable(R.id.buttonSTOP, 0x1c, 0, 0, 0, 0),
             new KeyTable(R.id.buttonDEL,  0x1d, 0x1e, 0, 0, 0),
