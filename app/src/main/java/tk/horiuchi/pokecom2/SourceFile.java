@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by yoshimine on 2017/12/03.
@@ -37,6 +39,7 @@ public class SourceFile {
 
     class BasicSource {
         int lineNum;
+        int size;
         String body;
 
         public BasicSource(String s) {
@@ -47,7 +50,35 @@ public class SourceFile {
             } else {
                 body = null;
             }
+            size = s.length();  // （仮）ちゃんと計算しないといけない！
         }
+
+        /*
+        private int countSteps(String str) {
+            if (str.length() == 0) return 0;
+            int count = 3;
+
+            // ダブルクォートで括られた文字列を置き換え
+            String regex = "\".*?\"";
+            Pattern p = Pattern.compile(regex);
+            while (true) {
+                Matcher m = p.matcher(str);
+                if (m.find()) {
+                    String s = "";
+                    for (int i = 0; i < m.group().length(); i++) {
+                        s += "X";
+                    }
+                    str = str.replaceFirst(regex, s);
+                } else {
+                    break;
+                }
+            }
+            // 予約語を１文字に置き換え
+            // スペース以外の文字をカウントする
+
+            return count;
+        }
+        */
 
         public boolean equals(Object obj) {
             return (this.lineNum == ((BasicSource)obj).lineNum);
@@ -73,7 +104,7 @@ public class SourceFile {
         int total = 0;
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < list[i].size(); j++) {
-                total += ((BasicSource)list[i].get(j)).body.length();
+                total += ((BasicSource)list[i].get(j)).size;
             }
         }
         return total;
@@ -83,7 +114,13 @@ public class SourceFile {
         if (n > 9) return -1;
 
         int ret;
-        BasicSource temp = new BasicSource(src);
+        BasicSource temp;
+        try {
+            temp = new BasicSource(src);
+        } catch (NumberFormatException e) {
+            Log.w("addSource", "error!!! not linenum!!!");
+            return -1;
+        }
         if (list[n].contains(temp)) {
             int i = list[n].indexOf(temp);
             if (temp.body != null) {
