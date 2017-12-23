@@ -49,16 +49,17 @@ public class SBasic {
     final int FOR = 5;
     final int NEXT = 6;
     final int TO = 7;
-    final int GOTO = 8;
-    final int GOSUB = 9;
-    final int RETURN = 10;
-    final int END = 11;
-    final int EOL = 12;
-    final int RUN = 13;
-    final int LIST = 14;
-    final int CSR = 15;
-    final int VAC = 16;
-    final int STOP = 17;
+    final int STEP = 8;
+    final int GOTO = 9;
+    final int GOSUB = 10;
+    final int RETURN = 11;
+    final int END = 12;
+    final int EOL = 13;
+    final int RUN = 14;
+    final int LIST = 15;
+    final int CSR = 16;
+    final int VAC = 17;
+    final int STOP = 18;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -122,6 +123,7 @@ public class SBasic {
             new Keyword("for", FOR),
             new Keyword("next", NEXT),
             new Keyword("to", TO),
+            new Keyword("step", STEP),
             new Keyword("gosub", GOSUB),
             new Keyword("return", RETURN),
             new Keyword("csr", CSR),
@@ -171,6 +173,7 @@ public class SBasic {
     class ForInfo {
         int var;
         double target;
+        double step;
         int loc;
     }
 
@@ -322,7 +325,10 @@ public class SBasic {
 
     public void loadProg() {
         String[] temp = source.getSourceAll(bank);
-        if (temp == null) return;
+        if (temp == null) {
+            prog[0] = '\0';
+            return;
+        }
         int p = 0;
         for (int i = 0; i < temp.length; i++) {
             for (int j = 0; j < temp[i].length(); j++) {
@@ -983,7 +989,18 @@ public class SBasic {
         if (kwToken != TO) handleErr(ERR_SYNTAX);
         stckvar.target = evaluate();
 
-        if (value >= vars[stckvar.var]) {
+        stckvar.step = 1;
+        getToken();
+        if (kwToken == STEP) {
+            stckvar.step = evaluate();
+            if (stckvar.step == 0) handleErr(ERR_ARGUMENT);
+        } else {
+            putBack();
+        }
+
+        Log.w("execFor", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+        if (stckvar.step >= 0 && value >= vars[stckvar.var] ||
+                stckvar.step < 0 && value <= vars[stckvar.var]) {
             stckvar.loc = pc;
             fStack.push(stckvar);
         } else {
@@ -996,9 +1013,11 @@ public class SBasic {
         //Log.w("NEXT", "do");
         try {
             stckvar = (ForInfo) fStack.pop();
-            vars[stckvar.var]++;
+            vars[stckvar.var] += stckvar.step;
 
-            if (vars[stckvar.var] > stckvar.target) {
+            Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+            if (stckvar.step >= 0 && vars[stckvar.var] > stckvar.target ||
+                    stckvar.step < 0 && vars[stckvar.var] < stckvar.target) {
                 //Log.w("NEXT", "loop end.");
                 return;
             }
@@ -1502,7 +1521,7 @@ public class SBasic {
     }
 
     private double evalExp6() throws InterpreterException {
-        Log.w("eval6", "exec");
+        //Log.w("eval6", "exec");
         double result;
 
         if (token.equals("(")) {
@@ -1518,12 +1537,12 @@ public class SBasic {
         } else {
             result = atom();
         }
-        Log.w("eval6", String.format("ret=%e", result));
+        //Log.w("eval6", String.format("ret=%e", result));
         return result;
     }
 
     private double atom() throws InterpreterException {
-        Log.w("atom", "exec");
+        //Log.w("atom", "exec");
         double result = 0.0;
 
         switch (tokType) {
@@ -1613,6 +1632,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.asin(temp));
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -1627,6 +1647,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.acos(temp));
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -1641,6 +1662,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.toDegrees(Math.atan(temp));
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -1669,6 +1691,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.log10(temp);
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -1683,6 +1706,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.log(temp);
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -1711,6 +1735,7 @@ public class SBasic {
                             double temp = evalExp6();
                             try {
                                 result = Math.exp(temp);
+                                nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
