@@ -883,6 +883,7 @@ public class SBasic {
         } else {
             loc = (Integer) labelTable.get(token);
             if (loc == null) {
+                //putBack();
                 handleErr(ERR_UNDEFLINE);
             } else {
                 pc = loc.intValue();
@@ -2167,21 +2168,23 @@ public class SBasic {
         String key = "";
         boolean findValue = false;
         for (Map.Entry<String, Integer>map : labelTable.entrySet()) {
+            Log.w("search", String.format("pc=%d idx=%d value=%d", pc, idx, map.getValue()));
             if (pc >= map.getValue()) {
-                if (idx < map.getValue()) {
+                if (idx <= map.getValue()) {
                     idx = map.getValue();
                     key = map.getKey();
                     findValue = true;
+                    Log.w("search", String.format("---> pc=%d idx=%d key=%s", pc, idx, key));
                 }
             }
         }
         if (!findValue) {
             //Log.w("handleErr", String.format("%s(%d)", err[error], error));
-            msg = String.format("%s(%d)", err[error], error);
+            msg = String.format("pc=%d %s(%d)", pc, err[error], error);
             lcdPrintAndPause(String.format("ERR%d", error));
         } else {
             //Log.w("handleErr", String.format("%s(%d) P%d-%s", err[error], error, bank, key));
-            msg = String.format("%s(%d) P%d-%s", err[error], error, bank, key);
+            msg = String.format("pc=%d %s(%d) P%d-%s", pc, err[error], error, bank, key);
             lcdPrintAndPause(String.format("ERR%d P%d-%s", error, bank, key));
         }
         //debugText = msg;

@@ -11,6 +11,12 @@
             android:title="@string/cpu_clock_wait"
             android:summary="@string/cpu_clock_summary" />
 
+        <CheckBoxPreference
+            android:key="memory_unit_key"
+            android:defaultValue="true"
+            android:title="@string/memory_unit"
+            android:summary="@string/memory_unit_summary" />
+
         <tk.horiuchi.pokecom2.ParamReadableListPreference
             android:key="ui_design_key"
             android:defaultValue="0"

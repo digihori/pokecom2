@@ -32,6 +32,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.IllegalFormatCodePointException;
+import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -66,6 +68,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean keyFunc = false;
     public static boolean vibrate_enable, debug_info;
     public static boolean cpuClockEmulateEnable;
+    public static boolean memoryExtension;
     public static int ui_design;
     private Vibrator vib;
 
@@ -184,6 +187,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         debug_info = sp.getBoolean("debug_checkbox_key", false);
         vibrate_enable = sp.getBoolean("vibrator_checkbox_key", true);
         cpuClockEmulateEnable = sp.getBoolean("cpu_clock_key", true);
+        memoryExtension = sp.getBoolean("memory_unit_key", true);
         ui_design = Integer.parseInt(sp.getString("ui_design_key", "0"));
 
         vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
@@ -702,7 +706,17 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 w = 0;
                 while ((c = buf[r++]) != '\n') {
                     if (c == '\r') continue;    // \rは読み捨てる
-                    str += String.format("%c", c);
+                    String s = "";
+                    try {
+                        // 1byte文字以外はExceptionを吐くのでcatchで拾って読み捨てる
+                        s = String.format("%c", c);
+                    } catch (IllegalFormatCodePointException e) {
+                        Log.w("load", "IlleagalFormatCodeException!!!");
+                    } catch (IllegalFormatException e) {
+                        Log.w("load", "IlleagalFormatException!!!");
+                    }
+                    //str += String.format("%c", c);
+                    str += s;
                     if (r >= len) break;
                 }
                 int llen = str.length();
@@ -915,11 +929,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             return;
         }
 
-        int total = 0, remain = 544+1024;
+        int total = 0;
+        int remain = memoryExtension ? 544+1024 : 544;
         total = source.getUsedMemorySize();
         //for (int i = 0; i < 10; i++) {
         //    total += idxEnd[i];
         //}
+        Log.w("calcMem", String.format("memory=%d use=%d remain=%d", remain, total, remain-total));
         remain -= total;
         if (remain < 0) remain = 0;
 

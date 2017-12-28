@@ -248,6 +248,7 @@ public class Lcd {
         buf_top = 0;
         buf_index = s.length();
         cursor = buf_index < 12 ? buf_index : 11;
+        flashingReset();
     }
 
     public void bprint(String s) {
@@ -340,6 +341,7 @@ public class Lcd {
                     break;
                 case 0x1a:  // AC
                     cls();
+                    listDisp = false;
                     break;
                 case 0x1b:  // EXE
                     Log.w("putChar", "EXE!!!!!");

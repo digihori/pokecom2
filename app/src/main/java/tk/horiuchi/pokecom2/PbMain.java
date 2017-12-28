@@ -120,6 +120,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
         }
         thread = null;
+        //pause = false;
         Log.w("PbMain", "Thread finish !!!");
     }
 

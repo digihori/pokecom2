@@ -22,6 +22,8 @@
     <string name="ui_design_summary">UI design settings.</string>
     <string name="cpu_clock_wait">cpu clock emulate</string>
     <string name="cpu_clock_summary">Enable emulation of cpu clock.</string>
+    <string name="memory_unit">memory unit</string>
+    <string name="memory_unit_summary">Enable extended memory unit.</string>
     <string name="vibrator_checkbox_title">viblation</string>
     <string name="vibrator_checkbox_summary">Activate vibrator function when key is pressed.</string>
     <string name="debug_checkbox_title">debug</string>
