@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static tk.horiuchi.pokecom2.MainActivity.basic;
+
 /**
  * Created by yoshimine on 2017/12/03.
  */
@@ -47,38 +49,13 @@ public class SourceFile {
             lineNum = Integer.parseInt(temp[0]);
             if (temp.length > 1) {
                 body = s;
+                size = 3 + basic.getProgSteps(temp[1]);
             } else {
                 body = null;
+                size = 0;
             }
-            size = s.length();  // （仮）ちゃんと計算しないといけない！
+            //Log.w("Sourcs", String.format("size=%d", size));
         }
-
-        /*
-        private int countSteps(String str) {
-            if (str.length() == 0) return 0;
-            int count = 3;
-
-            // ダブルクォートで括られた文字列を置き換え
-            String regex = "\".*?\"";
-            Pattern p = Pattern.compile(regex);
-            while (true) {
-                Matcher m = p.matcher(str);
-                if (m.find()) {
-                    String s = "";
-                    for (int i = 0; i < m.group().length(); i++) {
-                        s += "X";
-                    }
-                    str = str.replaceFirst(regex, s);
-                } else {
-                    break;
-                }
-            }
-            // 予約語を１文字に置き換え
-            // スペース以外の文字をカウントする
-
-            return count;
-        }
-        */
 
         public boolean equals(Object obj) {
             return (this.lineNum == ((BasicSource)obj).lineNum);

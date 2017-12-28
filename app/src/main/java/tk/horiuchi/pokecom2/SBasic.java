@@ -2037,6 +2037,60 @@ public class SBasic {
         //Log.w("getToken", "func-end");
     }
 
+    public int getProgSteps(String str) {
+        char ch;
+        int size = 0;
+        int i = 0;
+
+        do {
+            ch = str.charAt(i);
+
+            // スペースはカウントしない
+            if (isSpaceorTab(ch)) {
+                i++;
+                //Log.w("step", String.format("space %d", size));
+                continue;
+            }
+
+            // 予約語は1ステップ、それ以外はそのままカウントする
+            if (isLetter(ch)) {
+                String s = "";
+                boolean f = false;
+                while (i < str.length() && !isDelim(ch)) {
+                    s += (ch = str.charAt(i++));
+                    if (isReserveWord(s)) {
+                        size++;
+                        //Log.w("step", String.format("ReserveWord! %d", size));
+                        f = true;
+                        break;
+                    }
+                }
+                if (!f) {
+                    size += s.length();
+                    //Log.w("step", String.format("not ReserveWord! %d", size));
+                }
+            } else  if (ch == '\"') {
+                String s = "";
+                s += ch;
+                while (++i < str.length()) {
+                    s += (ch = str.charAt(i));
+                    if (ch == '\"') {
+                        i++;
+                        break;
+                    }
+                }
+                size += s.length();
+                //Log.w("step", String.format("quote strings %d", size));
+            } else {
+                i++;
+                size++;
+                //Log.w("step", String.format("other %d", size));
+            }
+        } while (i < str.length());
+
+        return size;
+    }
+
     private boolean isDelim(int c) {
         char ne = 0xf1;
         char le = 0xf3;
