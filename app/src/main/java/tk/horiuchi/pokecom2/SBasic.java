@@ -8,6 +8,7 @@ import java.util.*;
 import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
+import static tk.horiuchi.pokecom2.MainActivity.debugText;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
@@ -319,7 +320,8 @@ public class SBasic {
             s += (char)(prog[id]&0xff);
         }
         if (s != null) {
-            Log.w("TR", String.format("(%d):'%s'", bank, s));
+            debugText = String.format("(%d):'%s'", bank, s);
+            Log.w("TR", debugText);
         }
     }
 
@@ -2158,6 +2160,7 @@ public class SBasic {
                 "dummy",
                 "Option error"
         };
+        String msg;
 
 
         int idx = 0;
@@ -2173,12 +2176,16 @@ public class SBasic {
             }
         }
         if (!findValue) {
-            Log.w("handleErr", String.format("%s(%d)", err[error], error));
+            //Log.w("handleErr", String.format("%s(%d)", err[error], error));
+            msg = String.format("%s(%d)", err[error], error);
             lcdPrintAndPause(String.format("ERR%d", error));
         } else {
-            Log.w("handleErr", String.format("%s(%d) P%d-%s", err[error], error, bank, key));
+            //Log.w("handleErr", String.format("%s(%d) P%d-%s", err[error], error, bank, key));
+            msg = String.format("%s(%d) P%d-%s", err[error], error, bank, key);
             lcdPrintAndPause(String.format("ERR%d P%d-%s", error, bank, key));
         }
+        //debugText = msg;
+        Log.w("handleErr", msg);
         throw  new InterpreterException(err[error]);
     }
 

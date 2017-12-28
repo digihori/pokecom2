@@ -65,7 +65,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean keyMode = false;
     public static boolean keyFunc = false;
     public static boolean vibrate_enable, debug_info;
-    public static boolean cpuClockEmulateEnable = true;
+    public static boolean cpuClockEmulateEnable;
+    public static int ui_design;
     private Vibrator vib;
 
     public static boolean initial; // 仮
@@ -81,8 +82,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
 
     public static int[] mBtnResIds = {
-            R.id.buttonDA, R.id.buttonUA, R.id.buttonMODE, R.id.buttonLA, R.id.buttonRA,
-            R.id.buttonSHIFT, R.id.buttonFUNC,
+            R.id.buttonDA, R.id.buttonUA, R.id.buttonFUNC,
+            R.id.buttonMODE, R.id.buttonLA, R.id.buttonRA, R.id.buttonSHIFT,
 
             R.id.buttonQ, R.id.buttonW, R.id.buttonE, R.id.buttonR, R.id.buttonT,
             R.id.buttonY, R.id.buttonU, R.id.buttonI, R.id.buttonO, R.id.buttonP,
@@ -125,9 +126,11 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // Buttonインスタンスの取得
         // ButtonインスタンスのリスナーをこのActivityクラスそのものにする
+        /*
         for (int i = 0; i < mBtnResIds.length; i++) {
             findViewById(mBtnResIds[i]).setOnClickListener(this);
         }
+        */
 
         // dp->px変換のためにDisplayMetricsを取得しておく
         DisplayMetrics metrics = new DisplayMetrics();
@@ -180,6 +183,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         debug_info = sp.getBoolean("debug_checkbox_key", false);
         vibrate_enable = sp.getBoolean("vibrator_checkbox_key", true);
+        cpuClockEmulateEnable = sp.getBoolean("cpu_clock_key", true);
+        ui_design = Integer.parseInt(sp.getString("ui_design_key", "0"));
 
         vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
@@ -275,6 +280,21 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
 
+        // メインキーの画像を切り替える
+        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
+        if (ui_design == 0) {
+            iv.setImageResource(R.drawable.pb100_mainkey);
+            for (int i = 0; i < 3; i++) {
+                findViewById(mBtnResIds[i]).setOnClickListener(null);
+            }
+        } else {
+            iv.setImageResource(R.drawable.fx700p_mainkey);
+            for (int i = 0; i < 3; i++) {
+                findViewById(mBtnResIds[i]).setOnClickListener(this);
+            }
+        }
+
+        // キーレイアウトを更新する
         stretchItemSize((GridLayout)findViewById(R.id.keyAreaMainkey), (ImageView)findViewById(R.id.imageViewMainkey));
         stretchItemSize((GridLayout)findViewById(R.id.keyAreaTenkey), (ImageView)findViewById(R.id.imageViewTenkey), 20);
 
@@ -341,7 +361,11 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             if (flg) {
                 findViewById(ids[i]).setBackgroundResource(R.drawable.button_debug);
             } else {
-                findViewById(ids[i]).setBackgroundResource(R.drawable.button);
+                if (i < 3) {
+                    findViewById(ids[i]).setBackgroundResource(R.drawable.button_hide);
+                } else {
+                    findViewById(ids[i]).setBackgroundResource(R.drawable.button);
+                }
             }
         }
     }
@@ -397,6 +421,16 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         }
         Log.w("Main", "------------ onResume()    source restored!!! ---------");
+
+        /*
+        // メインキーの画像を切り替える
+        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
+        if (ui_design == 0) {
+            iv.setImageResource(R.drawable.pb100_mainkey);
+        } else {
+            iv.setImageResource(R.drawable.fx700p_mainkey);
+        }
+        */
 
         // ボタン表示枠の更新
         if (debug_info) {

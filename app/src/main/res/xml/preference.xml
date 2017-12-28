@@ -6,6 +6,20 @@
 
 
         <CheckBoxPreference
+            android:key="cpu_clock_key"
+            android:defaultValue="true"
+            android:title="@string/cpu_clock_wait"
+            android:summary="@string/cpu_clock_summary" />
+
+        <tk.horiuchi.pokecom2.ParamReadableListPreference
+            android:key="ui_design_key"
+            android:defaultValue="0"
+            android:title="@string/ui_design_list"
+            android:summary="@string/ui_design_summary"
+            android:entries="@array/ui_list_entries"
+            android:entryValues="@array/ui_list_entryvalues"/>
+
+        <CheckBoxPreference
             android:key="vibrator_checkbox_key"
             android:defaultValue="true"
             android:title="@string/vibrator_checkbox_title"

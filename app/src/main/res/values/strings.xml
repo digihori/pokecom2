@@ -18,6 +18,10 @@
 
     <!-- preference strings -->
     <string name="preference_title">settings</string>
+    <string name="ui_design_list">UI design</string>
+    <string name="ui_design_summary">UI design settings.</string>
+    <string name="cpu_clock_wait">cpu clock emulate</string>
+    <string name="cpu_clock_summary">Enable emulation of cpu clock.</string>
     <string name="vibrator_checkbox_title">viblation</string>
     <string name="vibrator_checkbox_summary">Activate vibrator function when key is pressed.</string>
     <string name="debug_checkbox_title">debug</string>
@@ -26,7 +30,7 @@
 
     <string name="about_title">About Pokecom GO2</string>
     <string name="about_body">
-        This is an simulator of CASIO\'s Pocket Computer PB-100.
+        This is a simulator of CASIO\'s Pocket Computer PB-100.
     </string>
 
 </resources>
