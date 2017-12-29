@@ -6,6 +6,7 @@ import android.util.Log;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.Common.cmdTable;
+import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.debugText;
@@ -444,6 +445,10 @@ public class SBasic {
                     lcd.print(s, 0);
                     return;
                     //break;
+                case VAC:
+                    Log.w("SBasic", String.format("--- VAC ---"));
+                    vac();
+                    return;
                 default:
                     break;
             }
@@ -632,7 +637,11 @@ public class SBasic {
 
             //getToken();
             strOpe();
+            if (var < 26 && resultStr.length() > 7 || resultStr.length() > 30) {
+                handleErr(ERR_VARIABLE);
+            }
             svars[var] = resultStr;
+            if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
 
         } else {
             // 数値変数の処理
@@ -673,6 +682,7 @@ public class SBasic {
             //Log.w("assig", String.format("%d", lastAns.intValue()));
 
             vars[var] = value;
+            svars[var] = "";
         }
     }
 
@@ -1588,7 +1598,19 @@ public class SBasic {
                             //double temp = evalExp2();
                             double temp = evalExp6();
                             try {
-                                result = Math.sin(Math.toRadians(temp));
+                                //result = Math.sin(Math.toRadians(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.sin(Math.toRadians(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.sin(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.sin(Math.toRadians(temp*360/400));
+                                        break;
+                                }
                                 nop20ms();
                                 //Log.w("atom", String.format("SIN result=%e", result));
                             } catch (NumberFormatException e) {
@@ -1604,7 +1626,19 @@ public class SBasic {
                         if (!token.equals(EOP)) {
                             double temp = evalExp6();
                             try {
-                                result = Math.cos(Math.toRadians(temp));
+                                //result = Math.cos(Math.toRadians(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.cos(Math.toRadians(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.cos(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.cos(Math.toRadians(temp*360/400));
+                                        break;
+                                }
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -1619,7 +1653,19 @@ public class SBasic {
                         if (!token.equals(EOP)) {
                             double temp = evalExp6();
                             try {
-                                result = Math.tan(Math.toRadians(temp));
+                                //result = Math.tan(Math.toRadians(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.tan(Math.toRadians(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.tan(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.tan(Math.toRadians(temp*360/400));
+                                        break;
+                                }
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -1634,7 +1680,19 @@ public class SBasic {
                         if (!token.equals(EOP)) {
                             double temp = evalExp6();
                             try {
-                                result = Math.toDegrees(Math.asin(temp));
+                                //result = Math.toDegrees(Math.asin(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.toDegrees(Math.asin(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.asin(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.toDegrees(Math.asin(temp))*400/360;
+                                        break;
+                                }
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -1649,7 +1707,19 @@ public class SBasic {
                         if (!token.equals(EOP)) {
                             double temp = evalExp6();
                             try {
-                                result = Math.toDegrees(Math.acos(temp));
+                                //result = Math.toDegrees(Math.acos(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.toDegrees(Math.acos(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.acos(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.toDegrees(Math.acos(temp))*400/360;
+                                        break;
+                                }
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -1664,7 +1734,19 @@ public class SBasic {
                         if (!token.equals(EOP)) {
                             double temp = evalExp6();
                             try {
-                                result = Math.toDegrees(Math.atan(temp));
+                                //result = Math.toDegrees(Math.atan(temp));
+                                switch (angleUnit) {
+                                    default:
+                                    case 0:
+                                        result = Math.toDegrees(Math.atan(temp));
+                                        break;
+                                    case 1:
+                                        result = Math.atan(temp);
+                                        break;
+                                    case 2:
+                                        result = Math.toDegrees(Math.atan(temp))*400/360;
+                                        break;
+                                }
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -1865,9 +1947,13 @@ public class SBasic {
             handleErr(ERR_SYSTEM);
             return 0.0;
         }
-        if (Character.toUpperCase(vname.charAt(0)) - 'A' >= 26) {
+        int var = Character.toUpperCase(vname.charAt(0)) - 'A';
+        if (var >= 26) {
             Log.w("findVar", String.format("'%s'", vname));
             handleErr(ERR_SYNTAX);
+        }
+        if (!svars[var].isEmpty()) {
+            handleErr(ERR_VARIABLE);
         }
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
@@ -1879,6 +1965,10 @@ public class SBasic {
         if (!Character.isLetter(vname.charAt(0))) {
             handleErr(ERR_SYSTEM);
             return null;
+        }
+        int var = Character.toUpperCase(vname.charAt(0)) - 'A';
+        if (var >= 26) {
+            handleErr(ERR_SYNTAX);
         }
         return svars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
@@ -2003,7 +2093,7 @@ public class SBasic {
             } else {
                 Log.w("getToken", String.format("case COMMAND token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             }
-        } else if (Character.isDigit(prog[pc])) {
+        } else if (prog[pc] == '.' || Character.isDigit(prog[pc])) {
             while (!isDelim(prog[pc])) {
                 token += (char)(prog[pc]&0xff);
                 pc++;

@@ -11,8 +11,12 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.ImageView;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.basic;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
@@ -66,7 +70,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
         //thread = new Thread(this);
         //thread.start();
-
+/*
         final Handler _handler1 = new Handler();
         final int DELAY1 = 50;
         _handler1.postDelayed(new Runnable() {
@@ -74,15 +78,28 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             public void run() {
                 if (refresh_cnt != 0) {
                     refresh_cnt = 0;
+                    //Log.w("refresh", "refresh");
                     _refreshScreen();
                 }
+                //Log.w("refresh", "refresh");
                 _handler1.postDelayed(this, DELAY1);
             }
         }, DELAY1);
+*/
 
+        Timer timer1 = new Timer();
+        timer1.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (refresh_cnt != 0) {
+                    refresh_cnt = 0;
+                    _refreshScreen();
+                }
+            }
+        }, 0, 50);
 
         Log.w("PbMain", "--------------SurfaceView surfaceChanged!----------------");
-        refreshScreen();
+        //refreshScreen();
     }
 
     @Override
@@ -203,19 +220,19 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             }
             c.drawText("WRT", 62, 26, p);
 
-            if (true) {
+            if (angleUnit == 0) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
             }
             c.drawText("DEG", 96, 20, p);
-            if (false) {
+            if (angleUnit == 1) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
             }
             c.drawText("RAD", 125, 20, p);
-            if (false) {
+            if (angleUnit == 2) {
                 p.setColor(Color.DKGRAY);
             } else {
                 p.setColor(Color.LTGRAY);
@@ -266,8 +283,10 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     }
 
     public void progStop() {
-        pause = true;
-        Log.w("PbMain", "progStop");
+        if (thread != null) {
+            pause = true;
+            Log.w("PbMain", "progStop");
+        }
     }
 
     public void progRestart() {

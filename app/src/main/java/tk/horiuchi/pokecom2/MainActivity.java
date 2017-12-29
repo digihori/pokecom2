@@ -71,9 +71,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean memoryExtension;
     public static int ui_design;
     private Vibrator vib;
+    private String[] cmdHistory;
+    private int idxHistory;
 
     public static boolean initial; // 仮
+    public static boolean resultDisp = false;
     public static boolean bankStatus = false;
+    public static int angleUnit = 0;    // 0:DEG 1:RAD 2:GRAD
     public static int mode = MODE_RUN;
     public static boolean selectBank = false;
     public static int bank;
@@ -235,6 +239,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             }
         }, DELAY1);
 
+        cmdHistory = new String[8];
+        idxHistory = 0;
     }
 
     private void deviceReset() {
@@ -499,6 +505,30 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     modeChange = false;
                 }
                 break;
+            case R.id.button4:
+                if (keyMode) {
+                    keyMode = false;
+                    angleUnit = 0;  // DEG
+                } else {
+                    modeChange = false;
+                }
+                break;
+            case R.id.button5:
+                if (keyMode) {
+                    keyMode = false;
+                    angleUnit = 1;  // RAD
+                } else {
+                    modeChange = false;
+                }
+                break;
+            case R.id.button6:
+                if (keyMode) {
+                    keyMode = false;
+                    angleUnit = 2;  // GRAD
+                } else {
+                    modeChange = false;
+                }
+                break;
             default:
                 modeChange = false;
                 break;
@@ -523,12 +553,26 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         } catch (InterpreterException e) {
                             Log.w("Main", String.format("error='%s'", e.toString()));
                         }
-                        initial = true;
+                        //initial = true;
+                        resultDisp = true;
+                        cmdHistory[idxHistory++&7] = s;
+                        //idxHistory++;
+                        for (int i = 0; i < 8; i++) {
+                            Log.w("history", String.format("[%d] '%s'", i, cmdHistory[i]));
+                        }
                     }
                     break;
                 case R.id.buttonANS:
                     basic.lastAns();
                     break;
+                case R.id.buttonLA:
+                    if (resultDisp &&
+                            cmdHistory[(idxHistory-1)&7] !=null &&
+                            !cmdHistory[(idxHistory-1)&7].isEmpty()) {
+                        lcd.print(cmdHistory[(idxHistory-1)&7]);
+                        break;
+                    }
+                    // no break!
                 default:
                     int code = inkey.getKeyCode(c);
                     if (code != 0) lcd.putchar(code);

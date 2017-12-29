@@ -13,6 +13,7 @@ import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.MainActivity.listDisp;
 import static tk.horiuchi.pokecom2.MainActivity.mode;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
+import static tk.horiuchi.pokecom2.MainActivity.resultDisp;
 import static tk.horiuchi.pokecom2.MainActivity.source;
 import static tk.horiuchi.pokecom2.PbMain.digi;
 import static tk.horiuchi.pokecom2.SBasic.inText;
@@ -117,7 +118,7 @@ public class Lcd {
     }
 
     private void flashingCursor() {
-        if (initial) return;    // 仮
+        if (initial || resultDisp) return;    // 仮
 
         flashingCnt--;
         if (flashingCnt < 1) {
@@ -161,6 +162,7 @@ public class Lcd {
     public void cls() {
         initial = false;
         bankStatus = false;
+        resultDisp = false;
 
         cursor = 0;
         for (int i = 0; i < digi.length; i++) {
@@ -286,8 +288,9 @@ public class Lcd {
         if (bankStatus) {
             bankStatus = false;
         }
-        if (initial) {
+        if (initial || resultDisp) {
             initial = false;
+            resultDisp = false;
             cls();
         }
 
@@ -301,8 +304,9 @@ public class Lcd {
         if (bankStatus) {
             bankStatus = false;
         }
-        if (initial) {
+        if (initial || resultDisp) {
             initial = false;
+            resultDisp = false;
             cls();
         }
         for (int i = 0; i < s.length(); i++) {
@@ -324,6 +328,12 @@ public class Lcd {
         if (initial) {
             initial = false;
             cls();
+        }
+        if (resultDisp) {
+            resultDisp = false;
+            if (mode == MODE_RUN && c != '+' && c != '-' && c != '*' && c != '/') {
+                cls();
+            }
         }
 
         if (0x10 <= c && c <= 0x1f && !cmdTable[c].equals("\0")) {
