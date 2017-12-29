@@ -11,6 +11,7 @@ import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.debugText;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
+import static tk.horiuchi.pokecom2.MainActivity.memoryExtension;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
 import static tk.horiuchi.pokecom2.MainActivity.source;
@@ -62,6 +63,7 @@ public class SBasic {
     final int CSR = 16;
     final int VAC = 17;
     final int STOP = 18;
+    final int DEFM = 19;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -98,12 +100,13 @@ public class SBasic {
 
     //
     private double[] vars;
+    private double[] exvars;
     private String[] svars;
+    private String[] exsvars;
+
     private boolean forcedExit = false;
     private String resultStr;
     private StringBuilder sb = null;
-    private int currentLine;
-    private int currentBank;
 
     //
     class Keyword {
@@ -154,6 +157,7 @@ public class SBasic {
             new Keyword("pi", PI),
             new Keyword("end", END),
             new Keyword("run", RUN),
+            new Keyword("defm", DEFM),
             new Keyword("list", LIST)
     };
 
@@ -166,9 +170,6 @@ public class SBasic {
 
     private boolean nextLine = true;
     private Double lastAns;
-    private int lastBank;
-    private int listIdx;
-
     private Lcd lcd;
 
     //
@@ -220,10 +221,11 @@ public class SBasic {
     public SBasic(Lcd lcd) throws InterpreterException {
         this.lcd = lcd;
         vars = new double[26];
-        svars = new String[27];
+        svars = new String[26];
         for (int i = 0; i < svars.length; i++) {
             svars[i] = "";
         }
+        ssvar = "";
         fStack = new Stack();
         //labelTable = new TreeMap();
         //Map<String, Integer> labelTable = new TreeMap<String, Integer>();
@@ -449,6 +451,30 @@ public class SBasic {
                     Log.w("SBasic", String.format("--- VAC ---"));
                     vac();
                     return;
+                case DEFM:
+                    getToken();
+                    if (token.equals(EOP)) {
+                        putBack();
+                        int m = defm();
+                        lcdPrint(String.format("***VAR:%d", m));
+                    } else if (tokType == NUMBER) {
+                        int n = 0;
+                        try {
+                            n = Integer.parseInt(token);
+                        } catch (NumberFormatException e) {
+                            handleErr(ERR_SYNTAX);
+                        }
+                        int m = defm(n);
+                        lcdPrint(String.format("***VAR:%d", m));
+                    } else if (tokType == VARIABLE) {
+                        putBack();
+                        int n = (int)evalExp2();
+                        int m = defm(n);
+                        lcdPrint(String.format("***VAR:%d", m));
+                    } else {
+                        handleErr(ERR_SYNTAX);
+                    }
+                    return;
                 default:
                     break;
             }
@@ -600,10 +626,12 @@ public class SBasic {
             pc++;
     }
 
+    private String ssvar;
     private void assignment() throws InterpreterException {
         int var;
         double value;
         char vname;
+        int offset = 0;
 
         getToken();
         Log.w("assignment", String.format("%s", token));
@@ -611,37 +639,52 @@ public class SBasic {
             // 文字列変数の処理
             vname = token.charAt(0);
             if (vname == '$') {
-                var = 26;
+                getToken();
+                strOpe();
+                if (resultStr.length() > 30) {
+                    handleErr(ERR_VARIABLE);
+                }
+                ssvar = resultStr;
             } else {
                 var = (int) Character.toUpperCase(vname) - 'A';
-            }
 
-            String lastToken = token;
-            getToken();
-            if (token.equals("(")) {
-                // 配列
+                String lastToken = token;
                 getToken();
-                double result = evalExp2();
-                var += result;
-                if (!token.equals(")")) {
-                    handleErr(ERR_SYNTAX);
+                if (token.equals("(")) {
+                    // 配列
+                    getToken();
+                    offset = (int)evalExp2();
+                    //var += result;
+                    if (!token.equals(")")) {
+                        handleErr(ERR_SYNTAX);
+                    }
+                    getToken();
+                } else if (!token.equals("=")) {
+                    putBack();
+                    token = lastToken;
+                    putBack();
+                    strOpe();
+                    return;
                 }
-                getToken();
-            } else if (!token.equals("=")) {
-                putBack();
-                token = lastToken;
-                putBack();
-                strOpe();
-                return;
-            }
 
-            //getToken();
-            strOpe();
-            if (var < 26 && resultStr.length() > 7 || resultStr.length() > 30) {
-                handleErr(ERR_VARIABLE);
+                //getToken();
+                strOpe();
+                if (resultStr.length() > 7) {
+                    handleErr(ERR_VARIABLE);
+                }
+                if (var + offset < 26) {
+                    svars[var + offset] = resultStr;
+                    vars[var + offset] = 0;
+                } else {
+                    if (exsvars != null && (var + offset - 26) < exsvars.length) {
+                        exsvars[var + offset - 26] = resultStr;
+                        exvars[var + offset - 26] = 0;
+                    } else {
+                        handleErr(ERR_VARIABLE);
+                    }
+                }
+                //if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
             }
-            svars[var] = resultStr;
-            if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
 
         } else {
             // 数値変数の処理
@@ -661,8 +704,8 @@ public class SBasic {
             if (token.equals("(")) {
                 // 配列
                 getToken();
-                double result = evalExp2();
-                var += result;
+                offset = (int)evalExp2();
+                //var += result;
                 if (!token.equals(")")) {
                     handleErr(ERR_SYNTAX);
                 }
@@ -681,8 +724,21 @@ public class SBasic {
             lastAns = value;
             //Log.w("assig", String.format("%d", lastAns.intValue()));
 
-            vars[var] = value;
-            svars[var] = "";
+            Log.w("assig", String.format("var=%d offset=%d", var, offset));
+            if (var + offset < 26) {
+                vars[var + offset] = value;
+                svars[var + offset] = "";
+            } else {
+                if (exvars != null && (var + offset - 26) < exvars.length) {
+                    exvars[var + offset - 26] = value;
+                    exsvars[var + offset - 26] = "";
+                } else {
+                    handleErr(ERR_VARIABLE);
+                }
+            }
+
+            //vars[var] = value;
+            //svars[var] = "";
         }
     }
 
@@ -692,7 +748,14 @@ public class SBasic {
             vars[i] = 0;
             svars[i] = "";
         }
-        svars[26] = "";
+        if (exvars != null) {
+            for (int i = 0; i < exvars.length; i++) {
+                exvars[i] = 0;
+                exsvars[i] = "";
+            }
+        }
+        //svars[26] = "";
+        ssvar = "";
         lastAns = 0.0;
     }
 
@@ -883,13 +946,46 @@ public class SBasic {
     private void execGoto() throws InterpreterException {
         Integer loc;
         getToken();
-        Log.w("GOTO", String.format("%s", token));
+        //Log.w("GOTO", String.format("%s", token));
 
-        if (token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+        if (tokType == BANKNUM) {
+            getToken();
+            int b = (int)evalExp2();
+            //Log.w("GOTO", String.format("bank(int)---> %d", b));
+            if (b < 10) {
+                Log.w("GOTO", String.format("bank change -> #%d", b));
+                bankChange(b);
+            } else {
+                handleErr(ERR_SYNTAX);
+            }
+        } else {
+            String num = Integer.toString((int)evalExp2());
+            loc = (Integer) labelTable.get(num);
+            if (loc == null) {
+                putBack();
+                handleErr(ERR_UNDEFLINE);
+            } else {
+                pc = loc.intValue();
+                nextLine = true;
+                Log.w("GOTO", String.format("goto %s(%d)", num, loc));
+            }
+        }
+
+        /*
+        if (token.length() > 1 && token.charAt(0) == '#') {
             // バンク切り替え
-            int b = token.charAt(1) - '0';
-            Log.w("GOTO", String.format("bank change -> #%d", b));
-            bankChange(b);
+            if ('0' <= token.charAt(1) && token.charAt(1) <= '9') {
+                int b = token.charAt(1) - '0';
+                Log.w("GOTO", String.format("bank change -> #%d", b));
+                bankChange(b);
+            } else if (isLetter(token.charAt(1))) {
+                int b = (int)findVar(String.valueOf(token.charAt(1)));
+                Log.w("GOTO", String.format("bank change -> #%d", b));
+                bankChange(b);
+
+            } else {
+                handleErr(ERR_SYNTAX);
+            }
         } else {
             loc = (Integer) labelTable.get(token);
             if (loc == null) {
@@ -901,6 +997,7 @@ public class SBasic {
                 //Log.w("GOTO", String.format("goto %s(%d)", token, loc));
             }
         }
+        */
     }
 
 
@@ -1011,7 +1108,7 @@ public class SBasic {
             putBack();
         }
 
-        Log.w("execFor", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+        //Log.w("execFor", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
         if (stckvar.step >= 0 && value >= vars[stckvar.var] ||
                 stckvar.step < 0 && value <= vars[stckvar.var]) {
             stckvar.loc = pc;
@@ -1028,7 +1125,7 @@ public class SBasic {
             stckvar = (ForInfo) fStack.pop();
             vars[stckvar.var] += stckvar.step;
 
-            Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+            //Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
             if (stckvar.step >= 0 && vars[stckvar.var] > stckvar.target ||
                     stckvar.step < 0 && vars[stckvar.var] < stckvar.target) {
                 //Log.w("NEXT", "loop end.");
@@ -1114,6 +1211,34 @@ public class SBasic {
         if (tokType == BANKNUM) {
             gStack.push(new GosubInfo(bank, pc));
             // バンク切り替え
+            getToken();
+            int b = (int)evalExp2();
+            if (b < 10) {
+                Log.w("GOSUB", String.format("bank change -> #%d(%d)", b, pc));
+                bankChange(b);
+            } else {
+                handleErr(ERR_SYNTAX);
+            }
+        } else {
+            String num = Integer.toString((int)evalExp2());
+            loc = (Integer) labelTable.get(num);
+            if (loc == null) {
+                putBack();
+                handleErr(ERR_UNDEFLINE);
+            } else {
+                //gStack.push(new Integer(pc));
+                gStack.push(new GosubInfo(bank, pc));
+
+                pc = loc.intValue();
+                nextLine = true;
+                Log.w("GOSUB", String.format("gosub %s(%d)", num, loc));
+            }
+        }
+
+        /*
+        if (tokType == BANKNUM) {
+            gStack.push(new GosubInfo(bank, pc));
+            // バンク切り替え
             int b = token.charAt(1) - '0';
             Log.w("GOSUB", String.format("bank change -> #%d(%d)", b, pc));
             bankChange(b);
@@ -1129,6 +1254,8 @@ public class SBasic {
                 nextLine = true;
             }
         }
+        */
+
     }
 
     private void greturn() throws InterpreterException {
@@ -1240,21 +1367,23 @@ public class SBasic {
                 Log.w("strOpe3", "SVARIABLE");
                 char ch = token.charAt(0);
                 if (ch == '$') {
-                    resultStr = findSVar(token);
+                    //resultStr = findSVar(token);
+                    resultStr = ssvar;
                     getToken();
                 } else {
                     getToken();
+                    int r = 0;
                     if (token.equals("(")) {
                         // 配列
                         getToken();
-                        double r = evalExp2();
-                        ch += r;
+                        r = (int)evalExp2();
+                        //ch += r;
                         if (!token.equals(")")) {
                             handleErr(ERR_SYNTAX);
                         }
                         getToken();
                     }
-                    resultStr = findSVar(String.valueOf(ch));
+                    resultStr = findSVar(String.valueOf(ch), r);
                 }
 
                 break;
@@ -1292,11 +1421,11 @@ public class SBasic {
                             getToken();
                             Log.w("---- MID", token);
                             if (token.equals(")") || token.equals(":") || kwToken == EOL) {
-                                if (m < 0 || m >= svars[26].length()) {
-                                    Log.w("MID", String.format("len=%d, m=%d", svars[26].length(), m));
+                                if (m < 0 || m >= ssvar.length()) {
+                                    Log.w("MID", String.format("len=%d, m=%d", ssvar.length(), m));
                                     handleErr(ERR_ARGUMENT);
                                 }
-                                resultStr = svars[26].substring(m);
+                                resultStr = ssvar.substring(m);
                                 result = true;
                                 //Log.w("strOpe3", String.format("m=%d ret='%s'", m, resultStr));
                                 getToken();
@@ -1308,12 +1437,12 @@ public class SBasic {
                                 if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
                                     handleErr(ERR_SYNTAX);
                                 }
-                                Log.w("MID", String.format("len=%d, m=%d, n=%d", svars[26].length(), m, m + n));
-                                if (m < 0 || m >= svars[26].length() || n <= 0 || m + n > svars[26].length()) {
-                                    Log.w("MID", String.format("len=%d, m=%d, n=%d", svars[26].length(), m, m + n));
+                                Log.w("MID", String.format("len=%d, m=%d, n=%d", ssvar.length(), m, m + n));
+                                if (m < 0 || m >= ssvar.length() || n <= 0 || m + n > ssvar.length()) {
+                                    Log.w("MID", String.format("len=%d, m=%d, n=%d", ssvar.length(), m, m + n));
                                     handleErr(ERR_ARGUMENT);
                                 }
-                                resultStr = svars[26].substring(m, m + n);
+                                resultStr = ssvar.substring(m, m + n);
                                 result = true;
                                 //Log.w("strOpe3", String.format("m=%d n=%d ret='%s'", m, n, resultStr));
                                 getToken();
@@ -1572,18 +1701,19 @@ public class SBasic {
             case VARIABLE:
                 char ch = token.charAt(0);
                 getToken();
+                int r = 0;
                 if (token.equals("(")) {
                     // 配列
                     getToken();
-                    double r = evalExp2();
-                    ch += r;
+                    r = (int)evalExp2();
+                    //ch += r;
                     if (!token.equals(")")) {
                         handleErr(ERR_SYNTAX);
                     }
                     getToken();
                 }
 
-                result = findVar(String.valueOf(ch));
+                result = findVar(String.valueOf(ch), r);
                 //result = findVar(token);
                 //Log.w("atom", String.format("var=%s result=%e", token, result));
                 //getToken();
@@ -1958,19 +2088,94 @@ public class SBasic {
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
 
+    private double findVar(String vname, int offset) throws InterpreterException {
+        if (!Character.isLetter(vname.charAt(0))) {
+            handleErr(ERR_SYSTEM);
+            return 0.0;
+        }
+        int var = Character.toUpperCase(vname.charAt(0)) - 'A';
+        if (var >= 26) {
+            Log.w("findVar", String.format("'%s'", vname));
+            handleErr(ERR_SYNTAX);
+        }
+        var += offset;
+        int ex = exvars == null ? 0 : exvars.length;
+        if (var > 26 + ex) handleErr(ERR_VARIABLE);
+
+        if (var < 26 && !svars[var].isEmpty() || var >= 26 && !exsvars[var - 26].isEmpty()) {
+            handleErr(ERR_VARIABLE);
+        }
+
+        if (var < 26) {
+            return vars[var];
+        } else {
+            return exvars[var - 26];
+        }
+        //return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
+    }
+
     private String findSVar(String vname) throws InterpreterException {
         if (vname.equals("$")) {
-            return svars[26];
+            return ssvar;
         }
         if (!Character.isLetter(vname.charAt(0))) {
             handleErr(ERR_SYSTEM);
             return null;
         }
         int var = Character.toUpperCase(vname.charAt(0)) - 'A';
-        if (var >= 26) {
+        if (var > 26) {
             handleErr(ERR_SYNTAX);
         }
         return svars[Character.toUpperCase(vname.charAt(0)) - 'A'];
+    }
+
+    private String findSVar(String vname, int offset) throws InterpreterException {
+        if (vname.equals("$")) {
+            return ssvar;
+        }
+        if (!Character.isLetter(vname.charAt(0))) {
+            handleErr(ERR_SYSTEM);
+            return null;
+        }
+        int var = Character.toUpperCase(vname.charAt(0)) - 'A';
+        if (var > 26) {
+            handleErr(ERR_SYNTAX);
+        }
+
+        var += offset;
+        int ex = exvars == null ? 0 : exvars.length;
+        if (var > 26 + ex) handleErr(ERR_VARIABLE);
+
+        if (var < 26) {
+            return svars[var];
+        } else {
+            return exsvars[var - 26];
+        }
+        //return svars[Character.toUpperCase(vname.charAt(0)) - 'A'];
+    }
+
+    final int defaultVar = 26;
+    private int defm() {
+        if (exvars == null) return defaultVar;
+        return (defaultVar + exvars.length);
+    }
+
+    private int defm(int n) throws InterpreterException {
+        if (n < 0 || memoryExtension && n > 222 || !memoryExtension && n > 94) {
+            handleErr(ERR_MEMORYOVER);
+        }
+        if (n == 0) {
+            exvars = null;
+            exsvars = null;
+        } else if (exvars == null || exvars.length != n) {
+            exvars = new double[n];
+            exsvars = new String[n];
+        }
+        return (defaultVar + n);
+    }
+
+    public int getDefmSize() {
+        return exvars == null ? 0 : exvars.length * 8;
     }
 
     private void putBack() {
@@ -2117,9 +2322,10 @@ public class SBasic {
             Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else if (prog[pc] == '#') {
             tokType = BANKNUM;
-            pc++;
-            ch = (char) (prog[pc] & 0xff);
-            token = "#"+ch;
+            //pc++;
+            //ch = (char) (prog[pc] & 0xff);
+            //token = "#"+ch;
+            token = "#";
             pc++;
             Log.w("getToken", String.format("case BANKNUM token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else {
@@ -2268,7 +2474,7 @@ public class SBasic {
                 }
             }
         }
-        if (!findValue) {
+        if (!pb.isProgExist() || !findValue) {
             //Log.w("handleErr", String.format("%s(%d)", err[error], error));
             msg = String.format("pc=%d %s(%d)", pc, err[error], error);
             lcdPrintAndPause(String.format("ERR%d", error));

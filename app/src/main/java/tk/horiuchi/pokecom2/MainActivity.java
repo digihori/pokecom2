@@ -785,7 +785,10 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     for (int i = 0; i < llen; i++) {
                         c = str.charAt(i);
                         if (c == '\\') {
-                            if (i + 2 < llen) {
+                            if (i + 1 < llen && str.charAt(i + 1) == '\\') {
+                                dest[w++] = '\\';
+                                i++;
+                            } else if (i + 2 < llen) {
                                 String s = str.substring(i, i + 3);
                                 //Log.w("LOG", String.format("s='%s'(%d) %02x %02x %02x", s, s.length(), (int)str.charAt(i), (int)str.charAt(i+1), (int)str.charAt(i+2)));
                                 //Log.w("LOG", String.format("s='%s'", s));
@@ -976,6 +979,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         int total = 0;
         int remain = memoryExtension ? 544+1024 : 544;
         total = source.getUsedMemorySize();
+        total += basic.getDefmSize();
         //for (int i = 0; i < 10; i++) {
         //    total += idxEnd[i];
         //}
