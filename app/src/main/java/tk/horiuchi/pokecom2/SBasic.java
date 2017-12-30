@@ -1023,8 +1023,7 @@ public class SBasic {
                     if (token == EOP) {
                         handleErr(ERR_SYNTAX);
                     }
-                    if (tokType == NUMBER || tokType == VARIABLE ||
-                            token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+                    if (tokType == NUMBER || tokType == VARIABLE || tokType == BANKNUM) {
                         putBack();
                         Log.w("IF", "THEN -> GOTO");
                         execGoto();
@@ -1057,8 +1056,7 @@ public class SBasic {
                     if (token == EOP) {
                         handleErr(ERR_SYNTAX);
                     }
-                    if (tokType == NUMBER || tokType == VARIABLE ||
-                            token.charAt(0) == '#' && '0' <= token.charAt(1) && token.charAt(1) <= '9') {
+                    if (tokType == NUMBER || tokType == VARIABLE || tokType == BANKNUM) {
                         putBack();
                         Log.w("IF", "THEN -> GOTO");
                         execGoto();
@@ -1160,6 +1158,7 @@ public class SBasic {
         int idx;
         if (tokType == VARIABLE) {
             Log.w("input", String.format("input=%s", inText));
+            /*
             idx = Character.toUpperCase(token.charAt(0)) - 'A';
             try {
                 vars[idx] = Integer.parseInt(inText);
@@ -1167,7 +1166,49 @@ public class SBasic {
                 handleErr(ERR_ARGUMENT);
             }
             getToken();
+            */
+
+            char vname = token.charAt(0);
+            if (!Character.isLetter(vname)) {
+                handleErr(ERR_SYSTEM);
+                return;
+            }
+            var = (int) Character.toUpperCase(vname) - 'A';
+            getToken();
+            int offset = 0;
+            if (token.equals("(")) {
+                // 配列
+                getToken();
+                offset = (int)evalExp2();
+                if (!token.equals(")")) {
+                    putBack();
+                    handleErr(ERR_SYNTAX);
+                }
+                //getToken();
+            }
+            int value = 0;
+            try {
+                value = Integer.parseInt(inText);
+            } catch (NumberFormatException e) {
+                putBack();
+                handleErr(ERR_ARGUMENT);
+            }
+
+            if (var + offset < 26) {
+                vars[var + offset] = value;
+                svars[var + offset] = "";
+            } else {
+                if (exvars != null && (var + offset - 26) < exvars.length) {
+                    exvars[var + offset - 26] = value;
+                    exsvars[var + offset - 26] = "";
+                } else {
+                    putBack();
+                    handleErr(ERR_VARIABLE);
+                }
+            }
+            //getToken();
         } else if (tokType == SVARIABLE) {
+            /*
             if (token.charAt(0) == '$') {
                 idx = 26;
             } else {
@@ -1175,6 +1216,48 @@ public class SBasic {
             }
             svars[idx] = inText;
             getToken();
+            */
+
+            char vname = token.charAt(0);
+            if (vname == '$') {
+                if (inText.length() > 30) {
+                    handleErr(ERR_VARIABLE);
+                }
+                ssvar = inText;
+                getToken();
+            } else {
+                var = (int) Character.toUpperCase(vname) - 'A';
+
+                getToken();
+                int offset = 0;
+                if (token.equals("(")) {
+                    // 配列
+                    getToken();
+                    offset = (int)evalExp2();
+                    //var += result;
+                    if (!token.equals(")")) {
+                        handleErr(ERR_SYNTAX);
+                    }
+                }
+                if (inText.length() > 7) {
+                    putBack();
+                    handleErr(ERR_VARIABLE);
+                }
+                if (var + offset < 26) {
+                    svars[var + offset] = inText;
+                    vars[var + offset] = 0;
+                } else {
+                    if (exsvars != null && (var + offset - 26) < exsvars.length) {
+                        exsvars[var + offset - 26] = inText;
+                        exvars[var + offset - 26] = 0;
+                    } else {
+                        putBack();
+                        handleErr(ERR_VARIABLE);
+                    }
+                }
+                //getToken();
+                //if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
+            }
         } else {
             handleErr(ERR_SYNTAX);
         }
@@ -1201,6 +1284,7 @@ public class SBasic {
         } while (inText.isEmpty());
 
         inputWait = false;
+        lcd.cls();;
         return;
     }
 
@@ -2160,7 +2244,7 @@ public class SBasic {
         return (defaultVar + exvars.length);
     }
 
-    private int defm(int n) throws InterpreterException {
+    public int defm(int n) throws InterpreterException {
         if (n < 0 || memoryExtension && n > 222 || !memoryExtension && n > 94) {
             handleErr(ERR_MEMORYOVER);
         }
@@ -2430,7 +2514,7 @@ public class SBasic {
 
         char c = Character.toUpperCase(s.charAt(0));
         if (c == '$') return true;
-        if (s.length() > 1 && 'A' <= c && c < 'Z' && s.charAt(1) == '$') {
+        if (s.length() > 1 && 'A' <= c && c <= 'Z' && s.charAt(1) == '$') {
             return true;
         } else {
             return false;

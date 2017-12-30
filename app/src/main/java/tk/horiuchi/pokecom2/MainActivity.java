@@ -250,6 +250,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
         // 変数の初期化
         basic.vac();
+        try {
+            basic.defm(0);
+        } catch (InterpreterException e) {}
         // プログラムのオールクリア
         source.clearSourceAll();
         // モードの初期化

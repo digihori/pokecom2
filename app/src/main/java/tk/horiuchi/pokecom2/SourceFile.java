@@ -133,6 +133,7 @@ public class SourceFile {
         for (int i = 0; i < src.length; i++) {
             //Log.w("loadSource", src[i]);
             list[n].add(new BasicSource(src[i]));
+            //Log.w("load", String.format("size=%d src='%s'", ((BasicSource)list[n].get(i)).size, src[i]));
         }
         Collections.sort(list[n], new MyComparator());
     }
