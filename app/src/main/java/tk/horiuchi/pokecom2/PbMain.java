@@ -21,6 +21,7 @@ import static tk.horiuchi.pokecom2.MainActivity.basic;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
 import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
+import static tk.horiuchi.pokecom2.MainActivity.keyMaskCnt;
 import static tk.horiuchi.pokecom2.MainActivity.keyShift;
 import static tk.horiuchi.pokecom2.MainActivity.mode;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
@@ -285,6 +286,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     public void progStop() {
         if (thread != null) {
             pause = true;
+            keyMaskCnt = 15;
             Log.w("PbMain", "progStop");
         }
     }

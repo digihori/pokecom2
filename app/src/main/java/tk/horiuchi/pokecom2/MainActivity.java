@@ -86,6 +86,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static TextView debugWindow;
     public static String debugText = "";
     private boolean nosave = false;
+    public static int keyMaskCnt = 0;
+    private int debugPrintCnt = 0;
 
 
     public static int[] mBtnResIds = {
@@ -230,17 +232,25 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         //}
 
         final Handler _handler1 = new Handler();
-        final int DELAY1 = 500;
+        final int DELAY1 = 50;
         _handler1.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (debug_info) debugPrint();
+                if (debug_info) {
+                    debugPrintCnt++;
+                    if ((debugPrintCnt & 8) != 0) debugPrint();
+                }
+                if (keyMaskCnt > 0) {
+                    keyMaskCnt--;
+                    //Log.w("Main", String.format("keyMaskCnt=%d", keyMaskCnt));
+                }
                 _handler1.postDelayed(this, DELAY1);
             }
         }, DELAY1);
 
         cmdHistory = new String[8];
         idxHistory = 0;
+
     }
 
     private void deviceReset() {
@@ -462,6 +472,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         Log.w("Click", String.format("key=%d", c));
 
+        if (keyMaskCnt > 0) return;
         if (c != R.id.buttonSTOP && (pb.isProgRunning() && !inputWait)) return;
 
         // モードの切り替え
