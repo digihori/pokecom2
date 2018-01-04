@@ -32,13 +32,12 @@
 
     <string name="about_title">About Pokecom GO2</string>
     <string name="about_body">
-        This is a simulator of CASIO\'s Pocket Computer PB-100.\n
-        It reproduces the unique BASIC of the PB-100 generation.\n
-        (Omitting the closing parentheses of calculation formula,\n
-         using variables in the destination of GOTO, etc. ..) \n
-        You can input and output BASIC text file by load and save menu.\n
+        CASIO PB-100のシミュレータです。\n
+        初期のPB-100の頃の独特なBASICを再現しています。\n
+        （計算式の閉じカッコの省略とか、GOTOの飛び先に変数を使うなど。。）\n
+        メニューのload/saveにてBASICのテキストファイルを入出力できます。\n
         \n
-        ＜Supported BASIC instraction＞\n
+        ＜対応しているBASIC命令＞\n
         PRINT\n
         INPUT\n
         GOTO\n
@@ -64,24 +63,22 @@
         RND\n
         RAN#\n
         \n
-        ＜Setting menu＞\n
+        ＜設定メニュー＞\n
         ・cpu clock emulate\n
-        　Putting some wait of execution and realize the operation close\n
-        　to the actual machine.\n
+        　実行時にウェイトを入れて、実機に近い動作を実現します。\n
         ・memory unit\n
-        　Setting whether extended memory exists or not.\n
-        　It only changes the remaining memory display.\n
+        　拡張メモリがあるかどうかの設定。残メモリの表示が変わるだけです。\n
         ・UI design\n
-        　When set to \'PB-100 compatible\' it will be like PB-100.\n
-        　When set to \'PB-100 custom\' the \'F\'key and \'↑\'/\'↓\'key is enabled.\n
+        　PB-100 compatible にすると PB-100 っぽくなります。\n
+        　PB-100 custom にすると Fキーや↑↓キーが出てきます。\n
         ・viblation\n
-        　It vibrates when the key is pressed.\n
+        　キー押下時に振動します。\n
         ・debug\n
-        　It displays debug messages and a frame of software keys.\n
+        　デバッグメッセージやソフトウェアキーのフレームを表示します。\n
         \n
-        ＜About Special Symbols＞\n
-        In the input/output file, PB special symbols are converted to escape characters.\n
-        Invalid except ASCII code.\n
+        ＜特殊記号について＞\n
+        テキストファイルの入出力において、PBの特殊記号はエスケープ文字に変換します。\n
+        なお全角コードは読み捨てます。\n
         \n
         \\\\  ¥\n
         \\LE Less Equal\n
@@ -109,15 +106,14 @@
         \\OM OMega\n
         \\MU MU\n
         \n
-        ＜Other＞\n
-        Spaces between instructions and parameters can be omitted.\n
-        (ex.)\n
+        ＜その他＞\n
+        命令とパラメータ間はスペースを入れなくても切り出しします。\n
+        (例)\n
         PRINT CSR1;"ABC"\n
         SINA\n
-        etc.\n
+        など\n
         \n
-        If you press the \'←\' key after manual calculation, \n
-        the previous command will be displayed.
+        マニュアル計算後に[←]で直前のコマンドが表示されます。
 
     </string>
 
