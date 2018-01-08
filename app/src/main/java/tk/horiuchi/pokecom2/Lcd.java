@@ -370,6 +370,7 @@ public class Lcd {
                     //}
                     break;
                 case 0x1c:  // STOP
+                    //Log.w("STOP", String.format("mode=%d prog=%d", mode, (pb.isProgExist() ? 1 : 0)));
                     if (mode == MODE_RUN && pb.isProgExist()) {
                         //pb.progStop();
                         basic.sbExit();

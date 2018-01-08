@@ -465,6 +465,17 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
     }
 
+    private void changeFunckeyImg(boolean f) {
+        if (ui_design == 0) return;
+
+        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
+        if (f) {
+            iv.setImageResource(R.drawable.fx700p_mainkey_f);
+        } else {
+            iv.setImageResource(R.drawable.fx700p_mainkey);
+        }
+    }
+
     public static boolean listDisp = false;
 
     public void onClick(View v) {
@@ -486,6 +497,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 break;
             case R.id.buttonFUNC:
                 keyFunc = !keyFunc;
+                changeFunckeyImg(keyFunc);
                 break;
             case R.id.buttonDOT:
                 if (keyMode) {
@@ -685,7 +697,10 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         }
         keyShift = false;
-        keyFunc = false;
+        if (keyFunc) {
+            keyFunc = false;
+            changeFunckeyImg(false);
+        }
 
 
         if (vibrate_enable) {

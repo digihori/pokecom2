@@ -1145,19 +1145,24 @@ public class SBasic {
         String str = "";
         //BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         getToken();
-        if (tokType == QUTEDSTR) {
-            //System.out.print(token);
-            //lcdPrint(token);
-            str = token;
-            getToken();
-            if (!token.equals(",")) handleErr(ERR_SYNTAX);
-            getToken();
-        }
-        lcdPrint(str+"?");
-        getInputStream();
-        int idx;
-        if (tokType == VARIABLE) {
-            Log.w("input", String.format("input=%s", inText));
+        while (kwToken != EOL) {
+            if (tokType == QUTEDSTR) {
+                //System.out.print(token);
+                //lcdPrint(token);
+                str = token;
+                getToken();
+                if (!token.equals(",")) handleErr(ERR_SYNTAX);
+                getToken();
+            }
+            lcdPrint(str + "?");
+            getInputStream();
+            if (forcedExit) {
+                // 入力中に強制終了された場合はループを抜けてメインループに戻す
+                break;
+            }
+            //int idx;
+            if (tokType == VARIABLE) {
+                Log.w("input", String.format("input=%s", inText));
             /*
             idx = Character.toUpperCase(token.charAt(0)) - 'A';
             try {
@@ -1168,46 +1173,48 @@ public class SBasic {
             getToken();
             */
 
-            char vname = token.charAt(0);
-            if (!Character.isLetter(vname)) {
-                handleErr(ERR_SYSTEM);
-                return;
-            }
-            var = (int) Character.toUpperCase(vname) - 'A';
-            getToken();
-            int offset = 0;
-            if (token.equals("(")) {
-                // 配列
+                char vname = token.charAt(0);
+                if (!Character.isLetter(vname)) {
+                    handleErr(ERR_SYSTEM);
+                    return;
+                }
+                var = (int) Character.toUpperCase(vname) - 'A';
                 getToken();
-                offset = (int)evalExp2();
-                if (!token.equals(")")) {
+                int offset = 0;
+                if (token.equals("(")) {
+                    // 配列
+                    getToken();
+                    offset = (int) evalExp2();
+                    if (!token.equals(")")) {
+                        putBack();
+                        handleErr(ERR_SYNTAX);
+                    }
+                    //getToken();
+                }
+                int value = 0;
+                try {
+                    value = Integer.parseInt(inText);
+                } catch (NumberFormatException e) {
+                    // 整数にパースできなかった（＝文字列だった）場合はシンタックスエラー
                     putBack();
                     handleErr(ERR_SYNTAX);
                 }
-                //getToken();
-            }
-            int value = 0;
-            try {
-                value = Integer.parseInt(inText);
-            } catch (NumberFormatException e) {
-                putBack();
-                handleErr(ERR_ARGUMENT);
-            }
 
-            if (var + offset < 26) {
-                vars[var + offset] = value;
-                svars[var + offset] = "";
-            } else {
-                if (exvars != null && (var + offset - 26) < exvars.length) {
-                    exvars[var + offset - 26] = value;
-                    exsvars[var + offset - 26] = "";
+                if (var + offset < 26) {
+                    vars[var + offset] = value;
+                    svars[var + offset] = "";
                 } else {
-                    putBack();
-                    handleErr(ERR_VARIABLE);
+                    if (exvars != null && (var + offset - 26) < exvars.length) {
+                        exvars[var + offset - 26] = value;
+                        exsvars[var + offset - 26] = "";
+                    } else {
+                        // 配列のオーバーラン
+                        putBack();
+                        handleErr(ERR_VARIABLE);
+                    }
                 }
-            }
-            //getToken();
-        } else if (tokType == SVARIABLE) {
+                //getToken();
+            } else if (tokType == SVARIABLE) {
             /*
             if (token.charAt(0) == '$') {
                 idx = 26;
@@ -1218,48 +1225,62 @@ public class SBasic {
             getToken();
             */
 
-            char vname = token.charAt(0);
-            if (vname == '$') {
-                if (inText.length() > 30) {
-                    handleErr(ERR_VARIABLE);
-                }
-                ssvar = inText;
-                getToken();
-            } else {
-                var = (int) Character.toUpperCase(vname) - 'A';
-
-                getToken();
-                int offset = 0;
-                if (token.equals("(")) {
-                    // 配列
-                    getToken();
-                    offset = (int)evalExp2();
-                    //var += result;
-                    if (!token.equals(")")) {
-                        handleErr(ERR_SYNTAX);
+                char vname = token.charAt(0);
+                if (vname == '$') {
+                    if (inText.length() > 30) {
+                        // 文字数が30を超えた
+                        handleErr(ERR_VARIABLE);
                     }
-                }
-                if (inText.length() > 7) {
-                    putBack();
-                    handleErr(ERR_VARIABLE);
-                }
-                if (var + offset < 26) {
-                    svars[var + offset] = inText;
-                    vars[var + offset] = 0;
+                    ssvar = inText;
+                    getToken();
                 } else {
-                    if (exsvars != null && (var + offset - 26) < exsvars.length) {
-                        exsvars[var + offset - 26] = inText;
-                        exvars[var + offset - 26] = 0;
-                    } else {
+                    var = (int) Character.toUpperCase(vname) - 'A';
+
+                    getToken();
+                    int offset = 0;
+                    if (token.equals("(")) {
+                        // 配列
+                        getToken();
+                        offset = (int) evalExp2();
+                        //var += result;
+                        if (!token.equals(")")) {
+                            handleErr(ERR_SYNTAX);
+                        }
+                    }
+                    if (inText.length() > 7) {
+                        // 文字数が7文字を超えた
                         putBack();
                         handleErr(ERR_VARIABLE);
                     }
+                    if (var + offset < 26) {
+                        svars[var + offset] = inText;
+                        vars[var + offset] = 0;
+                    } else {
+                        if (exsvars != null && (var + offset - 26) < exsvars.length) {
+                            exsvars[var + offset - 26] = inText;
+                            exvars[var + offset - 26] = 0;
+                        } else {
+                            // 配列のオーバーラン
+                            putBack();
+                            handleErr(ERR_VARIABLE);
+                        }
+                    }
+                    //getToken();
+                    //if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
                 }
-                //getToken();
-                //if (var < 26 && !svars[var].isEmpty()) vars[var] = 0;
+            } else {
+                handleErr(ERR_SYNTAX);
             }
-        } else {
-            handleErr(ERR_SYNTAX);
+            //getToken();
+            Log.w("input", String.format("token='%s' tokType=%d kwToken=%d", token, tokType, kwToken));
+            if (tokType == DELIMITER && token.equals(":")) {
+                // ステートメントの区切りが来たらループを抜ける
+                putBack();
+                break;
+            }
+            if (token.equals(",")) {
+                getToken();
+            }
         }
         //System.out.print("? ");
         //lcdPrint(str+"?");
@@ -1273,7 +1294,7 @@ public class SBasic {
         inText = "";
         inputWait = true;
         do {
-            if (pb.isProgStop()) {
+            if (forcedExit || pb.isProgStop()) {
                 break;
             }
             try {
