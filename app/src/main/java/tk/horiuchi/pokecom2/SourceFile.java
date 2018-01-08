@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.MainActivity.basic;
 
@@ -46,7 +44,11 @@ public class SourceFile {
 
         public BasicSource(String s) {
             String[] temp = s.split("[\\s+:]", 2);
-            lineNum = Integer.parseInt(temp[0]);
+            try {
+                lineNum = Integer.parseInt(temp[0]);
+            } catch (NumberFormatException e) {
+
+            }
             if (temp.length > 1) {
                 body = s;
                 size = 3 + basic.getProgSteps(temp[1]);

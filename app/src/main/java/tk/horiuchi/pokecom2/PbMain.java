@@ -5,11 +5,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.ImageView;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -55,38 +53,12 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         for (int i=0; i<digit; i++) {
             digi[i] = 0;
         }
-        //prog = new int[2000][11];
-        //pc = new int[11];
-        //idxEnd = new int[11];
-        //for (int i = 0; i < 11; i++) {
-        //    pc[i] = 0;
-        //    idxEnd[i] = 0;
-        //}
         bank = 0;
 
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int f, int w, int h) {
-
-        //thread = new Thread(this);
-        //thread.start();
-/*
-        final Handler _handler1 = new Handler();
-        final int DELAY1 = 50;
-        _handler1.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (refresh_cnt != 0) {
-                    refresh_cnt = 0;
-                    //Log.w("refresh", "refresh");
-                    _refreshScreen();
-                }
-                //Log.w("refresh", "refresh");
-                _handler1.postDelayed(this, DELAY1);
-            }
-        }, DELAY1);
-*/
 
         Timer timer1 = new Timer();
         timer1.scheduleAtFixedRate(new TimerTask() {
@@ -116,21 +88,6 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
     @Override
     public void run() {
-
-        /*
-        while (thread != null) {
-            //sc.CpuRun();
-            //Log.w("LOG", "run");
-            if (true) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                }
-            }
-            //Log.w("PbMain", "--- run ---");
-        }
-        */
-
         Log.w("PbMain", "Thread start !!!");
         try {
             basic.run();

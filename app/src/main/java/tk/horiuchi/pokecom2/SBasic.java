@@ -1,6 +1,5 @@
 package tk.horiuchi.pokecom2;
 
-import android.nfc.FormatException;
 import android.util.Log;
 
 import java.util.*;
@@ -183,18 +182,6 @@ public class SBasic {
     //
     private  Stack fStack;
 
-    //
-    //class Label {
-    //    String name;
-    //    int loc;
-
-    //    public Label(String str, int i) {
-    //        name = str;
-    //        loc = i;
-    //    }
-    //}
-
-    //
     //private TreeMap labelTable;
     private Map<String, Integer> labelTable;
 
@@ -227,15 +214,10 @@ public class SBasic {
         }
         ssvar = "";
         fStack = new Stack();
-        //labelTable = new TreeMap();
-        //Map<String, Integer> labelTable = new TreeMap<String, Integer>();
         labelTable = new TreeMap<String, Integer>();
         gStack = new Stack();
         lastAns = new Double(0);
         prog = new char[progLength];
-        //initListMap();
-
-        //source = new SourceFile();
     }
 
     private void nop20ms() {
@@ -411,26 +393,9 @@ public class SBasic {
 
             putBack();
             assignment();
-            /*
-            getToken();
-            if (!token.equals(EOL) && tokType == DELIMITER && token.equals("=")) {
-                putBack();
-                putBack();
-                assignment();
-            } else {
-                //Log.w("sbCmd1", "id="+pc);
-                putBack();
-                putBack();
-                //Log.w("sbCmd1", "id="+pc);
-                lastAns = evaluate();
-                //Log.w("sbCmd1", String.format("%d", lastAns.intValue()));
-            }
-            */
         } else if (tokType == COMMAND) {
             switch (kwToken) {
                 case RUN:
-                    //lcd.cls();
-                    //bank = 0;
                     Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
                     pb.progStart();
                     return;
@@ -568,7 +533,6 @@ public class SBasic {
                         return;
                 }
             } else if (tokType == DELIMITER) {
-                //pc++;
                 //Log.w("sbInterp", "DELIMITER");
             } else {
                 //Log.w("sbInterp", "???");
@@ -597,12 +561,12 @@ public class SBasic {
     }
 
     private void scanLabels() throws InterpreterException {
-        int i;
+        //int i;
         Object result;
 
         int id = pc;
         getToken();
-        Log.w("scanLabels", token);
+        //Log.w("scanLabels", token);
         if (tokType == NUMBER) {
             labelTable.put(token, new Integer(id));
         }
@@ -610,7 +574,7 @@ public class SBasic {
         do {
             id = pc;
             getToken();
-            Log.w("scanLabels", token);
+            //Log.w("scanLabels", token);
             if (tokType == NUMBER) {
                 result = labelTable.put(token, new Integer(id));
 
@@ -754,7 +718,6 @@ public class SBasic {
                 exsvars[i] = "";
             }
         }
-        //svars[26] = "";
         ssvar = "";
         lastAns = 0.0;
     }
@@ -765,8 +728,6 @@ public class SBasic {
         int len = 0, spaces;
         String lastDelim = "";
         int pos = 0;
-        //String prtStr = "";
-        //StringBuilder sb = null;
 
         //Log.w("PRT", "Exec PRINT !!!!");
 
@@ -775,20 +736,6 @@ public class SBasic {
             //Log.w("PRT", "Exec PRINT do !!!!");
             getToken();
             //Log.w("PRT", String.format("token=%s", token));
-            /*
-            if (!paramExist && (kwToken == EOL || token.equals(":"))) {
-                prtStr = "";
-                sb = null;
-                break;
-            }
-            if (token.equals(EOP)) break;
-            //if (tokType == DELIMITER && token.equals(":")) {
-            if (token.equals(":")) {
-                //Log.w("PRT", String.format("DELIMITER(:)"));
-                break;
-            }
-            */
-
             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
                 if (!paramExist) {
                     prtStr = "";
@@ -819,14 +766,6 @@ public class SBasic {
                 putBack();
                 result = evaluate();
                 getToken();
-                //Log.w("PRT", String.format("AAAAA=%s", token));
-                //System.out.print(result);
-                //lcdPrint(result);
-                //String s = String.valueOf(result);
-                //int l = s.length();
-                //prtStr += s.substring(0, l < 12 ? l : 12);
-                //prtStr += double2string(result);
-                //Log.w("PRT", String.format("%d", result));
 
                 String s = double2string(result);
                 if (sb == null) {
@@ -854,19 +793,6 @@ public class SBasic {
                     }
 
                 }
-                /*
-                if (s != null) {
-                    //lcdPrint(s);
-                    //prtStr += s;
-                    if (sb == null) {
-                        prtStr += s;
-                    } else {
-                        sb.replace(pos, pos + s.length(), s);
-                        Log.w("print", String.format("sb='%s'", sb.toString()));
-                    }
-
-                }
-                */
                 len += resultStr.length();
                 //getToken();
             } else if (tokType == COMMAND) {
@@ -925,10 +851,6 @@ public class SBasic {
         } while (lastDelim.equals(";") || lastDelim.equals(","));
         if (sb != null) prtStr = sb.toString();
         if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
-            //if (!lastDelim.equals(";") && !lastDelim.equals(",")) {
-            //System.out.println();
-            //lcdPrintln();
-            //}
             if (prtStr.isEmpty() || lastDelim.equals(";")) {
                 Log.w("print", "lcdPrint");
                 lcdPrint(prtStr);
@@ -970,34 +892,6 @@ public class SBasic {
                 Log.w("GOTO", String.format("goto %s(%d)", num, loc));
             }
         }
-
-        /*
-        if (token.length() > 1 && token.charAt(0) == '#') {
-            // バンク切り替え
-            if ('0' <= token.charAt(1) && token.charAt(1) <= '9') {
-                int b = token.charAt(1) - '0';
-                Log.w("GOTO", String.format("bank change -> #%d", b));
-                bankChange(b);
-            } else if (isLetter(token.charAt(1))) {
-                int b = (int)findVar(String.valueOf(token.charAt(1)));
-                Log.w("GOTO", String.format("bank change -> #%d", b));
-                bankChange(b);
-
-            } else {
-                handleErr(ERR_SYNTAX);
-            }
-        } else {
-            loc = (Integer) labelTable.get(token);
-            if (loc == null) {
-                //putBack();
-                handleErr(ERR_UNDEFLINE);
-            } else {
-                pc = loc.intValue();
-                nextLine = true;
-                //Log.w("GOTO", String.format("goto %s(%d)", token, loc));
-            }
-        }
-        */
     }
 
 
@@ -1008,7 +902,7 @@ public class SBasic {
                 tokType == FUNCTION && (kwToken == KEY || kwToken == MID) ) {
             putBack();
             boolean ret = strOpe();
-            Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
+            //Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
             if (ret) {
                 getToken();
 
@@ -1025,7 +919,7 @@ public class SBasic {
                     }
                     if (tokType == NUMBER || tokType == VARIABLE || tokType == BANKNUM) {
                         putBack();
-                        Log.w("IF", "THEN -> GOTO");
+                        //Log.w("IF", "THEN -> GOTO");
                         execGoto();
                     } else {
                         putBack();
@@ -1041,7 +935,7 @@ public class SBasic {
             putBack();
             result = evaluate();
 
-            Log.w("IF", String.format("if (%d)", (int)result));
+            //Log.w("IF", String.format("if (%d)", (int)result));
             if (result != 0.0) {
                 getToken();
 
@@ -1058,7 +952,7 @@ public class SBasic {
                     }
                     if (tokType == NUMBER || tokType == VARIABLE || tokType == BANKNUM) {
                         putBack();
-                        Log.w("IF", "THEN -> GOTO");
+                        //Log.w("IF", "THEN -> GOTO");
                         execGoto();
                     } else {
                         putBack();
@@ -1163,15 +1057,6 @@ public class SBasic {
             //int idx;
             if (tokType == VARIABLE) {
                 Log.w("input", String.format("input=%s", inText));
-            /*
-            idx = Character.toUpperCase(token.charAt(0)) - 'A';
-            try {
-                vars[idx] = Integer.parseInt(inText);
-            } catch (NumberFormatException e) {
-                handleErr(ERR_ARGUMENT);
-            }
-            getToken();
-            */
 
                 char vname = token.charAt(0);
                 if (!Character.isLetter(vname)) {
@@ -1215,15 +1100,6 @@ public class SBasic {
                 }
                 //getToken();
             } else if (tokType == SVARIABLE) {
-            /*
-            if (token.charAt(0) == '$') {
-                idx = 26;
-            } else {
-                idx = Character.toUpperCase(token.charAt(0)) - 'A';
-            }
-            svars[idx] = inText;
-            getToken();
-            */
 
                 char vname = token.charAt(0);
                 if (vname == '$') {
@@ -1282,10 +1158,6 @@ public class SBasic {
                 getToken();
             }
         }
-        //System.out.print("? ");
-        //lcdPrint(str+"?");
-        //getInputStream();
-        //pb.progStop();
     }
 
     public static String inText;
@@ -1340,27 +1212,6 @@ public class SBasic {
             }
         }
 
-        /*
-        if (tokType == BANKNUM) {
-            gStack.push(new GosubInfo(bank, pc));
-            // バンク切り替え
-            int b = token.charAt(1) - '0';
-            Log.w("GOSUB", String.format("bank change -> #%d(%d)", b, pc));
-            bankChange(b);
-        } else {
-            loc = (Integer) labelTable.get(token);
-            if (loc == null) {
-                handleErr(ERR_UNDEFLINE);
-            } else {
-                //gStack.push(new Integer(pc));
-                gStack.push(new GosubInfo(bank, pc));
-
-                pc = loc.intValue();
-                nextLine = true;
-            }
-        }
-        */
-
     }
 
     private void greturn() throws InterpreterException {
@@ -1368,8 +1219,6 @@ public class SBasic {
         GosubInfo gi;
 
         try {
-            //t = (Integer) gStack.pop();
-            //pc = t.intValue();
             gi = (GosubInfo)gStack.pop();
             Log.w("GOSUB-RETURN", String.format("return #%d(%d)", gi.bank, gi.pc));
             if (bank != gi.bank) {
@@ -2289,7 +2138,7 @@ public class SBasic {
         for (int i = 0; i < token.length(); i++) {
             if (pc > 0) pc--;
         }
-        Log.w("putBack", "pc="+pc);
+        //Log.w("putBack", "pc="+pc);
     }
 
     private boolean isLetter(char c) {
@@ -2369,7 +2218,7 @@ public class SBasic {
             token += (char)(prog[pc]&0xff);
             pc++;
             tokType = DELIMITER;
-            Log.w("getToken", String.format("case DELIMITER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            //Log.w("getToken", String.format("case DELIMITER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else if (isLetter(prog[pc]) || prog[pc] == '$' || prog[pc] == 0xf2/*PI*/) {
             while (!isDelim(prog[pc])) {
                 if (prog[pc] == 0xf2) {
@@ -2395,13 +2244,13 @@ public class SBasic {
             }
 
             if (tokType == VARIABLE) {
-                Log.w("getToken", String.format("case VARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+                //Log.w("getToken", String.format("case VARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             } else if (tokType == SVARIABLE) {
-                    Log.w("getToken", String.format("case SVARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+                //Log.w("getToken", String.format("case SVARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             } else if (tokType == FUNCTION) {
-                Log.w("getToken", String.format("case FUNCTION token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+                //Log.w("getToken", String.format("case FUNCTION token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             } else {
-                Log.w("getToken", String.format("case COMMAND token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+                //Log.w("getToken", String.format("case COMMAND token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
             }
         } else if (prog[pc] == '.' || Character.isDigit(prog[pc])) {
             while (!isDelim(prog[pc])) {
@@ -2410,7 +2259,7 @@ public class SBasic {
                 if (pc >= idxEnd + 1) break;
             }
             tokType = NUMBER;
-            Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            //Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else  if (prog[pc] == '\"') {
             //Log.w("getToken", "DQ!!!");
             tokType = QUTEDSTR;
@@ -2424,7 +2273,7 @@ public class SBasic {
                 //Log.w("while", String.format("%c", ch));
             }
             pc++;
-            Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            //Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else if (prog[pc] == '#') {
             tokType = BANKNUM;
             //pc++;
@@ -2432,10 +2281,10 @@ public class SBasic {
             //token = "#"+ch;
             token = "#";
             pc++;
-            Log.w("getToken", String.format("case BANKNUM token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            //Log.w("getToken", String.format("case BANKNUM token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else {
             token = EOP;
-            Log.w("getToken", "return(EOP)");
+            //Log.w("getToken", "return(EOP)");
             return;
         }
         //Log.w("getToken", "func-end");

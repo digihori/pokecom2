@@ -31,11 +31,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.IllegalFormatCodePointException;
 import java.util.IllegalFormatException;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,7 +76,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean bankStatus = false;
     public static int angleUnit = 0;    // 0:DEG 1:RAD 2:GRAD
     public static int mode = MODE_RUN;
-    public static boolean selectBank = false;
     public static int bank;
     public static final int progLength = 3000;  // 仮
     public static final int bankMax = 10;
@@ -119,9 +115,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         setContentView(R.layout.activity_main);
 
-        // 共通定義
-        //define = new Common();
-
         // ファイルIOのパーミッション関係の設定
         verifyStoragePermissions(this);
 
@@ -131,15 +124,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             dir.mkdirs();
             Log.w("Main", "mkdir");
         }
-
-
-        // Buttonインスタンスの取得
-        // ButtonインスタンスのリスナーをこのActivityクラスそのものにする
-        /*
-        for (int i = 0; i < mBtnResIds.length; i++) {
-            findViewById(mBtnResIds[i]).setOnClickListener(this);
-        }
-        */
 
         // dp->px変換のためにDisplayMetricsを取得しておく
         DisplayMetrics metrics = new DisplayMetrics();
@@ -227,9 +211,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
 
         debugWindow = (TextView)findViewById(R.id.debugWindow);
-        //if (debug_info) {
-        //    debugText = "hoge";
-        //}
 
         final Handler _handler1 = new Handler();
         final int DELAY1 = 50;
@@ -444,16 +425,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         }
         Log.w("Main", "------------ onResume()    source restored!!! ---------");
-
-        /*
-        // メインキーの画像を切り替える
-        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
-        if (ui_design == 0) {
-            iv.setImageResource(R.drawable.pb100_mainkey);
-        } else {
-            iv.setImageResource(R.drawable.fx700p_mainkey);
-        }
-        */
 
         // ボタン表示枠の更新
         if (debug_info) {
@@ -736,8 +707,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 startActivity(intent1);
                 return true;
             case R.id.optionsMenu_05:   // help
-                //Toast.makeText(this, "未実装だよ！", Toast.LENGTH_LONG).show();
-                // ボタンをタップした際の処理を記述
                 AboutDialogFragment dialog = new AboutDialogFragment();
                 dialog.show(getFragmentManager(), "");
                 return true;
@@ -800,10 +769,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 Pattern p = Pattern.compile(regex);
                 Matcher m = p.matcher(str);
                 if (m.find()) {
-                    //Log.w("AAAAAA", String.format("'%s'", m.group()));
-                    //Log.w("AAAAAA", String.format("'%s'", m.group().substring(2,3)));
                     b = Integer.parseInt(m.group().substring(2, 3));
-                    //idxEnd[bank] = 0;
                     w = 0;
                     idx[b] = 0;
                     continue;
@@ -832,6 +798,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                             } else {
                                 // 無効なコードなので読み捨てる
                             }
+                        } else if (i + 1 < llen && c == '>' && str.charAt(i + 1) == '=') {
+                            dest[w++] = 0xf4;   // >=
+                            i++;
+                        } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '=') {
+                            dest[w++] = 0xf3;   // <=
+                            i++;
+                        } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '>') {
+                            dest[w++] = 0xf1;   // <>
+                            i++;
                         } else {
                             dest[w++] = c;
                         }
@@ -911,8 +886,24 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         for (int k = 0; k < temp[j].length(); k++) {
                             char c = temp[j].charAt(k);
                             if (0xe0 <= c && c <= 0xff) {
-                                for (int n = 0; n < cmdTable[c].length(); n++) {
-                                    buf[l++] = (byte) cmdTable[c].charAt(n);
+                                switch (c) {
+                                    case 0xf1:
+                                        buf[l++] = '<';
+                                        buf[l++] = '>';
+                                        break;
+                                    case 0xf3:
+                                        buf[l++] = '<';
+                                        buf[l++] = '=';
+                                        break;
+                                    case 0xf4:
+                                        buf[l++] = '>';
+                                        buf[l++] = '=';
+                                        break;
+                                    default:
+                                        for (int n = 0; n < cmdTable[c].length(); n++) {
+                                            buf[l++] = (byte) cmdTable[c].charAt(n);
+                                        }
+                                        break;
                                 }
                             } else {
                                 buf[l++] = (byte)c;
@@ -1009,9 +1000,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         int remain = memoryExtension ? 544+1024 : 544;
         total = source.getUsedMemorySize();
         total += basic.getDefmSize();
-        //for (int i = 0; i < 10; i++) {
-        //    total += idxEnd[i];
-        //}
         Log.w("calcMem", String.format("memory=%d use=%d remain=%d", remain, total, remain-total));
         remain -= total;
         if (remain < 0) remain = 0;
@@ -1114,11 +1102,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
     public boolean onTouch(View v, MotionEvent event) {
         int id = v.getId();
-        String str = "";
 
         int eventAction = event.getActionMasked();
-        //int pointerIndex = event.getActionIndex();
-        //int pointerId = event.getPointerId(pointerIndex);
 
         switch (eventAction) {
             case MotionEvent.ACTION_DOWN:
@@ -1133,18 +1118,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             case MotionEvent.ACTION_MOVE:
                 break;
         }
-
-
-        /*
-        str = String.format("mBtnStatus=[%s %s %s %s]",
-                String.valueOf(mBtnStatus[0]),
-                String.valueOf(mBtnStatus[1]),
-                String.valueOf(mBtnStatus[2]),
-                String.valueOf(mBtnStatus[3])  );
-
-        ((TextView)findViewById(R.id.text1)).setText(str);
-        Log.w("OnTouch", str);
-        */
         return false;
     }
 

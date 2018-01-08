@@ -34,7 +34,6 @@ public class Lcd {
     private boolean flashBank = false;
     private int charBack = 0;
     private int flashingCnt = 0;
-    private int bankBack = 0;
     private int flashingBankCnt = 0;
 
     public Lcd() {
@@ -362,12 +361,6 @@ public class Lcd {
                     }
                     if (s == null) break;
                     inText = s;
-                    //try {
-                    //    Log.w("EXE", String.format("%s", s));
-                    //    calc(getCmdBuf());
-                    //} catch (InterpreterException e) {
-                    //    Log.w("Main", String.format("error='%s'", e.toString()));
-                    //}
                     break;
                 case 0x1c:  // STOP
                     //Log.w("STOP", String.format("mode=%d prog=%d", mode, (pb.isProgExist() ? 1 : 0)));
@@ -389,14 +382,6 @@ public class Lcd {
             if (mode == MODE_RUN && (c & 0x0f) < 10) {
                 bank = c & 0x0f;
                 pb.progStart();
-/*
-                try {
-                    Log.w("lcd", String.format("run! P=%d", bank));
-                    basic.run();
-                } catch (InterpreterException e) {
-                    Log.w("Main", String.format("error='%s'", e.toString()));
-                }
-*/
             } else if (mode == MODE_PRO && (c & 0x0f) < 10) {
                 bank = c & 0x0f;
                 printBankStatus();
