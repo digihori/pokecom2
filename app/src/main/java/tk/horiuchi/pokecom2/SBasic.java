@@ -596,14 +596,26 @@ public class SBasic {
         double value;
         char vname;
         int offset = 0;
+        int pc_temp;
 
+        pc_temp = pc;
         getToken();
         Log.w("assignment", String.format("%s", token));
         if (isSval(token)) {
             // 文字列変数の処理
             vname = token.charAt(0);
             if (vname == '$') {
+                //String lastToken = token;
                 getToken();
+                if (!token.equals("=")) {
+                    //putBack();
+                    //token = lastToken;
+                    //putBack();
+                    // 変数参照なのでポインタを戻す
+                    putBack(pc_temp);
+                    strOpe();
+                    return;
+                }
                 strOpe();
                 if (resultStr.length() > 30) {
                     handleErr(ERR_VARIABLE);
@@ -612,21 +624,28 @@ public class SBasic {
             } else {
                 var = (int) Character.toUpperCase(vname) - 'A';
 
-                String lastToken = token;
+                //String lastToken = token;
                 getToken();
                 if (token.equals("(")) {
                     // 配列
+                    //lastToken += token;
                     getToken();
+                    //lastToken += token;
                     offset = (int)evalExp2();
                     //var += result;
                     if (!token.equals(")")) {
                         handleErr(ERR_SYNTAX);
                     }
+                    //lastToken += token;
+                    //Log.w("assig", String.format("lastToken='%s'", lastToken));
                     getToken();
-                } else if (!token.equals("=")) {
-                    putBack();
-                    token = lastToken;
-                    putBack();
+                }
+                if (!token.equals("=")) {
+                    //putBack();
+                    //token = lastToken;
+                    //putBack();
+                    // 変数参照なのでポインタを戻す
+                    putBack(pc_temp);
                     strOpe();
                     return;
                 }
@@ -663,23 +682,30 @@ public class SBasic {
 
             var = (int) Character.toUpperCase(vname) - 'A';
 
-            String lastToken = token;
+            //String lastToken = token;
             getToken();
             if (token.equals("(")) {
                 // 配列
+                //lastToken += token;
                 getToken();
+                //lastToken += token;
                 offset = (int)evalExp2();
                 //var += result;
                 if (!token.equals(")")) {
                     handleErr(ERR_SYNTAX);
                 }
+                //lastToken += token;
+                //Log.w("assig", String.format("lastToken='%s'", lastToken));
                 getToken();
-            } else if (!token.equals("=")) {
+            }
+            if (!token.equals("=")) {
                 //handleErr(EQUALEXPECTED);
                 //return;
-                putBack();
-                token = lastToken;
-                putBack();
+                //putBack();
+                //token = lastToken;
+                //putBack();
+                // 変数参照だけなのでポインタを最初に戻す
+                putBack(pc_temp);
                 lastAns = evaluate();
                 return;
             }
@@ -2053,7 +2079,9 @@ public class SBasic {
             handleErr(ERR_SYNTAX);
         }
         var += offset;
+        //Log.w("findVar", "var="+var);
         int ex = exvars == null ? 0 : exvars.length;
+        //Log.w("findVar", String.format("exvars.length=%d exsvars.length=%d", exvars.length, exsvars.length));
         if (var > 26 + ex) handleErr(ERR_VARIABLE);
 
         if (var < 26 && !svars[var].isEmpty() || var >= 26 && !exsvars[var - 26].isEmpty()) {
@@ -2124,6 +2152,9 @@ public class SBasic {
         } else if (exvars == null || exvars.length != n) {
             exvars = new double[n];
             exsvars = new String[n];
+            for (int i = 0; i < n; i++) {
+                exsvars[i] = "";
+            }
         }
         return (defaultVar + n);
     }
@@ -2139,6 +2170,11 @@ public class SBasic {
             if (pc > 0) pc--;
         }
         //Log.w("putBack", "pc="+pc);
+    }
+
+    private void putBack(int p) {
+        if (pc < 1) return;
+        pc = p;
     }
 
     private boolean isLetter(char c) {

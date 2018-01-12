@@ -84,9 +84,9 @@
         Invalid except ASCII code.\n
         \n
         \\\\  ¥\n
-        \\LE Less Equal\n
-        \\NE Not Equal\n
-        \\GE Greater Equal\n
+        \\LE(or &lt;=) Less Equal\n
+        \\NE(or &lt;&gt;) Not Equal\n
+        \\GE(or &gt;=) Greater Equal\n
         \\LA Left Arrow\n
         \\DA Down Arrow\n
         \\RA Right Arrow\n
@@ -117,7 +117,13 @@
         etc.\n
         \n
         If you press the \'←\' key after manual calculation, \n
-        the previous command will be displayed.
+        the previous command will be displayed.\n
+        \n
+        Step count calculation is not accurate. There are some errors with the actual machine.\n
+        \n
+        Program trace execution is not implemented yet.\n
+        Moreover, the program can not resume after interruption. It will only be finished.
+
 
     </string>
 

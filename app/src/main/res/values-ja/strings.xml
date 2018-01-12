@@ -81,9 +81,9 @@
         なお全角コードは読み捨てます。\n
         \n
         \\\\  ¥\n
-        \\LE Less Equal\n
-        \\NE Not Equal\n
-        \\GE Greater Equal\n
+        \\LE(or &lt;=) Less Equal\n
+        \\NE(or &lt;&gt;) Not Equal\n
+        \\GE(or &gt;=) Greater Equal\n
         \\LA Left Arrow\n
         \\DA Down Arrow\n
         \\RA Right Arrow\n
@@ -113,7 +113,11 @@
         SINA\n
         など\n
         \n
-        マニュアル計算後に[←]で直前のコマンドが表示されます。
+        マニュアル計算後に[←]で直前のコマンドが表示されます。\n
+        \n
+        ステップ数計算は正確ではありません。実機と微妙な誤差があります。\n
+        \n
+        プログラムのトレース実行は未実装です。またプログラムは中断後の再開はできません。終了のみとなります。
 
     </string>
 
