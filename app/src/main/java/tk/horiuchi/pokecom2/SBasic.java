@@ -3,14 +3,27 @@ package tk.horiuchi.pokecom2;
 import android.util.Log;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static tk.horiuchi.pokecom2.Common.MODE_PRO;
+import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common._EM;
+import static tk.horiuchi.pokecom2.Common._EX;
+import static tk.horiuchi.pokecom2.Common._GE;
+import static tk.horiuchi.pokecom2.Common._LE;
+import static tk.horiuchi.pokecom2.Common._NE;
+import static tk.horiuchi.pokecom2.Common._PI;
 import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.debugText;
+import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
+import static tk.horiuchi.pokecom2.MainActivity.listDisp;
 import static tk.horiuchi.pokecom2.MainActivity.memoryExtension;
+import static tk.horiuchi.pokecom2.MainActivity.mode;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
 import static tk.horiuchi.pokecom2.MainActivity.source;
@@ -63,6 +76,7 @@ public class SBasic {
     final int VAC = 17;
     final int STOP = 18;
     final int DEFM = 19;
+    final int CLEAR = 20;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -93,9 +107,14 @@ public class SBasic {
     final String EOP = "\0";
 
     //
-    final char LE = 0xf3;
-    final char GE = 0xf4;
-    final char NE = 0xf1;
+    /*
+    final char _EX = 0xf0;
+    final char _EM = 0xf1;
+    final char NE = 0xf2;
+    final char _PI = 0xf3;
+    final char LE = 0xf4;
+    final char GE = 0xf5;
+    */
 
     //
     private double[] vars;
@@ -157,7 +176,9 @@ public class SBasic {
             new Keyword("end", END),
             new Keyword("run", RUN),
             new Keyword("defm", DEFM),
-            new Keyword("list", LIST)
+            new Keyword("list", LIST),
+            new Keyword("clear", CLEAR),
+            new Keyword("stop", STOP)
     };
 
     private char[] prog;
@@ -166,6 +187,7 @@ public class SBasic {
     private String token;
     private int tokType;
     private int kwToken;
+    private String cmdLine = "";
 
     private boolean nextLine = true;
     private Double lastAns;
@@ -199,7 +221,7 @@ public class SBasic {
 
     //
     char rops[] = {
-            GE, NE, LE, '<', '>', '=', 0
+            _GE, _NE, _LE, '<', '>', '=', 0
     };
 
     String relops = new String(rops);
@@ -253,8 +275,33 @@ public class SBasic {
     }
     private void lcdPrint(Double d) {
         if (d == null) return;
-        Log.w("lcdPrint", String.format("%d", d.intValue()));
 
+        String str = double2string(d);
+
+        /*
+        String str;
+        if (d >= 0) {
+            str = String.format("%.8g", d);
+        } else {
+            str = String.format("%.7g", d);
+        }
+        // 一旦指数部を切り離す
+        String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
+        // 小数点以下の末尾の0を削除する
+        temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
+        // 文字列を作り直す
+        str = temp[0];
+        if (temp.length > 1) str += temp[1];
+        //Log.w("lcdPrint", String.format("temp[0]='%s' temp[1]='%s' str='%s'", temp[0], temp[1], str));
+        Log.w("lcdPrint-double", String.format("%s", str));
+        // exponential記号を特殊記号に書き換える
+        str = str.replaceAll("[Ee]\\+", String.valueOf((char)0xf0));
+        str = str.replaceAll("[Ee]\\-", String.valueOf((char)0xf1));
+        */
+
+        lcd.print12(str);
+
+        /*
         int i = d.intValue();
         if (d < 10000000000d) {
             if (d == (double)i) {
@@ -268,12 +315,34 @@ public class SBasic {
             lcd.print(String.format("%e", d));
             //System.out.printf("%e", d);
         }
+        */
+
     }
 
     private String double2string(Double d) {
         if (d == null) return null;
         //Log.w("lcdPrint", String.format("%d", d.intValue()));
 
+        String str;
+        if (d >= 0) {
+            str = String.format("%.8g", d);
+        } else {
+            str = String.format("%.7g", d);
+        }
+        // 一旦指数部を切り離す
+        String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
+        // 小数点以下の末尾の0を削除する
+        temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
+        // 文字列を作り直す
+        str = temp[0];
+        if (temp.length > 1) str += temp[1];
+        //Log.w("lcdPrint", String.format("temp[0]='%s' temp[1]='%s' str='%s'", temp[0], temp[1], str));
+        Log.w("double2string", String.format("%s", str));
+        // exponential記号を特殊記号に書き換える
+        str = str.replaceAll("[Ee]\\+", String.valueOf((char)0xf0));
+        str = str.replaceAll("[Ee]\\-", String.valueOf((char)0xf1));
+
+        /*
         int i = d.intValue();
         String ret;
         if (d < 10000000000d) {
@@ -288,7 +357,8 @@ public class SBasic {
             ret = String.format("%e", d);
             //System.out.printf("%e", d);
         }
-        return ret;
+        */
+        return str;
     }
 
     public void lastAns() {
@@ -376,6 +446,7 @@ public class SBasic {
             }
             idxEnd = size - 1;
         }
+        cmdLine = s;
         sbCmd();
     }
 
@@ -399,22 +470,54 @@ public class SBasic {
                     Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
                     pb.progStart();
                     return;
-                    //break;
+                //break;
                 case LIST:
-                    Log.w("SBasic", String.format("--- LIST(%d) ---", bank));
-                    getToken();
-                    String s;
-                    if (tokType == NUMBER) {
-                        s = source.getSource(bank, Integer.parseInt(token));
-                    } else {
-                        s = source.getSourceTop(bank);
+                    if (mode == MODE_RUN) {
+                        lcd.cls();
+                        lcd.print(String.format("READY P%d", bank));
+                        initial = true;
+                    } else if (mode == MODE_PRO) {
+                        Log.w("SBasic", String.format("--- LIST(%d) ---", bank));
+                        getToken();
+                        String s = "";
+                        if (tokType == NUMBER) {
+                            try {
+                                s = source.getSource1(bank, Integer.parseInt(token));
+                            } catch (NumberFormatException e) {
+                                handleErr(ERR_SYNTAX);
+                            }
+                        } else {
+                            s = source.getSourceTop(bank);
+                        }
+                        listDisp = true;
+                        if (s != null) {
+                            lcd.printSourceList(s);
+                        } else {
+                            lcd.printBankStatus();
+                            initial = true;
+                            listDisp = false;
+                        }
+                        //lcd.print(s, 0);
                     }
-                    lcd.print(s, 0);
                     return;
-                    //break;
+
                 case VAC:
                     Log.w("SBasic", String.format("--- VAC ---"));
                     vac();
+                    return;
+                case CLEAR:
+                    if (mode == MODE_PRO) {
+                        getToken();
+                        if (token.equals("A")) {
+                            Log.w("SBasic", String.format("--- CLEAR ALL---"));
+                            source.clearSourceAll();
+                        } else {
+                            Log.w("SBasic", String.format("--- CLEAR(%d) ---", bank));
+                            source.clearSource(bank);
+                        }
+                    } else {
+                        handleErr(ERR_SYNTAX);
+                    }
                     return;
                 case DEFM:
                     getToken();
@@ -433,7 +536,7 @@ public class SBasic {
                         lcdPrint(String.format("***VAR:%d", m));
                     } else if (tokType == VARIABLE) {
                         putBack();
-                        int n = (int)evalExp2();
+                        int n = (int) evalExp2();
                         int m = defm(n);
                         lcdPrint(String.format("***VAR:%d", m));
                     } else {
@@ -443,6 +546,38 @@ public class SBasic {
                 default:
                     break;
             }
+
+        } else if (mode == MODE_PRO && tokType == NUMBER && !cmdLine.isEmpty()) {
+            Log.w("sbCmd", String.format("cmd='%s'", cmdLine));
+
+            int ret = source.addSource(bank, cmdLine);
+            if (ret == 0) {
+                // 新規の行の追加の場合はそのまま内容を表示する
+                String s = source.getCurrentSource(bank);
+                Log.w("sbCmd", String.format("add new line='%s'", s));
+                //initial = true;
+                lcd.printSourceList(s);
+                initial = true;
+            } else if (ret == 1) {
+                // 行の更新の場合は次の行を表示する
+                String s = source.getCurrentSource(bank);
+                Log.w("sbCmd", String.format("replace line='%s'", s));
+                s = source.getSourceNext(bank);
+                if (s != null) {
+                    listDisp = true;
+                    lcd.printSourceList(s);
+                } else {
+                    // 次の行がない場合は初期画面に戻る
+                    lcd.printBankStatus();
+                    initial = true;
+                    listDisp = false;
+                }
+            } else if (ret == -1) {
+                // 行の削除の場合は表示クリア
+                Log.w("sbCmd", String.format("delete line='%s'", cmdLine));
+                lcd.cls();
+            }
+            return;
 
         } else {
             //Log.w("sbCmd2", String.format("pc=%d", pc));
@@ -528,6 +663,9 @@ public class SBasic {
                         break;
                     case RETURN:
                         greturn();
+                        break;
+                    case STOP:
+                        pb.progStop();
                         break;
                     case END:
                         return;
@@ -928,7 +1066,7 @@ public class SBasic {
                 tokType == FUNCTION && (kwToken == KEY || kwToken == MID) ) {
             putBack();
             boolean ret = strOpe();
-            //Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
+            Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
             if (ret) {
                 getToken();
 
@@ -961,7 +1099,7 @@ public class SBasic {
             putBack();
             result = evaluate();
 
-            //Log.w("IF", String.format("if (%d)", (int)result));
+            Log.w("IF", String.format("if (%d)", (int)result));
             if (result != 0.0) {
                 getToken();
 
@@ -1297,7 +1435,7 @@ public class SBasic {
                 case '=':
                     result = l_temp.equals(r_temp);
                     break;
-                case NE:
+                case _NE:
                     result = !l_temp.equals(r_temp);
                     break;
                 default:
@@ -1492,7 +1630,7 @@ public class SBasic {
                         result = 0.0;
                     }
                     break;
-                case LE:
+                case _LE:
                     if (l_temp <= r_temp) {
                         result = 1.0;
                     } else {
@@ -1506,7 +1644,7 @@ public class SBasic {
                         result = 0.0;
                     }
                     break;
-                case GE:
+                case _GE:
                     if (l_temp >= r_temp) {
                         result = 1.0;
                     } else {
@@ -1520,7 +1658,7 @@ public class SBasic {
                         result = 0.0;
                     }
                     break;
-                case NE:
+                case _NE:
                     if (l_temp != r_temp) {
                         result = 1.0;
                     } else {
@@ -1649,12 +1787,19 @@ public class SBasic {
         if (token.equals("(")) {
             getToken();
             result = evalExp2();
-            if (!token.equals(")") && !token.equals(":") && !token.equals(",") && kwToken != EOL) {
-                handleErr(ERR_SYNTAX);
-            }
-            if (!token.equals(",")) {
-                // デリミターが','の時は何かの関数の中でカッコが省略されているのでトークンを進めない
+            if (token.equals(")") || token.equals(":") || token.equals(";")) {
+                // デリミターが')'と':',';'の時はトークンを進める
                 getToken();
+            } else if (!token.equals(",") &&
+                    !token.equals("=") &&
+                    !token.equals(String.valueOf(_NE)) &&
+                    !token.equals(String.valueOf(_GE)) &&
+                    !token.equals(String.valueOf(_LE)) &&
+                    kwToken != EOL) {
+                Log.w("evalExp6", String.format("->'%s'", token));
+                handleErr(ERR_SYNTAX);
+            } else {
+                ;   // それ以外の時はトークンを進めない
             }
         } else {
             result = atom();
@@ -2045,6 +2190,7 @@ public class SBasic {
                 break;
 
             default:
+                Log.w("atom-default", "ERR_SYNTAX");
                 handleErr(ERR_SYNTAX);
                 break;
         }
@@ -2082,7 +2228,8 @@ public class SBasic {
         //Log.w("findVar", "var="+var);
         int ex = exvars == null ? 0 : exvars.length;
         //Log.w("findVar", String.format("exvars.length=%d exsvars.length=%d", exvars.length, exsvars.length));
-        if (var > 26 + ex) handleErr(ERR_VARIABLE);
+        //Log.w("findVar", String.format("var=%d ex=%d", var, ex));
+        if (var >= 26 + ex) handleErr(ERR_VARIABLE);
 
         if (var < 26 && !svars[var].isEmpty() || var >= 26 && !exsvars[var - 26].isEmpty()) {
             handleErr(ERR_VARIABLE);
@@ -2224,10 +2371,10 @@ public class SBasic {
                 case '<':
                     if (prog[pc + 1] == '>') {
                         pc += 2;
-                        token = String.valueOf(NE);
+                        token = String.valueOf(_NE);
                     } else if (prog[pc + 1] == '=') {
                         pc += 2;
-                        token = String.valueOf(LE);
+                        token = String.valueOf(_LE);
                     } else {
                         pc++;
                         token = "<";
@@ -2236,7 +2383,7 @@ public class SBasic {
                 case '>':
                     if (prog[pc + 1] == '=') {
                         pc +=2;
-                        token = String.valueOf(GE);
+                        token = String.valueOf(_GE);
                     } else {
                         pc++;
                         token = ">";
@@ -2255,9 +2402,9 @@ public class SBasic {
             pc++;
             tokType = DELIMITER;
             //Log.w("getToken", String.format("case DELIMITER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
-        } else if (isLetter(prog[pc]) || prog[pc] == '$' || prog[pc] == 0xf2/*PI*/) {
+        } else if (isLetter(prog[pc]) || prog[pc] == '$' || prog[pc] == _PI/*PI*/) {
             while (!isDelim(prog[pc])) {
-                if (prog[pc] == 0xf2) {
+                if (prog[pc] == _PI) {
                     token += "PI";
                 } else {
                     token += (char) (prog[pc] & 0xff);
@@ -2290,12 +2437,18 @@ public class SBasic {
             }
         } else if (prog[pc] == '.' || Character.isDigit(prog[pc])) {
             while (!isDelim(prog[pc])) {
-                token += (char)(prog[pc]&0xff);
+                if (prog[pc] == _EX) {
+                    token += "E+";
+                } else if (prog[pc] == _EM) {
+                    token += "E-";
+                } else {
+                    token += (char) (prog[pc] & 0xff);
+                }
                 pc++;
                 if (pc >= idxEnd + 1) break;
             }
             tokType = NUMBER;
-            //Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else  if (prog[pc] == '\"') {
             //Log.w("getToken", "DQ!!!");
             tokType = QUTEDSTR;
@@ -2381,10 +2534,10 @@ public class SBasic {
     }
 
     private boolean isDelim(int c) {
-        char ne = 0xf1;
-        char le = 0xf3;
-        char ge = 0xf4;
-        if ((" \n,;<>+-/*%^=():"+ne+le+ge).indexOf(c) != -1) {
+        //char ne = 0xf2;
+        //char le = 0xf4;
+        //char ge = 0xf5;
+        if ((" \n,;<>+-/*%^=():"+_NE+_LE+_GE).indexOf(c) != -1) {
             return true;
         }
         return false;
@@ -2454,16 +2607,17 @@ public class SBasic {
         String key = "";
         boolean findValue = false;
         for (Map.Entry<String, Integer>map : labelTable.entrySet()) {
-            Log.w("search", String.format("pc=%d idx=%d value=%d", pc, idx, map.getValue()));
+            //Log.w("search", String.format("pc=%d idx=%d value=%d", pc, idx, map.getValue()));
             if (pc >= map.getValue()) {
                 if (idx <= map.getValue()) {
                     idx = map.getValue();
                     key = map.getKey();
                     findValue = true;
-                    Log.w("search", String.format("---> pc=%d idx=%d key=%s", pc, idx, key));
+                    //Log.w("search", String.format("---> pc=%d idx=%d key=%s", pc, idx, key));
                 }
             }
         }
+        Log.w("handleErr", String.format("---> pc=%d idx=%d key=%s", pc, idx, key));
         if (!pb.isProgExist() || !findValue) {
             //Log.w("handleErr", String.format("%s(%d)", err[error], error));
             msg = String.format("pc=%d %s(%d)", pc, err[error], error);

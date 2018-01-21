@@ -38,6 +38,9 @@ import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common._GE;
+import static tk.horiuchi.pokecom2.Common._LE;
+import static tk.horiuchi.pokecom2.Common._NE;
 import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.Common.type10inch;
 import static tk.horiuchi.pokecom2.Common.type7inch;
@@ -69,7 +72,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static int ui_design;
     private Vibrator vib;
     private String[] cmdHistory;
-    private int idxHistory;
+    private int idxHistory, idxHistoryDisp;
 
     public static boolean initial; // 仮
     public static boolean resultDisp = false;
@@ -562,12 +565,29 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 case R.id.buttonANS:
                     basic.lastAns();
                     break;
+                case R.id.buttonUA:
+                case R.id.buttonDA:
                 case R.id.buttonLA:
-                    if (resultDisp &&
+                    if (c == R.id.buttonLA && resultDisp &&
                             cmdHistory[(idxHistory-1)&7] !=null &&
                             !cmdHistory[(idxHistory-1)&7].isEmpty()) {
-                        lcd.print(cmdHistory[(idxHistory-1)&7]);
+                        idxHistoryDisp = idxHistory - 1;
+                        lcd.print(cmdHistory[idxHistoryDisp&7]);
                         break;
+                    }
+                    if (c == R.id.buttonUA &&
+                            cmdHistory[(idxHistoryDisp-1)&7] != null &&
+                            !cmdHistory[(idxHistoryDisp-1)&7].isEmpty()) {
+                        idxHistoryDisp--;
+                        lcd.cls();
+                        lcd.print(cmdHistory[idxHistoryDisp&7]);
+                    }
+                    if (c == R.id.buttonDA &&
+                            cmdHistory[(idxHistoryDisp+1)&7] != null &&
+                            !cmdHistory[(idxHistoryDisp+1)&7].isEmpty()) {
+                        idxHistoryDisp++;
+                        lcd.cls();
+                        lcd.print(cmdHistory[idxHistoryDisp&7]);
                     }
                     // no break!
                 default:
@@ -580,14 +600,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             String s;
             switch (c) {
                 case R.id.buttonDA:
-                    if (listDisp) {
+                    //Log.w("Main", String.format("listDisp=%s initial=%s", listDisp, initial));
+                    if (listDisp /*|| initial*/) {
                         s = source.getSourceNext(bank);
                         listDisp = true;
-                        Log.w("Main", "listNext");
+                        //Log.w("Main", "listNext");
                     } else {
                         s = source.getSourceTop(bank);
                         listDisp = true;
-                        Log.w("Main", "listTop");
+                        //Log.w("Main", "listTop");
                     }
                     if (s != null) {
                         lcd.printSourceList(s);
@@ -595,14 +616,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     }
                     break;
                 case R.id.buttonUA:
-                    if (listDisp) {
+                    //Log.w("Main", String.format("listDisp=%s initial=%s", listDisp, initial));
+                    if (listDisp /*|| initial*/) {
                         s = source.getSourcePrev(bank);
                         listDisp = true;
-                        Log.w("Main", "listPrev");
+                        //Log.w("Main", "listPrev");
                     } else {
                         s = source.getSourceBottom(bank);
                         listDisp = true;
-                        Log.w("Main", "listBottom");
+                        //Log.w("Main", "listBottom");
                     }
                     if (s != null) {
                         lcd.printSourceList(s);
@@ -614,7 +636,60 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     s = lcd.getCmdBuf();
                     if (s == null) break;
 
+                    try {
+                        Log.w("EXE", String.format("%s", s));
+                        basic.calc(s);
+                    } catch (InterpreterException e) {
+                        Log.w("Main", String.format("error='%s'", e.toString()));
+                    }
+                    calcMemoryAndDisp(true);
+
+                    /*
                     String[] temp = s.split("\\s+");
+                    try {
+                        int n = Integer.parseInt(temp[0]);
+
+                        // 文字列の先頭が数値だったらプログラムの入力確定処理
+                        int ret = source.addSource(bank, s);
+                        if (ret == 0) {
+                            // 新規の行の追加の場合はそのまま内容を表示する
+                            Log.w("Main", String.format("add new line='%s'", s));
+                            initial = true;
+                            lcd.printSourceList(s);
+                            initial = true;
+                        } else if (ret == 1) {
+                            // 行の更新の場合は次の行を表示する
+                            Log.w("Main", String.format("replace line='%s'", s));
+                            s = source.getSourceNext(bank);
+                            if (s != null) {
+                                listDisp = true;
+                                lcd.printSourceList(s);
+                            } else {
+                                // 次の行がない場合は初期画面に戻る
+                                lcd.printBankStatus();
+                                initial = true;
+                                listDisp = false;
+                            }
+                        } else if (ret == -1) {
+                            // 行の削除の場合は表示クリア
+                            Log.w("Main", String.format("delete line='%s'", s));
+                            lcd.cls();
+                        }
+                        //lcd.cls();
+                        calcMemoryAndDisp(true);
+
+                    } catch (NumberFormatException e) {
+                        // パースに失敗した = コマンド
+                        try {
+                            Log.w("EXE", String.format("%s", s));
+                            basic.calc(s);
+                        } catch (InterpreterException e1) {
+                            Log.w("Main", String.format("error='%s'", e1.toString()));
+                        }
+                    }
+                    */
+
+                    /*
                     if (temp[0].equals("LIST")) {
                         String ss;
                         if (temp.length == 1) {
@@ -657,6 +732,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         //lcd.cls();
                         calcMemoryAndDisp(true);
                     }
+                    */
                     break;
                 case R.id.buttonANS:
                     break;
@@ -799,13 +875,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                                 // 無効なコードなので読み捨てる
                             }
                         } else if (i + 1 < llen && c == '>' && str.charAt(i + 1) == '=') {
-                            dest[w++] = 0xf4;   // >=
+                            dest[w++] = _GE;   // >=
                             i++;
                         } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '=') {
-                            dest[w++] = 0xf3;   // <=
+                            dest[w++] = _LE;   // <=
                             i++;
                         } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '>') {
-                            dest[w++] = 0xf1;   // <>
+                            dest[w++] = _NE;   // <>
                             i++;
                         } else {
                             dest[w++] = c;

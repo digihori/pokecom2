@@ -14,6 +14,13 @@ public class Common {
     public final static int MODE_RUN = 0;
     public final static int MODE_PRO = 1;
 
+    public final static char _EX = 0xf0;
+    public final static char _EM = 0xf1;
+    public final static char _NE = 0xf2;
+    public final static char _PI = 0xf3;
+    public final static char _LE = 0xf4;
+    public final static char _GE = 0xf5;
+
     public final static String[] cmdTable = {
     /*00*/  "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0",
     /*10*/  "\\DMY", "\\DMY", "\\DMY", "\\DMY", "\0", "\0", "\0", "\0", "\0", "\\ANS", "\\AC", "\\EXE", "\\STOP", "\\DEL", "\\INS", "\0",
@@ -30,7 +37,7 @@ public class Common {
     /*c0*/  "SAVE", "LOAD", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0", "\0",
     /*d0*/  "SIN", "COS", "TAN", "ASN", "ACS", "ATN", "LOG", "LN", "EXP", "SQR", "ABS", "SGN", "INT", "FRAC", "\0", "\0",
     /*e0*/  "\\CI", "\\SQ", "\\TR", "\\CR", "\\DV", "\\SP", "\\HT", "\\DI", "\\CL", "\\BX", "\\DT", "\\DG", "\\SG", "\\OM", "\\MU", "\0",
-    /*f0*/  "\\EX", "\\NE", "\\PI", "\\LE", "\\GE", "\\LA", "\\DA", "\\RA", "\0︎", "\0", "\0", "\0", "\0", "\0", "\0", "\0"
+    /*f0*/  "\\EX", "\\EM", "\\NE", "\\PI", "\\LE", "\\GE", "\\LA", "\\DA", "\\RA", "\0", "\0", "\0", "\0", "\0", "\0", "\0"
     };
 
 }

@@ -245,6 +245,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             pause = true;
             keyMaskCnt = 15;
             Log.w("PbMain", "progStop");
+            refreshScreen();
         }
     }
 

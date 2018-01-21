@@ -298,6 +298,25 @@ public class Lcd {
         }
     }
 
+    public void print12(String s) {
+        if (bankStatus) {
+            bankStatus = false;
+        }
+        if (initial || resultDisp) {
+            initial = false;
+            resultDisp = false;
+            cls();
+        }
+
+        if (cursor == 0) {
+            for (int i = 0; i < s.length() && i < 12; i++) {
+                putc12(s.charAt(i));
+            }
+        } else {
+            print(s);
+        }
+    }
+
     public void print(String s, int idx) {
         if (idx > 12) return;
         if (bankStatus) {
@@ -403,8 +422,21 @@ public class Lcd {
 
     public void putc(int c) {
         if (buf_index < bufMax - 1) {
-            buf[buf_top + cursor] = c;
-            if (buf_index < buf_top + cursor + 1) buf_index++;
+            if (cursor > 11) {
+                buf_top = cursor - 11;
+                cursor = 11;
+            }
+            if (buf_top + cursor > 0 && c == '-' &&
+                    (buf[buf_top + cursor - 1] == 0xf0 || buf[buf_top + cursor - 1] == 0xf1)) {
+                buf[buf_top + cursor - 1] ^= 0x01;
+                refreshPrint();
+                flashingReset();
+                debug();
+                return;
+            } else {
+                buf[buf_top + cursor] = c;
+                if (buf_index < buf_top + cursor + 1) buf_index++;
+            }
 
             //Log.w("Lcd", String.format("%s", buf));
             if (cursor < 11) {
@@ -416,6 +448,22 @@ public class Lcd {
                 for (int j = 0; j < 12; j++) {
                     printDigit(j, buf[buf_top + j]);
                 }
+            }
+            flashingReset();
+            debug();
+        }
+
+    }
+
+    public void putc12(int c) {
+        if (buf_index < bufMax - 1) {
+            buf[buf_top + cursor] = c;
+            if (buf_index < buf_top + cursor + 1) buf_index++;
+
+            //Log.w("Lcd", String.format("%s", buf));
+            if (cursor < 12) {
+                printDigit(cursor, c);
+                cursor++;
             }
             flashingReset();
             debug();
@@ -563,14 +611,15 @@ public class Lcd {
             new CharData(0xed, 0x4e7101714eL),  // Omega
             new CharData(0xee, 0x7c10100c10L),  // Mu
 
-            new CharData(0xf0, 0x7c54545400L),  // exponent
-            new CharData(0xf1, 0x14161c3414L),  // <>
-            new CharData(0xf2, 0x443c047c44L),  // pi
-            new CharData(0xf3, 0x5058545250L),  // <=
-            new CharData(0xf4, 0x5052545850L),  // >=
-            new CharData(0xf5, 0x081c2a0808L),  // left allow
-            new CharData(0xf6, 0x10207f2010L),  // down allow
-            new CharData(0xf7, 0x08082a1c08L),  // right allow
+            new CharData(0xf0, 0x7c54544400L),  // exponent
+            new CharData(0xf1, 0x7c54550101L),  // exponent-
+            new CharData(0xf2, 0x14161c3414L),  // <>
+            new CharData(0xf3, 0x443c047c44L),  // pi
+            new CharData(0xf4, 0x5058545250L),  // <=
+            new CharData(0xf5, 0x5052545850L),  // >=
+            new CharData(0xf6, 0x081c2a0808L),  // left allow
+            new CharData(0xf7, 0x10207f2010L),  // down allow
+            new CharData(0xf8, 0x08082a1c08L),  // right allow
 
 
             new CharData(0xff, 0xffffffffffL)

@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.MainActivity.basic;
 
@@ -43,20 +45,34 @@ public class SourceFile {
         String body;
 
         public BasicSource(String s) {
-            String[] temp = s.split("[\\s+:]", 2);
+
+            // 行番号とそれに続く文字列の間にスペースを入れる
+            String regex = "^[0-9]+";
+            Pattern p = Pattern.compile(regex);
+            Matcher m = p.matcher(s);
+            if (m.find()) {
+                s = m.group() + ' ' + s.substring(m.end());
+            }
+            Log.w("BasicSource", String.format("s='%s'", s));
+
+            String[] temp = s.split("[\\s:]+", 2);
+            if (temp.length >= 2) {
+                Log.w("BasicSource", String.format("str1='%s' str2='%s'", temp[0], temp[1]));
+            }
             try {
                 lineNum = Integer.parseInt(temp[0]);
             } catch (NumberFormatException e) {
 
             }
-            if (temp.length > 1) {
-                body = s;
+            if (temp.length > 1 && !temp[1].isEmpty()) {
+                body = temp[0] + ' ' + temp[1];
                 size = 3 + basic.getProgSteps(temp[1]);
             } else {
                 body = null;
                 size = 0;
             }
             //Log.w("Sourcs", String.format("size=%d", size));
+            Log.w("BasicSource", String.format("line=%d body='%s' size=%d", lineNum, body, size));
         }
 
         public boolean equals(Object obj) {
@@ -114,6 +130,7 @@ public class SourceFile {
             ret = 0;
         }
         Collections.sort(list[n], new MyComparator());
+        idx[n] = list[n].indexOf(temp);
         return ret;
     }
 
@@ -183,7 +200,10 @@ public class SourceFile {
         int size = list[n].size();
         if (size == 0) return null;
         idx[n]++;
-        if (idx[n] >= size) idx[n] = size - 1;
+        if (idx[n] >= size) {
+            idx[n] = size - 1;
+            return null;
+        }
         return ((BasicSource)list[n].get(idx[n])).body;
     }
 
@@ -192,7 +212,10 @@ public class SourceFile {
         int size = list[n].size();
         if (size == 0) return null;
         idx[n]--;
-        if (idx[n] < 0) idx[n] = 0;
+        if (idx[n] < 0) {
+            idx[n] = 0;
+            return null;
+        }
         return ((BasicSource)list[n].get(idx[n])).body;
     }
 
@@ -209,6 +232,33 @@ public class SourceFile {
         }
         //if (idx[n] < 0) idx[n] = 0;
         //if (idx[n] >= size) idx[n] = size - 1;
+        return ((BasicSource)list[n].get(idx[n])).body;
+    }
+
+    public String getSource1(int n, int m) {
+        if (n > 9) return null;
+        int size = list[n].size();
+        if (size == 0) return null;
+
+        int idx;
+        for (idx = 0; idx < list[n].size(); idx++) {
+            if (m <= ((BasicSource)list[n].get(idx)).lineNum) {
+                m = ((BasicSource)list[n].get(idx)).lineNum;
+                Log.w("getSource1", String.format("target=%d", m));
+                break;
+            }
+        }
+        if (idx >= list[n].size()) {
+            return null;
+        } else {
+            return getSource(n, m);
+        }
+    }
+
+    public String getCurrentSource(int n) {
+        if (n > 9) return null;
+        int size = list[n].size();
+        if (size == 0) return null;
         return ((BasicSource)list[n].get(idx[n])).body;
     }
 
