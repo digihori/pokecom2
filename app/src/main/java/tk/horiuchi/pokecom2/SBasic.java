@@ -325,9 +325,9 @@ public class SBasic {
 
         String str;
         if (d >= 0) {
-            str = String.format("%.8g", d);
+            str = String.format(Locale.US, "%.8g", d);
         } else {
-            str = String.format("%.7g", d);
+            str = String.format(Locale.US, "%.7g", d);
         }
         // 一旦指数部を切り離す
         String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
