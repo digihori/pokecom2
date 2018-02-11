@@ -50,7 +50,7 @@ STOP
 In the input/output file, PB special symbols are converted to escape characters.
 Invalid except ASCII code.
 
-\\  ¥  
+\\\\  ¥  
 \LE(or <=) Less Equal  
 \NE(or <>) Not Equal  
 \GE(or >=) Greater Equal  
