@@ -1,38 +1,38 @@
 # PB-100シミュレータのプロジェクト
 # PokecomGO2 - CASIO Pocket computer(PB-100) simulator
 
-This is a simulator of CASIO's Pocket Computer PB-100.
-It reproduces the unique BASIC of the PB-100 generation.
-(Omitting the closing parentheses of calculation formula,
-using variables in the destination of GOTO, etc. ..)
-You can input and output BASIC text file by load and save menu.
+This is a simulator of CASIO's Pocket Computer PB-100.  
+It reproduces the unique BASIC of the PB-100 generation.  
+(Omitting the closing parentheses of calculation formula,  
+using variables in the destination of GOTO, etc. ..)  
+You can input and output BASIC text file by load and save menu.  
 
 ## Supported BASIC instraction
-PRINT
-INPUT
-GOTO
-GOSUB-RETURN
-FOR-TO-STEP-NEXT
-IF-THEN/IF-;
-VAC
-CLEAR/CLEAR A
-RUN
-LIST
-END
-KEY
-CSR
-DEFM
-MID
-VAL
-SIN/COS/TAN/ASN/ACS/ATN
-LOG/LN/EXP/SQR
-ABS
-SGN
-INT
-FRAC
-RND
-RAN#
-STOP
+PRINT  
+INPUT  
+GOTO  
+GOSUB-RETURN  
+FOR-TO-STEP-NEXT  
+IF-THEN/IF-;  
+VAC  
+CLEAR/CLEAR A  
+RUN  
+LIST  
+END  
+KEY  
+CSR  
+DEFM  
+MID  
+VAL  
+SIN/COS/TAN/ASN/ACS/ATN  
+LOG/LN/EXP/SQR  
+ABS  
+SGN  
+INT  
+FRAC  
+RND  
+RAN#  
+STOP  
 
 ## Setting menu
 ・cpu clock emulate
