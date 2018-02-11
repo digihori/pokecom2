@@ -1737,21 +1737,27 @@ public class SBasic {
     private double evalExp4() throws InterpreterException {
         //Log.w("eval4", "exec");
         double result;
-        double partialResult;
-        double ex;
-        int t;
+        //double partialResult;
+        //double ex;
+        //int t;
+        int pc_temp;
 
         result = evalExp5();
 
         if (token.equals("^")) {
-            getToken();
-            partialResult = evalExp4();
-            ex = result;
-            if (partialResult == 0.0) {
-                result = 1.0;
-            } else {
-                for (t = (int) partialResult - 1; t > 0; t--) {
-                    result = result * ex;
+            // PB-100 は a^b^c の計算は (a^b)^c の順番で計算するためループで回す。
+            boolean loop;
+            while (token != EOP) {
+                loop = false;
+                pc_temp = pc;
+                getToken();
+                getToken();
+                if (token.equals("^")) loop = true;
+                putBack(pc_temp);
+                getToken();
+                result = Math.pow(result, evalExp5());
+                if (!loop) {
+                    break;
                 }
             }
         }
@@ -1790,6 +1796,8 @@ public class SBasic {
             if (token.equals(")") || token.equals(":") || token.equals(";")) {
                 // デリミターが')'と':',';'の時はトークンを進める
                 getToken();
+            } else if (token == EOP) {
+                ;   // おしまいだったら閉じカッコとみなす
             } else if (!token.equals(",") &&
                     !token.equals("=") &&
                     !token.equals(String.valueOf(_NE)) &&
