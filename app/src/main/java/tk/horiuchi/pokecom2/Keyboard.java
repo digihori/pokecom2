@@ -90,9 +90,9 @@ public class Keyboard {
             new KeyTable(R.id.buttonT, 'T', '(',  't', '[',  0),
             new KeyTable(R.id.buttonY, 'Y', ')',  'y', ']',  0),
             new KeyTable(R.id.buttonU, 'U', '?',  'u', '&',  0),
-            new KeyTable(R.id.buttonI, 'I', ':',  'i', 0xf5, 0),
-            new KeyTable(R.id.buttonO, 'O', ';',  'o', 0xf6, 0),
-            new KeyTable(R.id.buttonP, 'P', ',',  'p', 0xf7, 0),
+            new KeyTable(R.id.buttonI, 'I', ':',  'i', 0xf6, 0),
+            new KeyTable(R.id.buttonO, 'O', ';',  'o', 0xf7, 0),
+            new KeyTable(R.id.buttonP, 'P', ',',  'p', 0xf8, 0),
 
             new KeyTable(R.id.buttonA, 'A', 0x95, 'a', 0xe0, 0xd0),
             new KeyTable(R.id.buttonS, 'S', 0x99, 's', 0xe1, 0xd1),
