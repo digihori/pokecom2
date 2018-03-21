@@ -1240,11 +1240,11 @@ public class SBasic {
                     }
                     //getToken();
                 }
-                int value = 0;
+                double value = 0;
                 try {
-                    value = Integer.parseInt(inText);
+                    value = Double.parseDouble(inText);
                 } catch (NumberFormatException e) {
-                    // 整数にパースできなかった（＝文字列だった）場合はシンタックスエラー
+                    // 数値にパースできなかった（＝文字列だった）場合はシンタックスエラー
                     putBack();
                     handleErr(ERR_SYNTAX);
                 }
