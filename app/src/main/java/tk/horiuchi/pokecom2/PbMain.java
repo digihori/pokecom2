@@ -28,8 +28,8 @@ import static tk.horiuchi.pokecom2.MainActivity.bank;
  * Created by yoshimine on 2017/11/18.
  */
 
-public class PbMain extends SurfaceView implements RefreshScreenInterFace, SurfaceHolder.Callback, Runnable {
-    private Thread thread = null;
+public class PbMain extends SurfaceView implements RefreshScreenInterFace, SurfaceHolder.Callback {
+    private PbMain thread = null;
     private SurfaceHolder holder;
     private int refresh_cnt = 0;
     private boolean disp_on = true;
@@ -86,6 +86,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         thread=null;
     }
 
+    /*
     @Override
     public void run() {
         Log.w("PbMain", "Thread start !!!");
@@ -98,6 +99,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
         //pause = false;
         Log.w("PbMain", "Thread finish !!!");
     }
+    */
 
     protected void doDraw(SurfaceHolder holder) {
         //描画処理を開始
@@ -234,11 +236,38 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     }
 
     public void progStart() {
+        progStart(null);
+    }
+    public void progStart(String s) {
         if (thread == null) {
-            thread = new Thread(this);
-            thread.start();
+            //thread = new Thread(this);
+            //thread.start();
+
+            new Thread(new Runnable() {
+                String lavel;
+                public Runnable setStartLine(String s) {
+                    lavel = s;
+                    return this;
+                }
+
+                @Override
+                public void run() {
+                    Log.w("PbMain", "Thread start !!!");
+                    try {
+                        basic.run(lavel);
+                    } catch (InterpreterException e) {
+
+                    }
+                    thread = null;
+                    //pause = false;
+                    Log.w("PbMain", "Thread finish !!!");
+                }
+            }.setStartLine(s)
+            ).start();
+            thread = this;
         }
     }
+
 
     public void progStop() {
         if (thread != null) {

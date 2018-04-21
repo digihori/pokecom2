@@ -398,6 +398,9 @@ public class SBasic {
     }
 
     public void run() throws InterpreterException {
+        run(null);
+    }
+    public void run(String s) throws InterpreterException {
         loadProg();
         pc = 0;
         labelTable.clear();
@@ -406,6 +409,20 @@ public class SBasic {
         forcedExit = false;
         sb = null;
         prtStr = "";
+        if (s != null) {
+            //String num = Integer.toString((int)evalExp2());
+            Integer loc = (Integer) labelTable.get(s);
+            if (loc == null) {
+                //putBack();
+                pc = -1;
+                handleErr(ERR_UNDEFLINE);
+            } else {
+                pc = loc.intValue();
+                //nextLine = true;
+                Log.w("GOTO", String.format("goto %s(%d)", s, loc));
+            }
+
+        }
         sbInterp();
     }
 
@@ -467,8 +484,15 @@ public class SBasic {
         } else if (tokType == COMMAND) {
             switch (kwToken) {
                 case RUN:
-                    Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
-                    pb.progStart();
+                    getToken();
+                    if (!token.equals(EOP)) {
+                        String num = Integer.toString((int)evalExp2());
+                        Log.w("SBasic", String.format("--- RUN(%d) start=%s---", bank, num));
+                        pb.progStart(num);
+                    } else {
+                        Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
+                        pb.progStart();
+                    }
                     return;
                 //break;
                 case LIST:
