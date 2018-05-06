@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common.MODE_SAVE;
 import static tk.horiuchi.pokecom2.Common._GE;
 import static tk.horiuchi.pokecom2.Common._LE;
 import static tk.horiuchi.pokecom2.Common._NE;
@@ -47,7 +48,7 @@ import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 import static tk.horiuchi.pokecom2.SBasic.inputWait;
 
-public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
+public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener, WaveOut.ICallBack {
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -79,6 +80,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean bankStatus = false;
     public static int angleUnit = 0;    // 0:DEG 1:RAD 2:GRAD
     public static int mode = MODE_RUN;
+    public static int last_mode = MODE_RUN;
     public static int bank;
     public static final int progLength = 3000;  // 仮
     public static final int bankMax = 10;
@@ -87,6 +89,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     private boolean nosave = false;
     public static int keyMaskCnt = 0;
     private int debugPrintCnt = 0;
+    public static WaveOut waveout;
 
 
     public static int[] mBtnResIds = {
@@ -245,6 +248,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         cmdHistory = new String[8];
         idxHistory = 0;
 
+        waveout = new WaveOut();
+        waveout.setReference(this);
     }
 
     private void deviceReset() {
@@ -468,6 +473,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         Log.w("Click", String.format("key=%d", c));
 
         if (keyMaskCnt > 0) return;
+        if (mode == MODE_SAVE && c != R.id.buttonSTOP) return;
         if (c != R.id.buttonSTOP && (pb.isProgRunning() && !inputWait)) return;
 
         // モードの切り替え
@@ -653,96 +659,6 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         Log.w("Main", String.format("error='%s'", e.toString()));
                     }
                     calcMemoryAndDisp(true);
-
-                    /*
-                    String[] temp = s.split("\\s+");
-                    try {
-                        int n = Integer.parseInt(temp[0]);
-
-                        // 文字列の先頭が数値だったらプログラムの入力確定処理
-                        int ret = source.addSource(bank, s);
-                        if (ret == 0) {
-                            // 新規の行の追加の場合はそのまま内容を表示する
-                            Log.w("Main", String.format("add new line='%s'", s));
-                            initial = true;
-                            lcd.printSourceList(s);
-                            initial = true;
-                        } else if (ret == 1) {
-                            // 行の更新の場合は次の行を表示する
-                            Log.w("Main", String.format("replace line='%s'", s));
-                            s = source.getSourceNext(bank);
-                            if (s != null) {
-                                listDisp = true;
-                                lcd.printSourceList(s);
-                            } else {
-                                // 次の行がない場合は初期画面に戻る
-                                lcd.printBankStatus();
-                                initial = true;
-                                listDisp = false;
-                            }
-                        } else if (ret == -1) {
-                            // 行の削除の場合は表示クリア
-                            Log.w("Main", String.format("delete line='%s'", s));
-                            lcd.cls();
-                        }
-                        //lcd.cls();
-                        calcMemoryAndDisp(true);
-
-                    } catch (NumberFormatException e) {
-                        // パースに失敗した = コマンド
-                        try {
-                            Log.w("EXE", String.format("%s", s));
-                            basic.calc(s);
-                        } catch (InterpreterException e1) {
-                            Log.w("Main", String.format("error='%s'", e1.toString()));
-                        }
-                    }
-                    */
-
-                    /*
-                    if (temp[0].equals("LIST")) {
-                        String ss;
-                        if (temp.length == 1) {
-                            ss = source.getSourceTop(bank);
-                        } else {
-                            int num = Integer.parseInt(temp[1]);
-                            ss = source.getSource(bank, num);
-                        }
-                        listDisp = true;
-                        if (ss != null) lcd.printSourceList(ss);
-                    } else if (temp[0].equals("CLEAR")) {
-                        if (temp.length == 1) {
-                            source.clearSource(bank);
-                        } else if (temp[1].equals("A")) {
-                            source.clearSourceAll();
-                        } else {
-                            ;
-                        }
-                        lcd.cls();
-                        calcMemoryAndDisp(true);
-                    } else {
-                        // プログラムの入力確定処理
-                        int ret = source.addSource(bank, s);
-                        if (ret == 0) {
-                            // 新規の行の追加の場合はそのまま内容を表示する
-                            initial = true;
-                            lcd.printSourceList(s);
-                            initial = true;
-                        } else if (ret == 1) {
-                            // 行の更新の場合は次の行を表示する
-                            s = source.getSourceNext(bank);
-                            listDisp = true;
-                            if (s != null) {
-                                lcd.printSourceList(s);
-                            }
-                        } else if (ret == -1) {
-                            // 行の削除の場合は表示クリア
-                            lcd.cls();
-                        }
-                        //lcd.cls();
-                        calcMemoryAndDisp(true);
-                    }
-                    */
                     break;
                 case R.id.buttonANS:
                     break;
@@ -752,6 +668,14 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     break;
             }
 
+        } else if (mode == MODE_SAVE) {
+            if (c == R.id.buttonSTOP) {
+                // 前回のモードに戻す
+                basic.printSaveStatus(0);
+                mode = last_mode;
+                waveout.stop();
+                lcd.refresh();
+            }
         }
         keyShift = false;
         if (keyFunc) {
@@ -1205,6 +1129,18 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 break;
         }
         return false;
+    }
+
+    public void playComplete(int n) {
+        if (n == 0) {
+            Log.w("Main", "Audio track is complete.");
+            mode = last_mode;
+            basic.printSaveStatus(0);
+            lcd.refresh();
+        } else {
+            basic.printSaveStatus(n);
+            lcd.refresh();
+        }
     }
 
 }

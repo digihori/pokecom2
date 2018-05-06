@@ -5,6 +5,22 @@ import android.util.Log;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common._AC;
+import static tk.horiuchi.pokecom2.Common._ANS;
+import static tk.horiuchi.pokecom2.Common._B_END;
+import static tk.horiuchi.pokecom2.Common._B_START;
+import static tk.horiuchi.pokecom2.Common._C_END;
+import static tk.horiuchi.pokecom2.Common._C_START;
+import static tk.horiuchi.pokecom2.Common._DA;
+import static tk.horiuchi.pokecom2.Common._DEL;
+import static tk.horiuchi.pokecom2.Common._EXE;
+import static tk.horiuchi.pokecom2.Common._INS;
+import static tk.horiuchi.pokecom2.Common._LA;
+import static tk.horiuchi.pokecom2.Common._RA;
+import static tk.horiuchi.pokecom2.Common._RSV_END;
+import static tk.horiuchi.pokecom2.Common._RSV_START;
+import static tk.horiuchi.pokecom2.Common._STOP;
+import static tk.horiuchi.pokecom2.Common._UA;
 import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.bankStatus;
@@ -354,24 +370,24 @@ public class Lcd {
             }
         }
 
-        if (0x10 <= c && c <= 0x1f && !cmdTable[c].equals("\0")) {
+        if (_C_START <= c && c <= _C_END && !cmdTable[c].equals("\0")) {
             // カーソル移動系
             switch (c) {
-                case 0x10:  // LA
+                case _LA:  // LA
                     moveLeft();
                     break;
-                case 0x11:  // RA
+                case _RA:  // RA
                     moveRight();
                     break;
-                case 0x12:  // DA
-                case 0x13:  // UA
-                case 0x19:  // ANS
+                case _DA:  // DA
+                case _UA:  // UA
+                case _ANS:  // ANS
                     break;
-                case 0x1a:  // AC
+                case _AC:  // AC
                     cls();
                     listDisp = false;
                     break;
-                case 0x1b:  // EXE
+                case _EXE:  // EXE
                     Log.w("putChar", "EXE!!!!!");
 
                     String s = getCmdBuf();
@@ -381,23 +397,23 @@ public class Lcd {
                     if (s == null) break;
                     inText = s;
                     break;
-                case 0x1c:  // STOP
+                case _STOP:  // STOP
                     //Log.w("STOP", String.format("mode=%d prog=%d", mode, (pb.isProgExist() ? 1 : 0)));
                     if (mode == MODE_RUN && pb.isProgExist()) {
                         //pb.progStop();
                         basic.sbExit();
                     }
                     break;
-                case 0x1d:  // DEL
+                case _DEL:  // DEL
                     delete();
                     break;
-                case 0x1e:  // INS
+                case _INS:  // INS
                     insert();
                     break;
                 default:
                     break;
             }
-        } else if (0x80 <= c && c <=0x8f && !cmdTable[c].equals("\0")) {
+        } else if (_B_START <= c && c <=_B_END && !cmdTable[c].equals("\0")) {
             if (mode == MODE_RUN && (c & 0x0f) < 10) {
                 bank = c & 0x0f;
                 pb.progStart();
@@ -408,8 +424,7 @@ public class Lcd {
                 listDisp = false;
                 Log.w("putchar", String.format("bank=%d", bank));
             }
-            // バンクの切り替え
-        } else if (0x90 <= c && c <=0xdf && !cmdTable[c].equals("\0")) {
+        } else if (_RSV_START <= c && c <=_RSV_END && !cmdTable[c].equals("\0")) {
             // 予約語の入力
             if (buf_top + cursor != 0 && buf[buf_top + cursor - 1] != ' ') putc(' ');
             print(cmdTable[c]);

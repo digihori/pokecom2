@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
+import static tk.horiuchi.pokecom2.Common.MODE_SAVE;
 import static tk.horiuchi.pokecom2.Common._EM;
 import static tk.horiuchi.pokecom2.Common._EX;
 import static tk.horiuchi.pokecom2.Common._GE;
@@ -21,12 +22,14 @@ import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
 import static tk.horiuchi.pokecom2.MainActivity.debugText;
 import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
+import static tk.horiuchi.pokecom2.MainActivity.last_mode;
 import static tk.horiuchi.pokecom2.MainActivity.listDisp;
 import static tk.horiuchi.pokecom2.MainActivity.memoryExtension;
 import static tk.horiuchi.pokecom2.MainActivity.mode;
 import static tk.horiuchi.pokecom2.MainActivity.pb;
 import static tk.horiuchi.pokecom2.MainActivity.progLength;
 import static tk.horiuchi.pokecom2.MainActivity.source;
+import static tk.horiuchi.pokecom2.MainActivity.waveout;
 
 /**
  *
@@ -77,6 +80,8 @@ public class SBasic {
     final int STOP = 18;
     final int DEFM = 19;
     final int CLEAR = 20;
+    final int SAVE = 21;
+    final int LOAD = 22;
 
     final int FUNC_DUMMY = 30;
     final int SET  = 31;
@@ -178,7 +183,9 @@ public class SBasic {
             new Keyword("defm", DEFM),
             new Keyword("list", LIST),
             new Keyword("clear", CLEAR),
-            new Keyword("stop", STOP)
+            new Keyword("stop", STOP),
+            new Keyword("save", SAVE),
+            new Keyword("load", LOAD)
     };
 
     private char[] prog;
@@ -253,6 +260,23 @@ public class SBasic {
         }
     }
 
+    public void printSaveStatus(int n) {
+        switch (13-n) {
+            case 1:  lcdPrint("*"); break;
+            case 2:  lcdPrint("**"); break;
+            case 3:  lcdPrint("***"); break;
+            case 4:  lcdPrint("****"); break;
+            case 5:  lcdPrint("*****"); break;
+            case 6:  lcdPrint("******"); break;
+            case 7:  lcdPrint("*******"); break;
+            case 8:  lcdPrint("********"); break;
+            case 9:  lcdPrint("*********"); break;
+            case 10: lcdPrint("**********"); break;
+            case 11: lcdPrint("***********"); break;
+            case 12: lcdPrint("************"); break;
+            default: lcd.cls(); break;
+        }
+    }
     private void lcdPrintAndPause(String s) {
         lcd.bprint(s);
         System.out.print(s);
@@ -567,6 +591,20 @@ public class SBasic {
                         handleErr(ERR_SYNTAX);
                     }
                     return;
+                case SAVE:
+                    getToken();
+                    if (token.equals("A")) {
+                        Log.w("SBasic", String.format("--- SAVE ALL---"));
+                        // SAVE A の処理
+                    } else {
+                        Log.w("SBasic", String.format("--- SAVE(%d) ---", bank));
+                        // SAVE の処理
+                    }
+                    //printSaveStatus();
+                    mode = MODE_SAVE;
+                    waveout.savea();
+                    return;
+                case LOAD:
                 default:
                     break;
             }
@@ -620,6 +658,10 @@ public class SBasic {
             lcdPrint(lastAns);
             //lcdPrintln();
         }
+    }
+
+    public void saveend() {
+        mode = last_mode;
     }
 
     public void sbExit() {
@@ -956,6 +998,7 @@ public class SBasic {
                 getToken();
 
                 String s = double2string(result);
+                if (result >= 0) s = " " + s;
                 if (sb == null) {
                     prtStr += s;
                 } else {
