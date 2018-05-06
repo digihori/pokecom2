@@ -698,6 +698,15 @@ public class SBasic {
                 printTrace();
             }
             getToken();
+
+            if (printPause) {
+                printPause = false;
+                if (token.equals(",")) {
+                    print();
+                    continue;
+                }
+            }
+
             if (tokType == VARIABLE || tokType == SVARIABLE) {
                 putBack();
                 assignment();
@@ -732,6 +741,9 @@ public class SBasic {
                         break;
                     case STOP:
                         pb.progStop();
+                        sb = null;
+                        prtStr = "";
+                        Log.w("---", "STOP!!!");
                         break;
                     case END:
                         return;
@@ -952,7 +964,8 @@ public class SBasic {
         lastAns = 0.0;
     }
 
-    String prtStr = "";
+    private String prtStr = "";
+    private boolean printPause = false;
     private void print() throws InterpreterException {
         double result;
         int len = 0, spaces;
@@ -1064,14 +1077,14 @@ public class SBasic {
             if (lastDelim.equals(":")) {
                 ;
             } else if (lastDelim.equals(",")) {
-                spaces = 8 - (len % 8);
-                len += spaces;
-                while (spaces != 0) {
+                //spaces = 8 - (len % 8);
+                //len += spaces;
+                //while (spaces != 0) {
                     //System.out.print(" ");
                     //lcdPrint(" ");
-                    prtStr += " ";
-                    spaces--;
-                }
+                //    prtStr += " ";
+                //    spaces--;
+                //}
             } else if (token.equals(";")) {
                 //System.out.print(" ");
                 //lcdPrint(" ");
@@ -1079,9 +1092,9 @@ public class SBasic {
             } else if (kwToken != EOL && !token.equals(EOP)) {
                 handleErr(ERR_SYNTAX);
             }
-        } while (lastDelim.equals(";") || lastDelim.equals(","));
+        } while (lastDelim.equals(";") /*|| lastDelim.equals(",")*/);
         if (sb != null) prtStr = sb.toString();
-        if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+        if (kwToken == EOL || token.equals(EOP) || token.equals(":") || token.equals(",")) {
             if (prtStr.isEmpty() || lastDelim.equals(";")) {
                 Log.w("print", "lcdPrint");
                 lcdPrint(prtStr);
@@ -1089,6 +1102,10 @@ public class SBasic {
                 Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
                 lcdPrintAndPause(prtStr);
                 prtStr = "";
+                if (token.equals(",")) {
+                    putBack();
+                    printPause = true;
+                }
             }
         } else {
             handleErr(ERR_SYNTAX);
