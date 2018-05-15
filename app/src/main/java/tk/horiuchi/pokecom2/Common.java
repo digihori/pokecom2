@@ -39,15 +39,15 @@ public class Common {
 
     // バンク切り替え系
     public final static char _P0 = 0x80;
-    public final static char _P1 = 0x80;
-    public final static char _P2 = 0x80;
-    public final static char _P3 = 0x80;
-    public final static char _P4 = 0x80;
-    public final static char _P5 = 0x80;
-    public final static char _P6 = 0x80;
-    public final static char _P7 = 0x80;
-    public final static char _P8 = 0x80;
-    public final static char _P9 = 0x80;
+    public final static char _P1 = 0x81;
+    public final static char _P2 = 0x82;
+    public final static char _P3 = 0x83;
+    public final static char _P4 = 0x84;
+    public final static char _P5 = 0x85;
+    public final static char _P6 = 0x86;
+    public final static char _P7 = 0x87;
+    public final static char _P8 = 0x88;
+    public final static char _P9 = 0x89;
     public final static char _B_START = _P0;
     public final static char _B_END   = _P9;
 
