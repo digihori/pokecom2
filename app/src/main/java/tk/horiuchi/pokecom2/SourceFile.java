@@ -119,15 +119,24 @@ public class SourceFile {
         if (list[n].contains(temp)) {
             int i = list[n].indexOf(temp);
             if (temp.body != null) {
+                // 行の更新
                 list[n].set(i, temp);
                 ret = 1;
             } else {
+                // 行の削除
                 list[n].remove(i);
                 ret = -1;
             }
         } else {
-            list[n].add(temp);
-            ret = 0;
+            if (temp.body != null) {
+                // 行の新規追加
+                list[n].add(temp);
+                ret = 0;
+            } else {
+                // 削除しようとしている行番号が存在しない場合は何もしない
+                Log.w("addSource", String.format("Not found the linenum(%d).\n", temp.lineNum));
+                return(-1);
+            }
         }
         Collections.sort(list[n], new MyComparator());
         idx[n] = list[n].indexOf(temp);
