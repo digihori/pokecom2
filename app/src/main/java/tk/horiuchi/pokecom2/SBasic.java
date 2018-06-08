@@ -16,6 +16,7 @@ import static tk.horiuchi.pokecom2.Common._LE;
 import static tk.horiuchi.pokecom2.Common._NE;
 import static tk.horiuchi.pokecom2.Common._PI;
 import static tk.horiuchi.pokecom2.Common.cmdTable;
+import static tk.horiuchi.pokecom2.Common.reservCodePB100;
 import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
 import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
@@ -82,44 +83,43 @@ public class SBasic {
     final int CLEAR = 20;
     final int SAVE = 21;
     final int LOAD = 22;
+    final int BEEP = 23;
+    final int ON   = 24;
+    final int LET  = 25;
+    final int REM  = 26;
+    final int READ = 27;
+    final int DATA = 28;
+    final int RESTORE = 29;
 
-    final int FUNC_DUMMY = 30;
-    final int SET  = 31;
-    final int LEN  = 32;
-    final int MID  = 33;
-    final int VAL  = 34;
-    final int SIN  = 35;
-    final int COS  = 36;
-    final int TAN  = 37;
-    final int ASN  = 38;
-    final int ACS  = 39;
-    final int ATN  = 40;
-    final int LOG  = 41;
-    final int LN   = 42;
-    final int EXP  = 43;
-    final int SQR  = 44;
-    final int ABS  = 45;
-    final int SGN  = 46;
-    final int INT  = 47;
-    final int FRAC = 48;
-    final int RND  = 49;
-    final int RAN  = 50;
-    final int KEY  = 51;
-    final int PI   = 52;
+    final int FUNC_DUMMY = 50;
+    final int SET  = 51;
+    final int LEN  = 52;
+    final int MID  = 53;
+    final int VAL  = 54;
+    final int SIN  = 55;
+    final int COS  = 56;
+    final int TAN  = 57;
+    final int ASN  = 58;
+    final int ACS  = 59;
+    final int ATN  = 60;
+    final int LOG  = 61;
+    final int LN   = 62;
+    final int EXP  = 63;
+    final int SQR  = 64;
+    final int ABS  = 65;
+    final int SGN  = 66;
+    final int INT  = 67;
+    final int FRAC = 68;
+    final int RND  = 69;
+    final int RAN  = 70;
+    final int KEY  = 71;
+    final int PI   = 72;
+    final int STR  = 73;
 
     //
     //final int EOL = '\n';
     final String EOP = "\0";
 
-    //
-    /*
-    final char _EX = 0xf0;
-    final char _EM = 0xf1;
-    final char NE = 0xf2;
-    final char _PI = 0xf3;
-    final char LE = 0xf4;
-    final char GE = 0xf5;
-    */
 
     //
     private double[] vars;
@@ -185,7 +185,18 @@ public class SBasic {
             new Keyword("clear", CLEAR),
             new Keyword("stop", STOP),
             new Keyword("save", SAVE),
-            new Keyword("load", LOAD)
+            new Keyword("load", LOAD),
+
+            new Keyword("let", LET),
+            new Keyword("rem", REM),
+            new Keyword("key$", KEY),
+            new Keyword("on", ON),
+            new Keyword("read", READ),
+            new Keyword("data", DATA),
+            new Keyword("restore", RESTORE),
+            new Keyword("mid$", MID),
+            new Keyword("str$", STR),
+            new Keyword("beep", BEEP)
     };
 
     private char[] prog;
@@ -299,89 +310,41 @@ public class SBasic {
     }
     private void lcdPrint(Double d) {
         if (d == null) return;
-
         String str = double2string(d);
-
-        /*
-        String str;
-        if (d >= 0) {
-            str = String.format("%.8g", d);
-        } else {
-            str = String.format("%.7g", d);
-        }
-        // 一旦指数部を切り離す
-        String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
-        // 小数点以下の末尾の0を削除する
-        temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
-        // 文字列を作り直す
-        str = temp[0];
-        if (temp.length > 1) str += temp[1];
-        //Log.w("lcdPrint", String.format("temp[0]='%s' temp[1]='%s' str='%s'", temp[0], temp[1], str));
-        Log.w("lcdPrint-double", String.format("%s", str));
-        // exponential記号を特殊記号に書き換える
-        str = str.replaceAll("[Ee]\\+", String.valueOf((char)0xf0));
-        str = str.replaceAll("[Ee]\\-", String.valueOf((char)0xf1));
-        */
-
         lcd.print12(str);
-
-        /*
-        int i = d.intValue();
-        if (d < 10000000000d) {
-            if (d == (double)i) {
-                lcd.print(String.format("%d", i));
-                //System.out.printf("%d", i);
-            } else {
-                lcd.print(String.format("%f", d));
-                //System.out.printf("%f", d);
-            }
-        } else {
-            lcd.print(String.format("%e", d));
-            //System.out.printf("%e", d);
-        }
-        */
-
     }
 
     private String double2string(Double d) {
         if (d == null) return null;
         //Log.w("lcdPrint", String.format("%d", d.intValue()));
+        //Log.w("double2string0", String.format("%d", d.intValue()));
 
         String str;
-        if (d >= 0) {
+        if (d == 0) {
+            str = String.format(Locale.US, "%.8g", 0d);
+        } else if (d > 0) {
             str = String.format(Locale.US, "%.8g", d);
+            //Log.w("double2string01-1", String.format("%s", str));
         } else {
             str = String.format(Locale.US, "%.7g", d);
+            //Log.w("double2string01-2", String.format("%s", str));
         }
+        //Log.w("double2string1", String.format("%s", str));
         // 一旦指数部を切り離す
         String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
         // 小数点以下の末尾の0を削除する
         temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
         // 文字列を作り直す
         str = temp[0];
+        //Log.w("double2string2", String.format("%s", str));
         if (temp.length > 1) str += temp[1];
+        //Log.w("double2string3", String.format("%s", str));
         //Log.w("lcdPrint", String.format("temp[0]='%s' temp[1]='%s' str='%s'", temp[0], temp[1], str));
         Log.w("double2string", String.format("%s", str));
         // exponential記号を特殊記号に書き換える
         str = str.replaceAll("[Ee]\\+", String.valueOf((char)0xf0));
         str = str.replaceAll("[Ee]\\-", String.valueOf((char)0xf1));
 
-        /*
-        int i = d.intValue();
-        String ret;
-        if (d < 10000000000d) {
-            if (d == (double)i) {
-                ret = String.format("%d", i);
-                //System.out.printf("%d", i);
-            } else {
-                ret = String.format("%f", d);
-                //System.out.printf("%f", d);
-            }
-        } else {
-            ret = String.format("%e", d);
-            //System.out.printf("%e", d);
-        }
-        */
         return str;
     }
 
@@ -747,6 +710,9 @@ public class SBasic {
                         break;
                     case END:
                         return;
+                    case ON:
+                        execOn();
+                        break;
                 }
             } else if (tokType == DELIMITER) {
                 //Log.w("sbInterp", "DELIMITER");
@@ -1003,7 +969,8 @@ public class SBasic {
                 //Log.w("PRT", String.format("%s", token));
                 len += token.length();
                 getToken();
-            } else if (tokType == VARIABLE || tokType == NUMBER) {
+            } else if (tokType == VARIABLE || tokType == NUMBER ||
+                    tokType == DELIMITER && (token.equals("+") || token.equals("-"))) {
                 lastDelim = "";
                 //Log.w("PRT", String.format("tokType!=QUTEDSTR(%d)", tokType));
                 putBack();
@@ -1062,6 +1029,7 @@ public class SBasic {
                     }
                 }
             }
+
             if (sb != null) {
                 prtStr = sb.toString();
                 lcdPrint(prtStr);
@@ -1142,6 +1110,17 @@ public class SBasic {
         }
     }
 
+    private void execOn() throws InterpreterException {
+        getToken();
+        Log.w("ON", String.format("%s", token));
+
+        if (tokType == VARIABLE) {
+            // ON の次は数値変数か数式
+        } else {
+            Log.w("ON", String.format("Not Valiable(%s)", token));
+            handleErr(ERR_SYNTAX);
+        }
+    }
 
     private void execIf() throws InterpreterException {
         double result;
@@ -1260,21 +1239,34 @@ public class SBasic {
 
     private void next() throws InterpreterException {
         ForInfo stckvar;
+        getToken();
+        char vname = token.charAt(0);
+        if (!Character.isLetter(vname)) {
+            handleErr(ERR_SYSTEM);
+            return;
+        }
+        int var = Character.toUpperCase(vname) - 'A';
         //Log.w("NEXT", "do");
         try {
-            stckvar = (ForInfo) fStack.pop();
+            // FORループをNEXTしないで抜けるパターンもあるので対応しているNEXTを探す
+            do {
+                stckvar = (ForInfo) fStack.pop();
+            } while (var != stckvar.var);
+
             vars[stckvar.var] += stckvar.step;
 
             //Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+            // ループの終了条件
             if (stckvar.step >= 0 && vars[stckvar.var] > stckvar.target ||
                     stckvar.step < 0 && vars[stckvar.var] < stckvar.target) {
                 //Log.w("NEXT", "loop end.");
                 return;
             }
+
             fStack.push(stckvar);
             pc = stckvar.loc;
         } catch (EmptyStackException e) {
-            //Log.w("NEXT", "exception occered.");
+            Log.w("NEXT", "stack error.");
             handleErr(ERR_SYNTAX);
         }
         //Log.w("NEXT", "continue.");
@@ -1477,6 +1469,7 @@ public class SBasic {
                 nextLine = true;
             }
         } catch (EmptyStackException e) {
+            Log.w("GOSUB-RETURN", "Stack error.");
             handleErr(ERR_SYNTAX);
         }
     }
@@ -1491,6 +1484,15 @@ public class SBasic {
         result = strOpe1();
         putBack();
         return result;
+    }
+
+    private int getReservCodePB100(String s) {
+        if (s == null || s.isEmpty()) return -1;
+        String ss = s.substring(0, 1);
+        for (int i = 0; i < 0x80; i++) {
+            if (reservCodePB100[i].equals(ss)) return i;
+        }
+        return -1;
     }
 
     private boolean strOpe1() throws InterpreterException {
@@ -1514,13 +1516,27 @@ public class SBasic {
             strOpe1();
             r_temp = resultStr;
 
-            Log.w("strOpe1", String.format("compare!!! L='%s' R='%s'", l_temp, r_temp));
+            int l_value = getReservCodePB100(l_temp);
+            int r_value = getReservCodePB100(r_temp);
+            Log.w("strOpe1", String.format("compare!!! L='%s'(%d) R='%s'(%d)", l_temp, l_value, r_temp, r_value));
             switch (op) {
                 case '=':
                     result = l_temp.equals(r_temp);
                     break;
                 case _NE:
                     result = !l_temp.equals(r_temp);
+                    break;
+                case '>':
+                    result = l_value > r_value ? true : false;
+                    break;
+                case _GE:
+                    result = l_value >= r_value ? true : false;
+                    break;
+                case '<':
+                    result = l_value < r_value ? true : false;
+                    break;
+                case _LE:
+                    result = l_value <= r_value ? true : false;
                     break;
                 default:
                     break;
@@ -2596,6 +2612,10 @@ public class SBasic {
                         size++;
                         //Log.w("step", String.format("ReserveWord! %d", size));
                         f = true;
+                        if (s.equals("LEN") || s.equals("VAL") || s.equals("MID")) {
+                            // LEN, VAL, MIDは'('も含めて予約語なので、カウントを-1する
+                            size--;
+                        }
                         break;
                     }
                 }

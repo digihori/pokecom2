@@ -787,6 +787,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
 
                 if (llen != 0) {    // 空行は読み捨てる
+                    // 行番号で始まっていない行はコメント行とみなして読み捨てる
+                    regex = "^[0-9]+";
+                    p = Pattern.compile(regex);
+                    m = p.matcher(str);
+                    if (!m.find()) {
+                        Log.w("load", String.format("This line was skipped. -> '%s'", str));
+                        continue;
+                    }
+
                     for (int i = 0; i < llen; i++) {
                         c = str.charAt(i);
                         if (c == '\\') {
