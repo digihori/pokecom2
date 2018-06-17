@@ -2,9 +2,8 @@ package tk.horiuchi.pokecom2;
 
 import android.util.Log;
 
+import java.math.BigDecimal;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
@@ -568,6 +567,10 @@ public class SBasic {
                     waveout.savea();
                     return;
                 case LOAD:
+                    return;
+                case BEEP:
+                    beep();
+                    return;
                 default:
                     break;
             }
@@ -713,6 +716,22 @@ public class SBasic {
                     case ON:
                         execOn();
                         break;
+                    case READ:
+                        read();
+                        break;
+                    case RESTORE:
+                        restore();
+                        break;
+                    case REM:
+                    case DATA:
+                        rem();
+                        break;
+                    case LET:
+                        // 何もしない？
+                        break;
+                    case BEEP:
+                        beep();
+                        break;
                 }
             } else if (tokType == DELIMITER) {
                 //Log.w("sbInterp", "DELIMITER");
@@ -742,34 +761,81 @@ public class SBasic {
 
     }
 
-    private void scanLabels() throws InterpreterException {
-        //int i;
-        Object result;
+    private String[] rdata;
+    private int rdataIdx;
+    private final int rdataMax = 64;    // 仮
 
-        int id = pc;
-        getToken();
-        //Log.w("scanLabels", token);
-        if (tokType == NUMBER) {
-            labelTable.put(token, new Integer(id));
-        }
-        findEOL();
+    private void scanLabels() throws InterpreterException {
+        Object result;
+        int id;
+        rdata = null;
+        rdataIdx = 0;
+        String[] tmp = new String[rdataMax];
+        int idx = 0;
+        String linenum = "";
         do {
             id = pc;
             getToken();
-            //Log.w("scanLabels", token);
+            //Log.w("scanLabels", String.format("--->'%s'", token));
             if (tokType == NUMBER) {
+                linenum = token;
                 result = labelTable.put(token, new Integer(id));
 
                 if (result != null) handleErr(ERR_SYSTEM);
             }
-            if (kwToken != EOL) findEOL();
+
+            getToken();
+            if (tokType == COMMAND && kwToken == DATA) {
+                //tmp = getData();
+
+                do {
+                    getToken();
+                    if (tokType == NUMBER || tokType == QUTEDSTR) {
+                        if (idx + 1 > rdataMax) {
+                            Log.w("scanLabels", "too many parameters");
+                            handleErr(ERR_SYSTEM);
+                            return;
+                        }
+                        tmp[idx++] = linenum+":"+token;
+                    } else {
+                        Log.w("scanLabels", String.format("param error ->%s", token));
+                        handleErr(ERR_SYNTAX);
+                    }
+                    getToken();
+                    if (kwToken != EOL && !token.equals(",")) {
+                        Log.w("scanLabels", String.format("param error ->%s", token));
+                        handleErr(ERR_SYNTAX);
+                    }
+                } while (kwToken != EOL);
+            }
+
+            if (kwToken != EOL) {
+                findEOL();
+                if (pc < idxEnd) pc++;
+            }
         } while (!token.equals(EOP));
         pc = 0;
+
+        if (idx > 0) {
+            rdata = new String[idx];
+            for (int i = 0; i < idx; i++) {
+                rdata[i] = tmp[i];
+                Log.w("DATA", String.format("%02d : '%s'", i, rdata[i]));
+            }
+        }
     }
 
     private void findEOL() {
-        while (pc < idxEnd + 1 && prog[pc] != '\n')
+        while (pc < idxEnd + 1 && prog[pc] != '\n') {
             pc++;
+        }
+    }
+
+    private void findEOS() {
+        while (pc < idxEnd + 1 && (prog[pc] != ':' && prog[pc] != '\n')) {
+            // ダブルコートの中に':'が出てくるとうまく動かない気がするが、、
+            pc++;
+        }
     }
 
     private String ssvar;
@@ -896,7 +962,7 @@ public class SBasic {
             lastAns = value;
             //Log.w("assig", String.format("%d", lastAns.intValue()));
 
-            Log.w("assig", String.format("var=%d offset=%d", var, offset));
+            Log.w("assig", String.format("var=%d offset=%d value=%g", var, offset, value));
             if (var + offset < 26) {
                 vars[var + offset] = value;
                 svars[var + offset] = "";
@@ -945,7 +1011,7 @@ public class SBasic {
             //Log.w("PRT", "Exec PRINT do !!!!");
             getToken();
             //Log.w("PRT", String.format("token=%s", token));
-            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+            if (kwToken == EOL || token.equals(EOP) || tokType != QUTEDSTR && token.equals(":")) {
                 if (!paramExist) {
                     prtStr = "";
                     sb = null;
@@ -1035,7 +1101,7 @@ public class SBasic {
                 lcdPrint(prtStr);
             }
 
-            if (kwToken == EOL || token.equals(EOP) || token.equals(":")) {
+            if (kwToken == EOL || token.equals(EOP) || tokType != QUTEDSTR && token.equals(":")) {
                 break;
             }
 
@@ -1111,13 +1177,66 @@ public class SBasic {
     }
 
     private void execOn() throws InterpreterException {
-        getToken();
-        Log.w("ON", String.format("%s", token));
+        Log.w("ON", "execON");
+        //getToken();
+        //Log.w("ON", String.format("%s", token));
 
-        if (tokType == VARIABLE) {
-            // ON の次は数値変数か数式
+        getToken();
+        if (tokType != VARIABLE && tokType != NUMBER) {
+            // ONの次が数値変数もしくは数値でなければエラー
+            Log.w("ON", String.format("invalid param"));
+            handleErr(ERR_SYNTAX);
+        }
+        putBack();
+
+        int var = (int)evaluate();
+        if (var == 0) {
+            Log.w("ON", String.format("invalid param0"));
+            findEOS();  // ステートメントをスキップする
+            return;
+        }
+        getToken();
+        int kw = kwToken;
+        if (tokType == COMMAND && (kw == GOTO || kw == GOSUB)) {
+            int pc_temp = pc;
+            getToken();
+            int i = 1;
+            while (i < var) {
+                i++;
+                getToken();
+                if (token == EOP || token.equals(":")) {
+                    Log.w("ON", String.format("invalid param1"));
+                    return;
+                }
+                if (!token.equals(",")) {
+                    Log.w("ON", String.format("needs delimiter:','"));
+                    handleErr(ERR_SYNTAX);
+                }
+                pc_temp = pc;
+                getToken();
+                if (tokType == BANKNUM) {
+                    getToken();
+                }
+                if (token == EOP || token.equals(":")) {
+                    Log.w("ON", String.format("invalid param2"));
+                    return;
+                }
+            }
+            putBack(pc_temp);
+            switch (kw) {
+                case GOTO:
+                    execGoto();
+                    break;
+                case GOSUB:
+                    gosub();
+                    break;
+                default:
+                    Log.w("ON", String.format("err1 'ON' needs 'GOTO' or 'GOSUB'"));
+                    handleErr(ERR_SYNTAX);
+                    break;
+            }
         } else {
-            Log.w("ON", String.format("Not Valiable(%s)", token));
+            Log.w("ON", String.format("err2 'ON' needs 'GOTO' or 'GOSUB'"));
             handleErr(ERR_SYNTAX);
         }
     }
@@ -1126,9 +1245,12 @@ public class SBasic {
         double result;
         getToken();
         if (tokType == SVARIABLE ||
-                tokType == FUNCTION && (kwToken == KEY || kwToken == MID) ) {
+                tokType == FUNCTION && (kwToken == KEY || kwToken == MID || kwToken == STR) ) {
+            Log.w("execIf", "1");
             putBack();
+            Log.w("execIf", "2");
             boolean ret = strOpe();
+            Log.w("execIf", "3");
             Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
             if (ret) {
                 getToken();
@@ -1474,6 +1596,178 @@ public class SBasic {
         }
     }
 
+    private void read() throws InterpreterException {
+        do {
+            getToken();
+            //Log.w("read", "--->"+token);
+            if (tokType == VARIABLE || tokType == SVARIABLE) {
+                int var;
+                int offset = 0;
+                char c;
+
+                if (rdataIdx >= rdata.length) {
+                    // エラー
+                    Log.w("read", "error : rdata is out of index.");
+                    handleErr(ERR_VARIABLE);
+                }
+                c = token.charAt(0);
+                String[] str = rdata[rdataIdx].split(":", 2);
+                if (isSval(token)) {
+                    // 文字列変数の処理
+                    if (c == '$') {
+                        if (rdata[rdataIdx].length() > 30) {
+                            Log.w("read", String.format("error : strlength is over(%d chars).", rdata[rdataIdx].length()));
+                            handleErr(ERR_VARIABLE);
+                        }
+                        Log.w("read", String.format("data=%s", rdata[rdataIdx]));
+                        //ssvar = rdata[rdataIdx++];
+                        ssvar = str[1];
+                        rdataIdx++;
+                        getToken();
+                    } else {
+                        var = (int) Character.toUpperCase(c) - 'A';
+                        getToken();
+                        if (token.equals("(")) {
+                            // 配列
+                            getToken();
+                            offset = (int)evalExp2();
+                            if (!token.equals(")")) {
+                                handleErr(ERR_SYNTAX);
+                            }
+                            getToken();
+                        }
+
+                        if (str[1].length() > 7) {
+                            Log.w("read", String.format("error : strlength is over(%d chars).", str[1].length()));
+                            handleErr(ERR_VARIABLE);
+                        }
+
+                        Log.w("read", String.format("var=%d offset=%d data=%s", var, offset, str[1]));
+                        if (var + offset < 26) {
+                            svars[var + offset] = str[1];
+                            vars[var + offset] = 0;
+                        } else {
+                            if (exsvars != null && (var + offset - 26) < exsvars.length) {
+                                exsvars[var + offset - 26] = str[1];
+                                exvars[var + offset - 26] = 0;
+                            } else {
+                                handleErr(ERR_VARIABLE);
+                            }
+                        }
+                        rdataIdx++;
+                    }
+
+                } else {
+                    // 数値変数の処理
+                    var = (int) Character.toUpperCase(c) - 'A';
+
+                    getToken();
+                    if (token.equals("(")) {
+                        // 配列
+                        getToken();
+                        offset = (int)evalExp2();
+                        if (!token.equals(")")) {
+                            handleErr(ERR_SYNTAX);
+                        }
+                        getToken();
+                    }
+
+                    double value = 0;
+                    //Log.w("read", String.format("id=%d ('%s').", rdataIdx, rdata[rdataIdx]));
+                    Log.w("read", String.format("id=%d", rdataIdx));
+                    try {
+                        value = Double.parseDouble(str[1]);
+                    } catch (NumberFormatException e) {
+                        // シンタックスエラー
+                        Log.w("read", String.format("error : not number('%s').", str[1]));
+                        handleErr(ERR_SYNTAX);
+                    }
+
+                    Log.w("read", String.format("var=%d offset=%d data=%d", var, offset, (int)value));
+                    if (var + offset < 26) {
+                        vars[var + offset] = value;
+                        svars[var + offset] = "";
+                    } else {
+                        if (exvars != null && (var + offset - 26) < exvars.length) {
+                            exvars[var + offset - 26] = value;
+                            exsvars[var + offset - 26] = "";
+                        } else {
+                            handleErr(ERR_VARIABLE);
+                        }
+                    }
+                    rdataIdx++;
+                }
+
+            } else {
+                Log.w("read", String.format("param error0 ->%s", token));
+                handleErr(ERR_SYNTAX);
+            }
+
+            //getToken();
+            if (kwToken != EOL && !token.equals(":") && !token.equals(",")) {
+                Log.w("read", String.format("param error1 ->%s", token));
+                handleErr(ERR_SYNTAX);
+            }
+
+        } while (kwToken != EOL);
+    }
+
+    private void restore() throws InterpreterException {
+        getToken();
+        if (tokType == EOL || token.equals(":")) {
+            Log.w("restore", "index was cleared.");
+            rdataIdx = 0;
+        } else if (tokType == NUMBER) {
+            // 行番号指定
+            boolean success = false;
+            for (int i = 0; i < rdata.length; i++) {
+                String[] str = rdata[i].split(":", 2);
+                if (token.equals(str[0])) {
+                    rdataIdx = i;
+                    Log.w("restore", String.format("index was updated(index=%d, line=%s).",rdataIdx, str[0]));
+                    success = true;
+                    break;
+                }
+            }
+            if (!success) {
+                Log.w("restore", "Not found the linenumber.");
+                handleErr(ERR_UNDEFLINE);
+            }
+        } else {
+            Log.w("restore", "illegal parameters.");
+            handleErr(ERR_SYNTAX);
+        }
+
+        findEOS();
+    }
+
+    private void rem() throws InterpreterException {
+        // 行の最後まで読み捨てる
+        findEOL();
+    }
+
+    private void beep() throws InterpreterException {
+        getToken();
+        if (kwToken == EOL || token.equals(":")) {
+            waveout.beep0();
+        } else if (tokType == NUMBER || tokType == VARIABLE) {
+            int x = (int)evalExp2();
+            if (x == 0) {
+                waveout.beep0();
+            } else if (x == 1) {
+                waveout.beep1();
+            } else {
+                // パラメータエラー
+                Log.w("beep", "invalid parameter1");
+                handleErr(ERR_ARGUMENT);
+            }
+        } else {
+            // パラメータエラー
+            Log.w("beep", "invalid parameter2");
+            handleErr(ERR_ARGUMENT);
+        }
+    }
+
     //****************************************************
     private boolean strOpe() throws InterpreterException {
         boolean result = false;
@@ -1518,7 +1812,7 @@ public class SBasic {
 
             int l_value = getReservCodePB100(l_temp);
             int r_value = getReservCodePB100(r_temp);
-            Log.w("strOpe1", String.format("compare!!! L='%s'(%d) R='%s'(%d)", l_temp, l_value, r_temp, r_value));
+            Log.w("strOpe1", String.format("compare!!! L='%s'(%02x) R='%s'(%02x)", l_temp, l_value, r_temp, r_value));
             switch (op) {
                 case '=':
                     result = l_temp.equals(r_temp);
@@ -1577,7 +1871,7 @@ public class SBasic {
     }
 
     private boolean strOpe3() throws InterpreterException {
-        //Log.w("strOpe3", String.format("exec : token='%s' tokType=%d", token, tokType));
+        Log.w("strOpe3", String.format("exec : token='%s' tokType=%d", token, tokType));
         boolean result = false;
 
         switch (tokType) {
@@ -1671,13 +1965,40 @@ public class SBasic {
                         }
                         break;
 
+                    case STR:
+                        //Log.w("strOpe3", "STR");
+                        getToken();
+                        //Log.w("---STR1", token);
+                        if (token.equals("(")) {
+                            getToken();
+                            int x = 0;
+                            if (tokType == NUMBER || tokType == VARIABLE) {
+                                putBack();
+                                x = (int)evaluate();
+                            } else {
+                                // エラー
+                                Log.w("strOpe3", String.format("STR:illegal parameters('%s').", token));
+                                handleErr(ERR_SYNTAX);
+                            }
+                            //Log.w("---STR2", ""+x);
+                            if (token.equals(")") || token.equals(":") || kwToken == EOL) {
+                                resultStr = String.valueOf(x);
+                                result = true;
+                                Log.w("strOpe3", String.format("STR:ret='%s'", resultStr));
+                                getToken();
+                                //Log.w("---STR3", token);
+                            }
+                        } else {
+                            handleErr(ERR_SYNTAX);
+                        }
+                        break;
                     default:
                         Log.w("strOpe3", "No function");
                         break;
                 }
                 break;
             default:
-                //Log.w("strOpe3", "handleErr");
+                Log.w("strOpe3", "handleErr");
                 handleErr(ERR_SYNTAX);
                 break;
         }
@@ -1776,8 +2097,8 @@ public class SBasic {
     private double evalExp2() throws InterpreterException {
         //Log.w("eval2", "exec");
         char op;
-        double result;
-        double partialResult;
+        Double result;
+        Double partialResult;
 
         result = evalExp3();
 
@@ -1786,16 +2107,21 @@ public class SBasic {
             getToken();
             Log.w("eval2", String.format("next token=%s", token));
             partialResult = evalExp3();
+            BigDecimal a = new BigDecimal(result.toString());
+            BigDecimal b = new BigDecimal(partialResult.toString());
             switch (op) {
                 case '-':
-                    result = result - partialResult;
+                    //result = result - partialResult;
+                    a = a.subtract(b);
                     break;
                 case '+':
-                    result = result + partialResult;
+                    //result = result + partialResult;
+                    a = a.add(b);
                     break;
                 default:
                     break;
             }
+            result = a.doubleValue();
         }
         //Log.w("eval2", String.format("ret=%e", result));
         return result;
@@ -1804,31 +2130,36 @@ public class SBasic {
     private double evalExp3() throws InterpreterException {
         //Log.w("eval3", "exec");
         char op;
-        double result;
-        double partialResult;
+        Double result;
+        Double partialResult;
 
         result = evalExp4();
 
         while ((op = token.charAt(0)) == '*' || op == '/' || op == '%') {
             getToken();
             partialResult = evalExp4();
+            BigDecimal a = new BigDecimal(result.toString());
+            BigDecimal b = new BigDecimal(partialResult.toString());
             switch (op) {
                 case '*':
-                    result = result * partialResult;
+                    //result = result * partialResult;
+                    a = a.multiply(b);
                     break;
                 case '/':
-                    if (partialResult == 0.0)
-                        handleErr(ERR_MATH);
-                    result = result / partialResult;
+                    if (partialResult == 0.0) handleErr(ERR_MATH);
+                    //result = result / partialResult;
+                    int scale = result/partialResult >= 0 ? 10 : 9;
+                    a = a.divide(b, scale, BigDecimal.ROUND_HALF_UP);
                     break;
-                case '%':
-                    if (partialResult == 0.0)
-                        handleErr(ERR_MATH);
-                    result = result % partialResult;
+                case '%':   // PBには%の演算子はないけど、、
+                    if (partialResult == 0.0) handleErr(ERR_MATH);
+                    //result = result % partialResult;
+                    a = a.remainder(b);
                     break;
                 default:
                     break;
             }
+            result = a.doubleValue();
         }
         //Log.w("eval3", String.format("ret=%e", result));
         return result;
@@ -2518,7 +2849,15 @@ public class SBasic {
                     token += (char) (prog[pc] & 0xff);
                 }
                 pc++;
-                if (isReserveWord(token)) break;
+                if (isReserveWord(token)) {
+                    if ((token.equals("KEY") || token.equals("MID") /*|| token.equals("STR")*/) &&
+                            prog[pc] == '$') {
+                        Log.w("getToken", "charactor'$' is skipped.");
+                        token+="$";
+                        pc++;
+                    }
+                    break;
+                }
                 if (pc >= idxEnd + 1) break;
             }
             kwToken = lookUp(token);
@@ -2533,6 +2872,7 @@ public class SBasic {
             } else {
                 tokType = COMMAND;
             }
+            Log.w("getToken", String.format("kwToken=%d tokType=%d", kwToken, tokType));
 
             if (tokType == VARIABLE) {
                 //Log.w("getToken", String.format("case VARIABLE token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
@@ -2556,7 +2896,7 @@ public class SBasic {
                 if (pc >= idxEnd + 1) break;
             }
             tokType = NUMBER;
-            Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            //Log.w("getToken", String.format("case NUMBER token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else  if (prog[pc] == '\"') {
             //Log.w("getToken", "DQ!!!");
             tokType = QUTEDSTR;
@@ -2570,7 +2910,7 @@ public class SBasic {
                 //Log.w("while", String.format("%c", ch));
             }
             pc++;
-            //Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
+            Log.w("getToken", String.format("case QUTESTR token='%s' pc=%d tokType=%d kwToken=%d", token, pc, tokType, kwToken));
         } else if (prog[pc] == '#') {
             tokType = BANKNUM;
             //pc++;

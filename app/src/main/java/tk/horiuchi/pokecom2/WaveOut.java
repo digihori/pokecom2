@@ -135,7 +135,7 @@ public class WaveOut {
             } else {
                 for (int j = 0; j < temp.length; j++) {
                     int linenum = 0;
-                    String regex = "(?:^[0-9]+:?)|(?:\"[^\"]*\")|(?:[^ \"]+)";
+                    String regex = "(?:^[0-9]+:?)|(?:REM.*$)|(?:\"[^\"]*\")|(?:[^ \"]+)";
                     Pattern p = Pattern.compile(regex);
                     Matcher m = p.matcher(temp[j]);
                     ArrayList<String> data = new ArrayList<String>();
@@ -147,7 +147,7 @@ public class WaveOut {
                     for (String s : data) {
                         //Log.w("savea", String.format("this line ='%s'\n", s));
 
-                        regex = "^\"";
+                        regex = "^\"|^REM";
                         p = Pattern.compile(regex);
                         m = p.matcher(s);
                         if (m.find()) {    // ダブルコートの文字列処理
@@ -273,8 +273,9 @@ public class WaveOut {
         return 0;
     }
     private byte getReservFunction(String s) {
-        for (int i = 0x80; i < 0xcf; i++) {
+        for (int i = 0x80; i <= 0xcf; i++) {
             if (reservCodePB100[i].equals(s)) {
+                if (i == 0xcf) i = 0x93;    // KEY$はKEYと同じコードなので変換する
                 return((byte)i);
             }
         }
@@ -283,7 +284,8 @@ public class WaveOut {
 
     private String[] splitEx(String s) {
         // 文字列の先頭に予約語があったら分離する
-        for (int i = 0x80; i < 0xcf; i++) {
+        // KEY(0x93)、KEY$(0xcf)と定義されているため逆から検索する
+        for (int i = 0xcf; i >= 0x80; i--) {
             Pattern p = Pattern.compile("^"+reservCodePB100[i]);
             Matcher m = p.matcher(s);
             if (m.find()) {
@@ -304,6 +306,47 @@ public class WaveOut {
         //Log.w("isSpecialChar", ""+c);
         int cc = c & 0xff;
         return (0xe0 <= cc && cc <= 0xff ? true : false);
+    }
+
+    public void beep0() {
+        // 1200Hz
+        byte[] data = new byte[d1.length*30];
+        int p = 0;
+        for (int i = 0; i < 30; i++ ){
+            for (int j = 0; j < d1.length; j++) data[p++] = d0[j];
+        }
+        makeBeepTrack(data);
+    }
+    public void beep1() {
+        // 2400Hz
+        byte[] data = new byte[d1.length*30];
+        int p = 0;
+        for (int i = 0; i < 30; i++ ){
+            for (int j = 0; j < d1.length; j++) data[p++] = d1[j];
+        }
+        makeBeepTrack(data);
+    }
+    private void makeBeepTrack(byte [] in) {
+        // byte配列を生成し、音データを読み込む
+        mByteArray = new byte[in.length];
+        for (int i = 0; i < in.length; i++) {
+            mByteArray[i] = in[i];
+        }
+
+        // AudioTrackを生成する
+        // (22kHz、モノラル、8bitの音声データ)
+        mAudioTrack = new AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                22050,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_8BIT,
+                in.length,
+                AudioTrack.MODE_STATIC);
+
+        // 音声データを書き込む
+        mAudioTrack.write(mByteArray, 0, mByteArray.length);
+        // 再生開始
+        mAudioTrack.play();
     }
 
     private void makeAudioTrack(byte [] in) {
