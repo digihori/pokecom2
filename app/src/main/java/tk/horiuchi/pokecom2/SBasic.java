@@ -1821,16 +1821,20 @@ public class SBasic {
                     result = !l_temp.equals(r_temp);
                     break;
                 case '>':
-                    result = l_value > r_value ? true : false;
+                    //result = l_value > r_value ? true : false;
+                    result = l_value > r_value;
                     break;
                 case _GE:
-                    result = l_value >= r_value ? true : false;
+                    //result = l_value >= r_value ? true : false;
+                    result = l_value >= r_value;
                     break;
                 case '<':
-                    result = l_value < r_value ? true : false;
+                    //result = l_value < r_value ? true : false;
+                    result = l_value < r_value;
                     break;
                 case _LE:
-                    result = l_value <= r_value ? true : false;
+                    //result = l_value <= r_value ? true : false;
+                    result = l_value <= r_value;
                     break;
                 default:
                     break;
@@ -2574,6 +2578,35 @@ public class SBasic {
 
                     case LEN:
                         str = "";
+                        getToken();
+                        if (token.equals("(")) {
+                            getToken();
+                            if (tokType == QUTEDSTR) {
+                                str = token;
+                            } else if (tokType == SVARIABLE) {
+                                putBack();
+                                strOpe();
+                                if (!resultStr.isEmpty()) {
+                                    str = resultStr;
+                                }
+                            } else {
+                                // エラー
+                                Log.w("atom:LEN", "invalid param.");
+                                handleErr(ERR_SYNTAX);
+                            }
+                            getToken();
+                            if (!token.equals(")")) {
+                                Log.w("atom:LEN", "')'is not found.");
+                                handleErr(ERR_SYNTAX);
+                            }
+                        } else {
+                            // エラー
+                            Log.w("atom:LEN", "'('is not found.");
+                            handleErr(ERR_SYNTAX);
+                        }
+                        result = str.length();
+
+                        /*
                         do {
                             getToken();
                             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) break;
@@ -2593,10 +2626,38 @@ public class SBasic {
                             }
                         } while (kwToken != EOL && !token.equals(EOP));
                         result = str.length();
+                        */
                         break;
 
                     case VAL:
                         str = "";
+                        getToken();
+                        if (token.equals("(")) {
+                            getToken();
+                            if (tokType == QUTEDSTR) {
+                                str = token;
+                            } else if (tokType == SVARIABLE) {
+                                putBack();
+                                strOpe();
+                                if (!resultStr.isEmpty()) {
+                                    str = resultStr;
+                                }
+                            } else {
+                                // エラー
+                                Log.w("atom:VAL", "invalid param.");
+                                handleErr(ERR_SYNTAX);
+                            }
+                            getToken();
+                            if (!token.equals(")")) {
+                                Log.w("atom:VAL", "')'is not found.");
+                                handleErr(ERR_SYNTAX);
+                            }
+                        } else {
+                            // エラー
+                            Log.w("atom:VAL", "'('is not found.");
+                            handleErr(ERR_SYNTAX);
+                        }
+                        /*
                         do {
                             getToken();
                             if (kwToken == EOL || token.equals(EOP) || token.equals(":")) break;
@@ -2615,10 +2676,12 @@ public class SBasic {
                                 handleErr(ERR_SYNTAX);
                             }
                         } while (kwToken != EOL && !token.equals(EOP));
+                        */
 
                         try {
                             result = Integer.parseInt(str);
                         } catch (NumberFormatException e) {
+                            Log.w("atom:VAL", "Number format exception occured.");
                             handleErr(ERR_SYNTAX);
                         }
                         break;

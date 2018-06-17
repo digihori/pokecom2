@@ -37,6 +37,7 @@
         (Omitting the closing parentheses of calculation formula,\n
          using variables in the destination of GOTO, etc. ..) \n
         You can input and output BASIC text file by load and save menu.\n
+        And sound data compatible with cassette I/F is analog output by SAVE command.\n
         \n
         ＜Supported BASIC instraction＞\n
         PRINT\n
@@ -64,6 +65,14 @@
         RND\n
         RAN#\n
         STOP\n
+        SAVE\n
+        ON-GOTO/ON-GOSUB\n
+        READ-DATA-RESTORE\n
+        STR$\n
+        KEY$\n
+        MID$\n
+        BEEP\n
+        LET\n
         \n
         ＜Setting menu＞\n
         ・cpu clock emulate\n

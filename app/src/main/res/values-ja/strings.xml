@@ -36,6 +36,7 @@
         初期のPB-100の頃の独特なBASICを再現しています。\n
         （計算式の閉じカッコの省略とか、GOTOの飛び先に変数を使うなど。。）\n
         メニューのload/saveにてBASICのテキストファイルを入出力できます。\n
+        コマンドのSAVEにてカセットI/F準拠のサウンドデータをアナログ出力します。\n
         \n
         ＜対応しているBASIC命令＞\n
         PRINT\n
@@ -63,6 +64,14 @@
         RND\n
         RAN#\n
         STOP\n
+        SAVE\n
+        ON-GOTO/ON-GOSUB\n
+        READ-DATA-RESTORE\n
+        STR$\n
+        KEY$\n
+        MID$\n
+        BEEP\n
+        LET\n
         \n
         ＜設定メニュー＞\n
         ・cpu clock emulate\n
