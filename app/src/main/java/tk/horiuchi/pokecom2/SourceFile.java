@@ -53,12 +53,12 @@ public class SourceFile {
             if (m.find()) {
                 s = m.group() + ' ' + s.substring(m.end());
             }
-            Log.w("BasicSource", String.format("s='%s'", s));
+            //Log.w("BasicSource", String.format("s='%s'", s));
 
             String[] temp = s.split("[\\s:]+", 2);
-            if (temp.length >= 2) {
-                Log.w("BasicSource", String.format("str1='%s' str2='%s'", temp[0], temp[1]));
-            }
+            //if (temp.length >= 2) {
+            //    Log.w("BasicSource", String.format("str1='%s' str2='%s'", temp[0], temp[1]));
+            //}
             try {
                 lineNum = Integer.parseInt(temp[0]);
             } catch (NumberFormatException e) {

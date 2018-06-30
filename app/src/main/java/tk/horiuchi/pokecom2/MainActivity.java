@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.IllegalFormatCodePointException;
 import java.util.IllegalFormatException;
 import java.util.regex.Matcher;
@@ -796,6 +797,70 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         continue;
                     }
 
+                    // 行番号、REM〜、ダブルコーテーションで囲まれた文字列、それ以外に分割する
+                    regex = "(?:^[0-9]+:?)|(?:REM.*$)|(?:\"[^\"]*\")|(?:[^\"]+)";
+                    p = Pattern.compile(regex);
+                    m = p.matcher(str);
+                    ArrayList<String> data = new ArrayList<String>();
+                    if (m.find()) {
+                        do {
+                            data.add(m.group());
+                        } while (m.find());
+                    }
+
+                    for (String s : data) {
+                        //Log.w("load", String.format("s='%s'", s));
+                        // 分割した文字列毎に処理する
+                        boolean noencode = false;
+                        regex = "^\"|^REM";
+                        p = Pattern.compile(regex);
+                        m = p.matcher(s);
+                        if (m.find()) {    // ダブルコートの文字列orREM
+                            noencode = true;
+                        }
+
+                        int l = s.length();
+                        for (int i = 0; i < l; i++) {
+                            c = s.charAt(i);
+                            if (c == '\\') {
+                                if (i + 1 < l && s.charAt(i + 1) == '\\') {
+                                    dest[w++] = '\\';
+                                    i++;
+                                } else if (i + 2 < l) {
+                                    String ss = s.substring(i, i + 3);
+                                    //Log.w("LOG", String.format("ss='%s'(%d) %02x %02x %02x", ss, ss.length(), (int)s.charAt(i), (int)s.charAt(i+1), (int)s.charAt(i+2)));
+                                    //Log.w("LOG", String.format("ss='%s'", ss));
+                                    for (int jj = 0xe0; jj <= 0xff; jj++) {
+                                        //Log.w("LOG", String.format("j=%02x='%s'(%d)", j, cmdTable[j], cmdTable[j].length()));
+                                        if (cmdTable[jj].equals(ss)) {
+                                            dest[w++] = jj;  // エスケープ文字を内部コードに変換する
+                                            //Log.w("LOG", String.format("s='%s'(%d)=%x", cmdTable[j], cmdTable[j].length(), j));
+                                        }
+                                    }
+                                    i += 2;
+                                } else {
+                                    // 無効なコードなので読み捨てる
+                                }
+                            } else if (!noencode && i + 1 < llen && c == '>' && s.charAt(i + 1) == '=') {
+                                dest[w++] = _GE;   // >=
+                                i++;
+                            } else if (!noencode && i + 1 < llen && c == '<' && s.charAt(i + 1) == '=') {
+                                dest[w++] = _LE;   // <=
+                                i++;
+                            } else if (!noencode && i + 1 < llen && c == '<' && s.charAt(i + 1) == '>' ||
+                                    i + 1 < llen && c == '!' && s.charAt(i + 1) == '=') {
+                                dest[w++] = _NE;   // <>, !=
+                                i++;
+                            } else {
+                                dest[w++] = c;
+                            }
+                        }
+                        //dest[w++] = ' ';
+                    }
+                    dest[w++] = '\n';
+
+
+                    /*
                     for (int i = 0; i < llen; i++) {
                         c = str.charAt(i);
                         if (c == '\\') {
@@ -823,14 +888,16 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                         } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '=') {
                             dest[w++] = _LE;   // <=
                             i++;
-                        } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '>') {
-                            dest[w++] = _NE;   // <>
+                        } else if (i + 1 < llen && c == '<' && str.charAt(i + 1) == '>' ||
+                                i + 1 < llen && c == '!' && str.charAt(i + 1) == '=') {
+                            dest[w++] = _NE;   // <>, !=
                             i++;
                         } else {
                             dest[w++] = c;
                         }
                     }
                     dest[w++] = '\n';
+                    */
                 }
                 for (int i = 0; i < w; i++, idx[b]++) {
                     ch[idx[b]][b] = (char)dest[i];
@@ -874,6 +941,11 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             String str2[] = str1.split("\\n", 0);
 
             source.loadSource(i, str2);
+
+            //Log.w("load", String.format("------ bank:%d", i));
+            //for (int k = 0; k < str2.length; k++) {
+            //    Log.w("load", str2[k]);
+            //}
         }
 
         return ret;

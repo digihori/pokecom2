@@ -3,6 +3,9 @@ package tk.horiuchi.pokecom2;
 import android.util.Log;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
@@ -121,8 +124,8 @@ public class SBasic {
 
 
     //
-    private double[] vars;
-    private double[] exvars;
+    private BigDecimal[] vars;
+    private BigDecimal[] exvars;
     private String[] svars;
     private String[] exsvars;
 
@@ -207,14 +210,14 @@ public class SBasic {
     private String cmdLine = "";
 
     private boolean nextLine = true;
-    private Double lastAns;
+    private BigDecimal lastAns;
     private Lcd lcd;
 
     //
     class ForInfo {
         int var;
-        double target;
-        double step;
+        BigDecimal target;
+        BigDecimal step;
         int loc;
     }
 
@@ -246,16 +249,17 @@ public class SBasic {
 
     public SBasic(Lcd lcd) throws InterpreterException {
         this.lcd = lcd;
-        vars = new double[26];
+        vars = new BigDecimal[26];
         svars = new String[26];
         for (int i = 0; i < svars.length; i++) {
             svars[i] = "";
+            vars[i] = BigDecimal.ZERO;
         }
         ssvar = "";
         fStack = new Stack();
         labelTable = new TreeMap<String, Integer>();
         gStack = new Stack();
-        lastAns = new Double(0);
+        lastAns = new BigDecimal(0);
         prog = new char[progLength];
     }
 
@@ -311,6 +315,37 @@ public class SBasic {
         if (d == null) return;
         String str = double2string(d);
         lcd.print12(str);
+    }
+    private void lcdPrint(BigDecimal bd) {
+        if (bd == null) return;
+        String str = numberFormat(bd);
+        lcd.print12(str);
+    }
+
+    private String numberFormat(BigDecimal bd) {
+        if (bd == null) return null;
+        String str;
+        double d = bd.doubleValue();
+        if (d == 0) {
+            str = String.format(Locale.US, "%.8g", 0d);
+        } else if (d > 0) {
+            str = String.format(Locale.US, "%.8g", d);
+        } else {
+            str = String.format(Locale.US, "%.7g", d);
+        }
+
+        // 一旦指数部を切り離す
+        String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
+        // 小数点以下の末尾の0を削除する
+        temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
+        // 文字列を作り直す
+        str = temp[0];
+        if (temp.length > 1) str += temp[1];
+        // exponential記号を特殊記号に書き換える
+        str = str.replaceAll("[Ee]\\+", String.valueOf(_EX));
+        str = str.replaceAll("[Ee]\\-", String.valueOf(_EM));
+
+        return str;
     }
 
     private String double2string(Double d) {
@@ -472,7 +507,8 @@ public class SBasic {
                 case RUN:
                     getToken();
                     if (!token.equals(EOP)) {
-                        String num = Integer.toString((int)evalExp2());
+                        //String num = Integer.toString((int)evalExp2());
+                        String num = evalExp2().toPlainString();
                         Log.w("SBasic", String.format("--- RUN(%d) start=%s---", bank, num));
                         pb.progStart(num);
                     } else {
@@ -546,7 +582,7 @@ public class SBasic {
                         lcdPrint(String.format("***VAR:%d", m));
                     } else if (tokType == VARIABLE) {
                         putBack();
-                        int n = (int) evalExp2();
+                        int n = evalExp2().intValue();
                         int m = defm(n);
                         lcdPrint(String.format("***VAR:%d", m));
                     } else {
@@ -572,6 +608,8 @@ public class SBasic {
                     beep();
                     return;
                 default:
+                    Log.w("sbCmd", "Syntax error.");
+                    handleErr(ERR_SYNTAX);
                     break;
             }
 
@@ -620,7 +658,7 @@ public class SBasic {
             lcdPrint(resultStr);
 
         } else {
-            Log.w("sbCmd", String.format("ans=%d", lastAns.intValue()));
+            Log.w("sbCmd", String.format("ans=%s", lastAns.toPlainString()));
             lcdPrint(lastAns);
             //lcdPrintln();
         }
@@ -763,7 +801,7 @@ public class SBasic {
 
     private String[] rdata;
     private int rdataIdx;
-    private final int rdataMax = 64;    // 仮
+    private final int rdataMax = 512;    // 仮
 
     private void scanLabels() throws InterpreterException {
         Object result;
@@ -841,7 +879,7 @@ public class SBasic {
     private String ssvar;
     private void assignment() throws InterpreterException {
         int var;
-        double value;
+        BigDecimal value;
         char vname;
         int offset = 0;
         int pc_temp;
@@ -879,7 +917,7 @@ public class SBasic {
                     //lastToken += token;
                     getToken();
                     //lastToken += token;
-                    offset = (int)evalExp2();
+                    offset = evalExp2().intValue();
                     //var += result;
                     if (!token.equals(")")) {
                         handleErr(ERR_SYNTAX);
@@ -905,11 +943,11 @@ public class SBasic {
                 }
                 if (var + offset < 26) {
                     svars[var + offset] = resultStr;
-                    vars[var + offset] = 0;
+                    vars[var + offset] = BigDecimal.ZERO;
                 } else {
                     if (exsvars != null && (var + offset - 26) < exsvars.length) {
                         exsvars[var + offset - 26] = resultStr;
-                        exvars[var + offset - 26] = 0;
+                        exvars[var + offset - 26] = BigDecimal.ZERO;
                     } else {
                         handleErr(ERR_VARIABLE);
                     }
@@ -937,7 +975,7 @@ public class SBasic {
                 //lastToken += token;
                 getToken();
                 //lastToken += token;
-                offset = (int)evalExp2();
+                offset = evalExp2().intValue();
                 //var += result;
                 if (!token.equals(")")) {
                     handleErr(ERR_SYNTAX);
@@ -983,24 +1021,24 @@ public class SBasic {
     public void vac() {
         Log.w("VAC", "variable cleared.");
         for (int i = 0; i < 26; i++) {
-            vars[i] = 0;
+            vars[i] = BigDecimal.ZERO;
             svars[i] = "";
         }
         if (exvars != null) {
             for (int i = 0; i < exvars.length; i++) {
-                exvars[i] = 0;
+                exvars[i] = BigDecimal.ZERO;
                 exsvars[i] = "";
             }
         }
         ssvar = "";
-        lastAns = 0.0;
+        lastAns = BigDecimal.ZERO;
     }
 
     private String prtStr = "";
     private boolean printPause = false;
     private void print() throws InterpreterException {
-        double result;
-        int len = 0, spaces;
+        //double result;
+        //int len = 0, spaces;
         String lastDelim = "";
         int pos = 0;
 
@@ -1033,18 +1071,21 @@ public class SBasic {
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
                 //Log.w("PRT", String.format("%s", token));
-                len += token.length();
+                //len += token.length();
                 getToken();
             } else if (tokType == VARIABLE || tokType == NUMBER ||
                     tokType == DELIMITER && (token.equals("+") || token.equals("-"))) {
                 lastDelim = "";
                 //Log.w("PRT", String.format("tokType!=QUTEDSTR(%d)", tokType));
                 putBack();
-                result = evaluate();
+                //result = evaluate();
+                BigDecimal tmp = evaluate();
                 getToken();
 
-                String s = double2string(result);
-                if (result >= 0) s = " " + s;
+                //String s = double2string(result);
+                //String s = tmp.toPlainString();
+                String s = numberFormat(tmp);
+                if (tmp.compareTo(BigDecimal.ZERO) >= 0) s = " " + s;
                 if (sb == null) {
                     prtStr += s;
                 } else {
@@ -1053,8 +1094,8 @@ public class SBasic {
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
 
-                Double t = new Double(result);
-                len += t.toString().length();
+                //Double t = new Double(result);
+                //len += t.toString().length();
             } else if (tokType == SVARIABLE || tokType == FUNCTION && kwToken == MID) {
                 lastDelim = "";
                 putBack();
@@ -1070,16 +1111,17 @@ public class SBasic {
                     }
 
                 }
-                len += resultStr.length();
+                //len += resultStr.length();
                 //getToken();
             } else if (tokType == COMMAND) {
                 if (kwToken == CSR) {
                     lastDelim = "";
                     //lcdPrint(prtStr);
-                    result = evaluate() + 0.01; // イマイチ！！
-                    Log.w("CSR", "pos="+result);
-                    if (result < 12) {
-                        pos = (int) result;
+                    //result = evaluate() + 0.01; // イマイチ！！
+                    int x = evaluate().intValue();
+                    Log.w("CSR", "pos="+x);
+                    if (0 <= x && x < 12) {
+                        pos = x;
                         String s = "";
                         if (prtStr.length() < 11) {
                             for (int i = 0; i < 11 - prtStr.length(); i++) {
@@ -1092,6 +1134,9 @@ public class SBasic {
                         }
                         Log.w("print", String.format("sb='%s'", sb.toString()));
                         //lcdPrint(prtStr);
+                    } else {
+                        Log.w("print", "invalid param");
+                        handleErr(ERR_ARGUMENT);
                     }
                 }
             }
@@ -1154,7 +1199,7 @@ public class SBasic {
 
         if (tokType == BANKNUM) {
             getToken();
-            int b = (int)evalExp2();
+            int b = evalExp2().intValue();
             //Log.w("GOTO", String.format("bank(int)---> %d", b));
             if (b < 10) {
                 Log.w("GOTO", String.format("bank change -> #%d", b));
@@ -1163,7 +1208,8 @@ public class SBasic {
                 handleErr(ERR_SYNTAX);
             }
         } else {
-            String num = Integer.toString((int)evalExp2());
+            //String num = Integer.toString((int)evalExp2());
+            String num = evalExp2().setScale(0, BigDecimal.ROUND_DOWN).toPlainString();
             loc = (Integer) labelTable.get(num);
             if (loc == null) {
                 putBack();
@@ -1189,7 +1235,7 @@ public class SBasic {
         }
         putBack();
 
-        int var = (int)evaluate();
+        int var = evaluate().intValue();
         if (var == 0) {
             Log.w("ON", String.format("invalid param0"));
             findEOS();  // ステートメントをスキップする
@@ -1242,15 +1288,15 @@ public class SBasic {
     }
 
     private void execIf() throws InterpreterException {
-        double result;
+        BigDecimal result;
         getToken();
         if (tokType == SVARIABLE ||
                 tokType == FUNCTION && (kwToken == KEY || kwToken == MID || kwToken == STR) ) {
-            Log.w("execIf", "1");
+            //Log.w("execIf", "1");
             putBack();
-            Log.w("execIf", "2");
+            //Log.w("execIf", "2");
             boolean ret = strOpe();
-            Log.w("execIf", "3");
+            //Log.w("execIf", "3");
             Log.w("IF", String.format("judge=%d ret='%s'", (ret ? 1 : 0), resultStr));
             if (ret) {
                 getToken();
@@ -1284,8 +1330,8 @@ public class SBasic {
             putBack();
             result = evaluate();
 
-            Log.w("IF", String.format("if (%d)", (int)result));
-            if (result != 0.0) {
+            Log.w("IF", String.format("if (%d)", result.intValue()));
+            if (result.compareTo(BigDecimal.ZERO) != 0) {
                 getToken();
 
                 if (kwToken != THEN && token.charAt(0) != ';') {
@@ -1317,7 +1363,7 @@ public class SBasic {
 
     private void execFor() throws InterpreterException {
         ForInfo stckvar = new ForInfo();
-        double value;
+        BigDecimal value;
         char vname;
         getToken();
         vname = token.charAt(0);
@@ -1340,18 +1386,18 @@ public class SBasic {
         if (kwToken != TO) handleErr(ERR_SYNTAX);
         stckvar.target = evaluate();
 
-        stckvar.step = 1;
+        stckvar.step = BigDecimal.valueOf(1);
         getToken();
         if (kwToken == STEP) {
             stckvar.step = evaluate();
-            if (stckvar.step == 0) handleErr(ERR_ARGUMENT);
+            if (stckvar.step.equals(0)) handleErr(ERR_ARGUMENT);
         } else {
             putBack();
         }
 
-        //Log.w("execFor", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
-        if (stckvar.step >= 0 && value >= vars[stckvar.var] ||
-                stckvar.step < 0 && value <= vars[stckvar.var]) {
+        Log.w("execFor", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+        if (stckvar.step.compareTo(BigDecimal.ZERO) >= 0 && value.compareTo(vars[stckvar.var]) >= 0 ||
+                stckvar.step.compareTo(BigDecimal.ZERO) < 0 && value.compareTo(vars[stckvar.var]) <= 0) {
             stckvar.loc = pc;
             fStack.push(stckvar);
         } else {
@@ -1368,20 +1414,20 @@ public class SBasic {
             return;
         }
         int var = Character.toUpperCase(vname) - 'A';
-        //Log.w("NEXT", "do");
+        Log.w("NEXT", "do");
         try {
             // FORループをNEXTしないで抜けるパターンもあるので対応しているNEXTを探す
             do {
                 stckvar = (ForInfo) fStack.pop();
             } while (var != stckvar.var);
 
-            vars[stckvar.var] += stckvar.step;
+            vars[stckvar.var] = vars[stckvar.var].add(stckvar.step);
 
-            //Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
+            Log.w("next", String.format("var='%c'=%f target=%f step=%f", 'A'+stckvar.var, vars[stckvar.var], stckvar.target, stckvar.step));
             // ループの終了条件
-            if (stckvar.step >= 0 && vars[stckvar.var] > stckvar.target ||
-                    stckvar.step < 0 && vars[stckvar.var] < stckvar.target) {
-                //Log.w("NEXT", "loop end.");
+            if (stckvar.step.compareTo(BigDecimal.ZERO) >= 0 && vars[stckvar.var].compareTo(stckvar.target) > 0 ||
+                    stckvar.step.compareTo(BigDecimal.ZERO) < 0 && vars[stckvar.var].compareTo(stckvar.target) < 0) {
+                Log.w("NEXT", "loop end.");
                 return;
             }
 
@@ -1397,7 +1443,7 @@ public class SBasic {
     private void input() throws InterpreterException {
         int var;
         //String vname;
-        double val = 0.0;
+        //double val = 0.0;
         String str = "";
         //BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         getToken();
@@ -1431,16 +1477,17 @@ public class SBasic {
                 if (token.equals("(")) {
                     // 配列
                     getToken();
-                    offset = (int) evalExp2();
+                    offset = evalExp2().intValue();
                     if (!token.equals(")")) {
                         putBack();
                         handleErr(ERR_SYNTAX);
                     }
                     //getToken();
                 }
-                double value = 0;
+                BigDecimal value = new BigDecimal(0);
                 try {
-                    value = Double.parseDouble(inText);
+                    BigDecimal tmp = new BigDecimal(inText);
+                    value = tmp;
                 } catch (NumberFormatException e) {
                     // 数値にパースできなかった（＝文字列だった）場合はシンタックスエラー
                     putBack();
@@ -1479,7 +1526,7 @@ public class SBasic {
                     if (token.equals("(")) {
                         // 配列
                         getToken();
-                        offset = (int) evalExp2();
+                        offset = evalExp2().intValue();
                         //var += result;
                         if (!token.equals(")")) {
                             handleErr(ERR_SYNTAX);
@@ -1492,11 +1539,11 @@ public class SBasic {
                     }
                     if (var + offset < 26) {
                         svars[var + offset] = inText;
-                        vars[var + offset] = 0;
+                        vars[var + offset] = BigDecimal.ZERO;
                     } else {
                         if (exsvars != null && (var + offset - 26) < exsvars.length) {
                             exsvars[var + offset - 26] = inText;
-                            exvars[var + offset - 26] = 0;
+                            exvars[var + offset - 26] = BigDecimal.ZERO;
                         } else {
                             // 配列のオーバーラン
                             putBack();
@@ -1551,7 +1598,7 @@ public class SBasic {
             gStack.push(new GosubInfo(bank, pc));
             // バンク切り替え
             getToken();
-            int b = (int)evalExp2();
+            int b = evalExp2().intValue();
             if (b < 10) {
                 Log.w("GOSUB", String.format("bank change -> #%d(%d)", b, pc));
                 bankChange(b);
@@ -1559,7 +1606,8 @@ public class SBasic {
                 handleErr(ERR_SYNTAX);
             }
         } else {
-            String num = Integer.toString((int)evalExp2());
+            //String num = Integer.toString((int)evalExp2());
+            String num = evalExp2().setScale(0, BigDecimal.ROUND_DOWN).toPlainString();
             loc = (Integer) labelTable.get(num);
             if (loc == null) {
                 putBack();
@@ -1630,7 +1678,7 @@ public class SBasic {
                         if (token.equals("(")) {
                             // 配列
                             getToken();
-                            offset = (int)evalExp2();
+                            offset = evalExp2().intValue();
                             if (!token.equals(")")) {
                                 handleErr(ERR_SYNTAX);
                             }
@@ -1645,11 +1693,11 @@ public class SBasic {
                         Log.w("read", String.format("var=%d offset=%d data=%s", var, offset, str[1]));
                         if (var + offset < 26) {
                             svars[var + offset] = str[1];
-                            vars[var + offset] = 0;
+                            vars[var + offset] = BigDecimal.ZERO;
                         } else {
                             if (exsvars != null && (var + offset - 26) < exsvars.length) {
                                 exsvars[var + offset - 26] = str[1];
-                                exvars[var + offset - 26] = 0;
+                                exvars[var + offset - 26] = BigDecimal.ZERO;
                             } else {
                                 handleErr(ERR_VARIABLE);
                             }
@@ -1665,25 +1713,27 @@ public class SBasic {
                     if (token.equals("(")) {
                         // 配列
                         getToken();
-                        offset = (int)evalExp2();
+                        offset = evalExp2().intValue();
                         if (!token.equals(")")) {
                             handleErr(ERR_SYNTAX);
                         }
                         getToken();
                     }
 
-                    double value = 0;
+                    BigDecimal value = new BigDecimal(0);
                     //Log.w("read", String.format("id=%d ('%s').", rdataIdx, rdata[rdataIdx]));
                     Log.w("read", String.format("id=%d", rdataIdx));
                     try {
-                        value = Double.parseDouble(str[1]);
+                        //value = Double.parseDouble(str[1]);
+                        BigDecimal tmp = new BigDecimal(str[1]);
+                        value = tmp;
                     } catch (NumberFormatException e) {
                         // シンタックスエラー
                         Log.w("read", String.format("error : not number('%s').", str[1]));
                         handleErr(ERR_SYNTAX);
                     }
 
-                    Log.w("read", String.format("var=%d offset=%d data=%d", var, offset, (int)value));
+                    Log.w("read", String.format("var=%d offset=%d data=%d", var, offset, value.intValue()));
                     if (var + offset < 26) {
                         vars[var + offset] = value;
                         svars[var + offset] = "";
@@ -1751,7 +1801,7 @@ public class SBasic {
         if (kwToken == EOL || token.equals(":")) {
             waveout.beep0();
         } else if (tokType == NUMBER || tokType == VARIABLE) {
-            int x = (int)evalExp2();
+            int x = evalExp2().intValue();
             if (x == 0) {
                 waveout.beep0();
             } else if (x == 1) {
@@ -1770,7 +1820,7 @@ public class SBasic {
 
     //****************************************************
     private boolean strOpe() throws InterpreterException {
-        boolean result = false;
+        boolean result;
         getToken();
         if (token.equals(EOP)) {
             handleErr(ERR_SYSTEM);
@@ -1816,25 +1866,31 @@ public class SBasic {
             switch (op) {
                 case '=':
                     result = l_temp.equals(r_temp);
+                    Log.w("strOpe", String.format("op='=' result=%d", result ? 1 : 0));
                     break;
                 case _NE:
                     result = !l_temp.equals(r_temp);
+                    Log.w("strOpe", String.format("op='!=' result=%d", result ? 1 : 0));
                     break;
                 case '>':
                     //result = l_value > r_value ? true : false;
                     result = l_value > r_value;
+                    Log.w("strOpe", String.format("op='>' result=%d", result ? 1 : 0));
                     break;
                 case _GE:
                     //result = l_value >= r_value ? true : false;
                     result = l_value >= r_value;
+                    Log.w("strOpe", String.format("op='>=' result=%d", result ? 1 : 0));
                     break;
                 case '<':
                     //result = l_value < r_value ? true : false;
                     result = l_value < r_value;
+                    Log.w("strOpe", String.format("op='<' result=%d", result ? 1 : 0));
                     break;
                 case _LE:
                     //result = l_value <= r_value ? true : false;
                     result = l_value <= r_value;
+                    Log.w("strOpe", String.format("op='<=' result=%d", result ? 1 : 0));
                     break;
                 default:
                     break;
@@ -1892,7 +1948,7 @@ public class SBasic {
                     if (token.equals("(")) {
                         // 配列
                         getToken();
-                        r = (int)evalExp2();
+                        r = evalExp2().intValue();
                         //ch += r;
                         if (!token.equals(")")) {
                             handleErr(ERR_SYNTAX);
@@ -1932,7 +1988,7 @@ public class SBasic {
                             getToken();
                             //Log.w("--- MID", token);
                             putBack();
-                            m = (int)evaluate();
+                            m = evaluate().intValue();
                             m--;
                             getToken();
                             Log.w("---- MID", token);
@@ -1948,7 +2004,7 @@ public class SBasic {
                             } else if (token.equals(",")) {
                                 getToken();
                                 putBack();
-                                n = (int)evaluate();
+                                n = evaluate().intValue();
                                 getToken();
                                 if (!token.equals(")") && !token.equals(":") && kwToken != EOL) {
                                     handleErr(ERR_SYNTAX);
@@ -1978,7 +2034,7 @@ public class SBasic {
                             int x = 0;
                             if (tokType == NUMBER || tokType == VARIABLE) {
                                 putBack();
-                                x = (int)evaluate();
+                                x = evaluate().intValue();
                             } else {
                                 // エラー
                                 Log.w("strOpe3", String.format("STR:illegal parameters('%s').", token));
@@ -2012,9 +2068,9 @@ public class SBasic {
     }
 
     //****************************************************
-    private double evaluate() throws InterpreterException {
+    private BigDecimal evaluate() throws InterpreterException {
         //Log.w("eval", "exec");
-        double result = 0.0;
+        BigDecimal result;
         getToken();
         if (token.equals(EOP)) {
             handleErr(ERR_SYSTEM);
@@ -2027,9 +2083,9 @@ public class SBasic {
     }
 
     // <, >, =, <=, >=, <>
-    private double evalExp1() throws InterpreterException {
+    private BigDecimal evalExp1() throws InterpreterException {
         //Log.w("eval1", "exec");
-        double l_temp, r_temp, result;
+        BigDecimal l_temp, r_temp, result;
         char op;
 
         result = evalExp2();
@@ -2049,45 +2105,45 @@ public class SBasic {
             //Log.w("eval1", String.format("compare!!! L=%e R=%e", l_temp, r_temp));
             switch (op) {
                 case '<':
-                    if (l_temp < r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) < 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 case _LE:
-                    if (l_temp <= r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) <= 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 case '>':
-                    if (l_temp > r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) > 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 case _GE:
-                    if (l_temp >= r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) >= 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 case '=':
-                    if (l_temp == r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) == 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 case _NE:
-                    if (l_temp != r_temp) {
-                        result = 1.0;
+                    if (l_temp.compareTo(r_temp) != 0) {
+                        result = BigDecimal.ONE;
                     } else {
-                        result = 0.0;
+                        result = BigDecimal.ZERO;
                     }
                     break;
                 default:
@@ -2098,11 +2154,11 @@ public class SBasic {
         return  result;
     }
 
-    private double evalExp2() throws InterpreterException {
+    private BigDecimal evalExp2() throws InterpreterException {
         //Log.w("eval2", "exec");
         char op;
-        Double result;
-        Double partialResult;
+        BigDecimal result;
+        BigDecimal partialResult;
 
         result = evalExp3();
 
@@ -2111,67 +2167,72 @@ public class SBasic {
             getToken();
             Log.w("eval2", String.format("next token=%s", token));
             partialResult = evalExp3();
-            BigDecimal a = new BigDecimal(result.toString());
-            BigDecimal b = new BigDecimal(partialResult.toString());
+            //BigDecimal a = new BigDecimal(result.toString());
+            //BigDecimal b = new BigDecimal(partialResult.toString());
             switch (op) {
                 case '-':
                     //result = result - partialResult;
-                    a = a.subtract(b);
+                    //a = a.subtract(b);
+                    result = result.subtract(partialResult);
                     break;
                 case '+':
                     //result = result + partialResult;
-                    a = a.add(b);
+                    //a = a.add(b);
+                    result = result.add(partialResult);
                     break;
                 default:
                     break;
             }
-            result = a.doubleValue();
+            //result = a.doubleValue();
         }
         //Log.w("eval2", String.format("ret=%e", result));
         return result;
     }
 
-    private double evalExp3() throws InterpreterException {
+    private BigDecimal evalExp3() throws InterpreterException {
         //Log.w("eval3", "exec");
         char op;
-        Double result;
-        Double partialResult;
+        BigDecimal result;
+        BigDecimal partialResult;
 
         result = evalExp4();
 
         while ((op = token.charAt(0)) == '*' || op == '/' || op == '%') {
             getToken();
             partialResult = evalExp4();
-            BigDecimal a = new BigDecimal(result.toString());
-            BigDecimal b = new BigDecimal(partialResult.toString());
+            //BigDecimal a = new BigDecimal(result.toString());
+            //BigDecimal b = new BigDecimal(partialResult.toString());
             switch (op) {
                 case '*':
                     //result = result * partialResult;
-                    a = a.multiply(b);
+                    //a = a.multiply(b);
+                    result = result.multiply(partialResult);
                     break;
                 case '/':
-                    if (partialResult == 0.0) handleErr(ERR_MATH);
+                    if (partialResult.compareTo(BigDecimal.ZERO) == 0) handleErr(ERR_MATH);
                     //result = result / partialResult;
-                    int scale = result/partialResult >= 0 ? 10 : 9;
-                    a = a.divide(b, scale, BigDecimal.ROUND_HALF_UP);
+                    int scale = result.signum()*partialResult.signum() >= 0 ? 10 : 9;
+                    //a = a.divide(b, scale, BigDecimal.ROUND_HALF_UP);
+                    result = result.divide(partialResult, scale, RoundingMode.HALF_UP);
                     break;
                 case '%':   // PBには%の演算子はないけど、、
-                    if (partialResult == 0.0) handleErr(ERR_MATH);
+                    if (partialResult.compareTo(BigDecimal.ZERO) == 0) handleErr(ERR_MATH);
                     //result = result % partialResult;
-                    a = a.remainder(b);
+                    //a = a.remainder(b);
+                    result = result.remainder(partialResult);
                     break;
                 default:
                     break;
             }
-            result = a.doubleValue();
+            //result = a.doubleValue();
         }
         //Log.w("eval3", String.format("ret=%e", result));
         return result;
     }
 
-    private double evalExp4() throws InterpreterException {
+    private BigDecimal evalExp4() throws InterpreterException {
         //Log.w("eval4", "exec");
-        double result;
+        BigDecimal result;
         //double partialResult;
         //double ex;
         //int t;
@@ -2181,7 +2242,9 @@ public class SBasic {
 
         if (token.equals("^")) {
             // PB-100 は a^b^c の計算は (a^b)^c の順番で計算するためループで回す。
+            // BigDecimalは小数のべき乗ができないのでdoubleで計算してからBigDecimalに戻す（誤差が出る！）
             boolean loop;
+            double tmp = result.doubleValue();
             while (token != EOP) {
                 loop = false;
                 pc_temp = pc;
@@ -2190,19 +2253,23 @@ public class SBasic {
                 if (token.equals("^")) loop = true;
                 putBack(pc_temp);
                 getToken();
-                result = Math.pow(result, evalExp5());
+                //result = Math.pow(result, evalExp5());
+                tmp = Math.pow(tmp, evalExp5().doubleValue());
+                result = result.pow(1);
                 if (!loop) {
                     break;
                 }
             }
+            BigDecimal tmp2 = new BigDecimal(tmp);
+            result = tmp2;
         }
         //Log.w("eval4", String.format("ret=%e", result));
         return result;
     }
 
-    private double evalExp5() throws InterpreterException {
+    private BigDecimal evalExp5() throws InterpreterException {
         //Log.w("eval5", "exec");
-        double result;
+        BigDecimal result;
         String op;
 
         op = "";
@@ -2214,16 +2281,17 @@ public class SBasic {
         result = evalExp6();
 
         if (op.equals("-")) {
-            result = -result;
+            //result = -result;
+            result = result.negate();
         }
 
         //Log.w("eval5", String.format("ret=%e", result));
         return result;
     }
 
-    private double evalExp6() throws InterpreterException {
+    private BigDecimal evalExp6() throws InterpreterException {
         //Log.w("eval6", "exec");
-        double result;
+        BigDecimal result;
 
         if (token.equals("(")) {
             getToken();
@@ -2251,14 +2319,16 @@ public class SBasic {
         return result;
     }
 
-    private double atom() throws InterpreterException {
+    private BigDecimal atom() throws InterpreterException {
         //Log.w("atom", "exec");
-        double result = 0.0;
+        BigDecimal result = new BigDecimal(0);
 
         switch (tokType) {
             case NUMBER:
                 try {
-                    result = Double.parseDouble(token);
+                    //result = Double.parseDouble(token);
+                    BigDecimal tmp = new BigDecimal(token);
+                    result = tmp;
                     //Log.w("atom", String.format("result=%e", result));
                 } catch (NumberFormatException e) {
                     handleErr(ERR_SYNTAX);
@@ -2273,7 +2343,8 @@ public class SBasic {
                 if (token.equals("(")) {
                     // 配列
                     getToken();
-                    r = (int)evalExp2();
+                    //r = (int)evalExp2();
+                    r = evalExp2().intValue();
                     //ch += r;
                     if (!token.equals(")")) {
                         handleErr(ERR_SYNTAX);
@@ -2288,27 +2359,31 @@ public class SBasic {
                 //Log.w("atom", String.format("next token='%s'", token));
                 break;
             case FUNCTION:
+                // 関数の計算はBigDecimalでできないのでdoubleで計算してからBigDecimalに戻す
                 String str;
                 switch (kwToken) {
                     case SIN:
                         getToken();
                         if (!token.equals(EOP)) {
                             //double temp = evalExp2();
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.sin(Math.toRadians(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.sin(Math.toRadians(temp));
+                                        ans = Math.sin(Math.toRadians(temp));
                                         break;
                                     case 1:
-                                        result = Math.sin(temp);
+                                        ans = Math.sin(temp);
                                         break;
                                     case 2:
-                                        result = Math.sin(Math.toRadians(temp*360/400));
+                                        ans = Math.sin(Math.toRadians(temp*360/400));
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                                 //Log.w("atom", String.format("SIN result=%e", result));
                             } catch (NumberFormatException e) {
@@ -2322,21 +2397,24 @@ public class SBasic {
                     case COS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.cos(Math.toRadians(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.cos(Math.toRadians(temp));
+                                        ans = Math.cos(Math.toRadians(temp));
                                         break;
                                     case 1:
-                                        result = Math.cos(temp);
+                                        ans = Math.cos(temp);
                                         break;
                                     case 2:
-                                        result = Math.cos(Math.toRadians(temp*360/400));
+                                        ans = Math.cos(Math.toRadians(temp*360/400));
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2349,21 +2427,24 @@ public class SBasic {
                     case TAN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.tan(Math.toRadians(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.tan(Math.toRadians(temp));
+                                        ans = Math.tan(Math.toRadians(temp));
                                         break;
                                     case 1:
-                                        result = Math.tan(temp);
+                                        ans = Math.tan(temp);
                                         break;
                                     case 2:
-                                        result = Math.tan(Math.toRadians(temp*360/400));
+                                        ans = Math.tan(Math.toRadians(temp*360/400));
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2376,21 +2457,24 @@ public class SBasic {
                     case ASN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.toDegrees(Math.asin(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.toDegrees(Math.asin(temp));
+                                        ans = Math.toDegrees(Math.asin(temp));
                                         break;
                                     case 1:
-                                        result = Math.asin(temp);
+                                        ans = Math.asin(temp);
                                         break;
                                     case 2:
-                                        result = Math.toDegrees(Math.asin(temp))*400/360;
+                                        ans = Math.toDegrees(Math.asin(temp))*400/360;
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2403,21 +2487,24 @@ public class SBasic {
                     case ACS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.toDegrees(Math.acos(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.toDegrees(Math.acos(temp));
+                                        ans = Math.toDegrees(Math.acos(temp));
                                         break;
                                     case 1:
-                                        result = Math.acos(temp);
+                                        ans = Math.acos(temp);
                                         break;
                                     case 2:
-                                        result = Math.toDegrees(Math.acos(temp))*400/360;
+                                        ans = Math.toDegrees(Math.acos(temp))*400/360;
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2430,21 +2517,24 @@ public class SBasic {
                     case ATN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
+                            double ans;
                             try {
                                 //result = Math.toDegrees(Math.atan(temp));
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        result = Math.toDegrees(Math.atan(temp));
+                                        ans = Math.toDegrees(Math.atan(temp));
                                         break;
                                     case 1:
-                                        result = Math.atan(temp);
+                                        ans = Math.atan(temp);
                                         break;
                                     case 2:
-                                        result = Math.toDegrees(Math.atan(temp))*400/360;
+                                        ans = Math.toDegrees(Math.atan(temp))*400/360;
                                         break;
                                 }
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2457,9 +2547,10 @@ public class SBasic {
                     case ABS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            BigDecimal temp = evalExp6();
                             try {
-                                result = Math.abs(temp);
+                                //result = Math.abs(temp);
+                                result = temp.abs();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -2471,9 +2562,11 @@ public class SBasic {
                     case LOG:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
                             try {
-                                result = Math.log10(temp);
+                                double ans = Math.log10(temp);
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2486,9 +2579,11 @@ public class SBasic {
                     case LN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
                             try {
-                                result = Math.log(temp);
+                                double ans = Math.log(temp);
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2501,9 +2596,11 @@ public class SBasic {
                     case SQR:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
                             try {
-                                result = Math.sqrt(temp);
+                                double ans = Math.sqrt(temp);
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
                             }
@@ -2515,9 +2612,11 @@ public class SBasic {
                     case EXP:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            double temp = evalExp6().doubleValue();
                             try {
-                                result = Math.exp(temp);
+                                double ans = Math.exp(temp);
+                                BigDecimal tmp = new BigDecimal(ans);
+                                result = tmp;
                                 nop20ms();
                             } catch (NumberFormatException e) {
                                 handleErr(ERR_MATH);
@@ -2528,21 +2627,27 @@ public class SBasic {
                         break;
 
                     case KEY:
-                        result = inkey.getPressKeyCode();
-                        Log.w("atom", String.format("KEY result=%d", (int)result));
-                        getToken();
+                        {
+                            BigDecimal tmp = new BigDecimal(inkey.getPressKeyCode());
+                            result = tmp;
+                            Log.w("atom", String.format("KEY result=%d", result.intValue()));
+                            getToken();
+                        }
                         break;
 
                     case RAN:
-                        result = Math.random();
-                        getToken();
+                        {
+                            BigDecimal tmp = new BigDecimal(Math.random());
+                            result = tmp;
+                            getToken();
+                        }
                         break;
 
                     case INT:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
-                            result = (int)temp;
+                            //double temp = evalExp6();
+                            result = evalExp6().setScale(0, BigDecimal.ROUND_DOWN);
                         }
                         //getToken();
                         break;
@@ -2550,8 +2655,8 @@ public class SBasic {
                     case FRAC:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
-                            result = temp - (int)temp;
+                            //double temp = evalExp6();
+                            result = evalExp6().remainder(BigDecimal.ONE);
                         }
                         //getToken();
                         break;
@@ -2559,52 +2664,59 @@ public class SBasic {
                     case SGN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6();
+                            //int temp = evalExp6().compareTo(BigDecimal.ZERO);
+                            int temp = evalExp6().signum();
                             if (temp > 0) {
-                                result = 1;
+                                result = BigDecimal.ONE;
                             } else if (temp < 0) {
-                                result = -1;
+                                result = BigDecimal.ONE.negate();
                             } else {
-                                result = 0;
+                                result = BigDecimal.ZERO;
                             }
                         }
                         //getToken();
                         break;
 
                     case PI:
-                        result = Math.PI;
-                        getToken();;
+                        {
+                            BigDecimal tmp = new BigDecimal(Math.PI);
+                            result = tmp;
+                            //getToken();
+                        }
                         break;
 
                     case LEN:
-                        str = "";
-                        getToken();
-                        if (token.equals("(")) {
+                        {
+                            str = "";
                             getToken();
-                            if (tokType == QUTEDSTR) {
-                                str = token;
-                            } else if (tokType == SVARIABLE) {
-                                putBack();
-                                strOpe();
-                                if (!resultStr.isEmpty()) {
-                                    str = resultStr;
+                            if (token.equals("(")) {
+                                getToken();
+                                if (tokType == QUTEDSTR) {
+                                    str = token;
+                                } else if (tokType == SVARIABLE) {
+                                    putBack();
+                                    strOpe();
+                                    if (!resultStr.isEmpty()) {
+                                        str = resultStr;
+                                    }
+                                } else {
+                                    // エラー
+                                    Log.w("atom:LEN", "invalid param.");
+                                    handleErr(ERR_SYNTAX);
+                                }
+                                getToken();
+                                if (!token.equals(")")) {
+                                    Log.w("atom:LEN", "')'is not found.");
+                                    handleErr(ERR_SYNTAX);
                                 }
                             } else {
                                 // エラー
-                                Log.w("atom:LEN", "invalid param.");
+                                Log.w("atom:LEN", "'('is not found.");
                                 handleErr(ERR_SYNTAX);
                             }
-                            getToken();
-                            if (!token.equals(")")) {
-                                Log.w("atom:LEN", "')'is not found.");
-                                handleErr(ERR_SYNTAX);
-                            }
-                        } else {
-                            // エラー
-                            Log.w("atom:LEN", "'('is not found.");
-                            handleErr(ERR_SYNTAX);
+                            BigDecimal tmp = new BigDecimal(str.length());
+                            result = tmp;
                         }
-                        result = str.length();
 
                         /*
                         do {
@@ -2679,7 +2791,9 @@ public class SBasic {
                         */
 
                         try {
-                            result = Integer.parseInt(str);
+                            //result = Integer.parseInt(str);
+                            BigDecimal tmp = new BigDecimal(str);
+                            result = tmp;
                         } catch (NumberFormatException e) {
                             Log.w("atom:VAL", "Number format exception occured.");
                             handleErr(ERR_SYNTAX);
@@ -2696,14 +2810,14 @@ public class SBasic {
                 handleErr(ERR_SYNTAX);
                 break;
         }
-        Log.w("atom", String.format("ret=%e", result));
+        Log.w("atom", String.format("ret=%s", result.toPlainString()));
         return result;
     }
 
-    private double findVar(String vname) throws InterpreterException {
+    private BigDecimal findVar(String vname) throws InterpreterException {
         if (!Character.isLetter(vname.charAt(0))) {
             handleErr(ERR_SYSTEM);
-            return 0.0;
+            return BigDecimal.ZERO;
         }
         int var = Character.toUpperCase(vname.charAt(0)) - 'A';
         if (var >= 26) {
@@ -2716,10 +2830,10 @@ public class SBasic {
         return vars[Character.toUpperCase(vname.charAt(0)) - 'A'];
     }
 
-    private double findVar(String vname, int offset) throws InterpreterException {
+    private BigDecimal findVar(String vname, int offset) throws InterpreterException {
         if (!Character.isLetter(vname.charAt(0))) {
             handleErr(ERR_SYSTEM);
-            return 0.0;
+            return BigDecimal.ZERO;
         }
         int var = Character.toUpperCase(vname.charAt(0)) - 'A';
         if (var >= 26) {
@@ -2799,7 +2913,7 @@ public class SBasic {
             exvars = null;
             exsvars = null;
         } else if (exvars == null || exvars.length != n) {
-            exvars = new double[n];
+            exvars = new BigDecimal[n];
             exsvars = new String[n];
             for (int i = 0; i < n; i++) {
                 exsvars[i] = "";
@@ -2866,7 +2980,7 @@ public class SBasic {
         }
 
         ch = (char)(prog[pc]&0xff);
-        if (ch == '<' || ch == '>') {
+        if (ch == '<' || ch == '>' || ch == '!' || ch == '=') {
             if (pc + 1 == idxEnd + 1) handleErr(ERR_SYNTAX);
 
             switch (ch) {
@@ -2889,6 +3003,26 @@ public class SBasic {
                     } else {
                         pc++;
                         token = ">";
+                    }
+                    break;
+                case '!':
+                    if (prog[pc + 1] == '=') {
+                        pc +=2;
+                        token = String.valueOf(_NE);
+                    } else {
+                        Log.w("getToken", "illegal charactors");
+                        handleErr(ERR_SYNTAX);
+                        //pc++;
+                        //token = "!";
+                    }
+                    break;
+                case '=':
+                    if (prog[pc + 1] == '=') {
+                        pc +=2;
+                        token = "=";
+                    } else {
+                        pc++;
+                        token = "=";
                     }
                     break;
             }
@@ -3049,9 +3183,6 @@ public class SBasic {
     }
 
     private boolean isDelim(int c) {
-        //char ne = 0xf2;
-        //char le = 0xf4;
-        //char ge = 0xf5;
         if ((" \n,;<>+-/*%^=():"+_NE+_LE+_GE).indexOf(c) != -1) {
             return true;
         }
@@ -3142,8 +3273,8 @@ public class SBasic {
             msg = String.format("pc=%d %s(%d) P%d-%s", pc, err[error], error, bank, key);
             lcdPrintAndPause(String.format("ERR%d P%d-%s", error, bank, key));
         }
-        //debugText = msg;
         Log.w("handleErr", msg);
+        debugText = msg;
         throw  new InterpreterException(err[error]);
     }
 
