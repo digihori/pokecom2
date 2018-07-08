@@ -5,7 +5,6 @@ import android.util.Log;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.*;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
@@ -92,9 +91,9 @@ public class SBasic {
     final int READ = 27;
     final int DATA = 28;
     final int RESTORE = 29;
+    final int SET  = 30;
 
     final int FUNC_DUMMY = 50;
-    final int SET  = 51;
     final int LEN  = 52;
     final int MID  = 53;
     final int VAL  = 54;
@@ -322,29 +321,66 @@ public class SBasic {
         lcd.print12(str);
     }
 
+    private int setEn = -1;
+    private int setFn = -1;
     private String numberFormat(BigDecimal bd) {
         if (bd == null) return null;
         String str;
-        double d = bd.doubleValue();
-        if (d == 0) {
-            str = String.format(Locale.US, "%.8g", 0d);
-        } else if (d > 0) {
-            str = String.format(Locale.US, "%.8g", d);
+        String fmt;
+        if (0 <= setFn && setFn <=9) {
+            bd = bd.setScale(setFn, BigDecimal.ROUND_HALF_UP);
+            Log.w("numberFormat", String.format("setScale=%d", setFn));
+            double d = bd.doubleValue();
+            if (d >= 0) {
+                str = String.format(Locale.US, "%.11g", d);
+            } else {
+                str = String.format(Locale.US, "%.10g", d);
+            }
+        } else if (0 <= setEn && setEn <= 8) {
+            //fmt = "%."+String.valueOf(setEn)+"g";
+            //Log.w("numberFormat", fmt);
+            fmt = "0.";
+            int d = setEn;
+            if (d == 0) d = 8;
+            if (bd.compareTo(BigDecimal.ZERO) < 0 && d == 8) d = 7;
+            while (d-- > 1) {
+                fmt += "0";
+            }
+            fmt += "E00";
+            //Log.w("numberFormat", fmt);
+            Locale.setDefault(Locale.US);
+            DecimalFormat df = new DecimalFormat(fmt);
+            str = df.format(bd.doubleValue());
+            Log.w("numberFormat", String.format("fmt=%s out='%s'", fmt, str));
         } else {
-            str = String.format(Locale.US, "%.7g", d);
+            double d = bd.doubleValue();
+            if (d == 0) {
+                str = String.format(Locale.US, "%.11g", 0d);
+            } else if (d > 0) {
+                //str = String.format(Locale.US, "%.8g", d);
+                str = String.format(Locale.US, "%.11g", d);
+            } else {
+                str = String.format(Locale.US, "%.10g", d);
+            }
         }
 
         // 一旦指数部を切り離す
-        String[] temp = str.split("(?=[Ee][\\+\\-])", 2);
+        String[] temp = str.split("(?=[Ee][\\+\\-]{0,1})", 2);
         // 小数点以下の末尾の0を削除する
-        temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
+        if (setEn == -1) {
+            temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
+            if (temp.length > 1 && temp[0].length() > 9) {
+                temp[0] = temp[0].substring(0, 9);
+            }
+        }
         // 文字列を作り直す
         str = temp[0];
         if (temp.length > 1) str += temp[1];
         // exponential記号を特殊記号に書き換える
-        str = str.replaceAll("[Ee]\\+", String.valueOf(_EX));
         str = str.replaceAll("[Ee]\\-", String.valueOf(_EM));
+        str = str.replaceAll("[Ee]\\+{0,1}", String.valueOf(_EX));
 
+        Log.w("numberFormat", str);
         return str;
     }
 
@@ -467,8 +503,8 @@ public class SBasic {
         sbInterp();
     }
 
-    public void calc(String s) throws InterpreterException {
-        if (s == "") return;
+    public int calc(String s) throws InterpreterException {
+        if (s == "") return 0;
 
         //Log.w("calc", "exe");
         lcd.cls();
@@ -485,10 +521,11 @@ public class SBasic {
             idxEnd = size - 1;
         }
         cmdLine = s;
-        sbCmd();
+        int ret = sbCmd();
+        return ret;
     }
 
-    private void sbCmd() throws InterpreterException {
+    private int sbCmd() throws InterpreterException {
 
         boolean strOpe = false;
 
@@ -515,7 +552,7 @@ public class SBasic {
                         Log.w("SBasic", String.format("--- RUN(%d) ---", bank));
                         pb.progStart();
                     }
-                    return;
+                    return 1;
                 //break;
                 case LIST:
                     if (mode == MODE_RUN) {
@@ -545,12 +582,12 @@ public class SBasic {
                         }
                         //lcd.print(s, 0);
                     }
-                    return;
+                    return 1;
 
                 case VAC:
                     Log.w("SBasic", String.format("--- VAC ---"));
                     vac();
-                    return;
+                    return 1;
                 case CLEAR:
                     if (mode == MODE_PRO) {
                         getToken();
@@ -564,7 +601,7 @@ public class SBasic {
                     } else {
                         handleErr(ERR_SYNTAX);
                     }
-                    return;
+                    return 1;
                 case DEFM:
                     getToken();
                     if (token.equals(EOP)) {
@@ -588,7 +625,7 @@ public class SBasic {
                     } else {
                         handleErr(ERR_SYNTAX);
                     }
-                    return;
+                    return 1;
                 case SAVE:
                     getToken();
                     if (token.equals("A")) {
@@ -601,12 +638,15 @@ public class SBasic {
                     //printSaveStatus();
                     mode = MODE_SAVE;
                     waveout.savea();
-                    return;
+                    return 1;
                 case LOAD:
-                    return;
+                    return 0;
                 case BEEP:
                     beep();
-                    return;
+                    return 0;
+                case SET:
+                    execSet();
+                    return 0;
                 default:
                     Log.w("sbCmd", "Syntax error.");
                     handleErr(ERR_SYNTAX);
@@ -643,7 +683,7 @@ public class SBasic {
                 Log.w("sbCmd", String.format("delete line='%s'", cmdLine));
                 lcd.cls();
             }
-            return;
+            return 1;
 
         } else {
             //Log.w("sbCmd2", String.format("pc=%d", pc));
@@ -662,6 +702,7 @@ public class SBasic {
             lcdPrint(lastAns);
             //lcdPrintln();
         }
+        return 1;
     }
 
     public void saveend() {
@@ -717,6 +758,7 @@ public class SBasic {
             } else if (tokType == COMMAND) {
                 switch (kwToken) {
                     case VAC:
+                    case CLEAR: // プログラム動作時のCLEARはVACと同じ処理とする
                         vac();
                         break;
                     case PRINT:
@@ -769,6 +811,9 @@ public class SBasic {
                         break;
                     case BEEP:
                         beep();
+                        break;
+                    case SET:
+                        execSet();
                         break;
                 }
             } else if (tokType == DELIMITER) {
@@ -1764,7 +1809,8 @@ public class SBasic {
 
     private void restore() throws InterpreterException {
         getToken();
-        if (tokType == EOL || token.equals(":")) {
+        Log.w("restore", String.format("exec:tokType=%d", tokType));
+        if (kwToken == EOL || token.equals(":")) {
             Log.w("restore", "index was cleared.");
             rdataIdx = 0;
         } else if (tokType == NUMBER) {
@@ -1788,7 +1834,7 @@ public class SBasic {
             handleErr(ERR_SYNTAX);
         }
 
-        findEOS();
+        //findEOS();
     }
 
     private void rem() throws InterpreterException {
@@ -1809,12 +1855,50 @@ public class SBasic {
             } else {
                 // パラメータエラー
                 Log.w("beep", "invalid parameter1");
-                handleErr(ERR_ARGUMENT);
+                handleErr(ERR_VARIABLE);
             }
         } else {
             // パラメータエラー
             Log.w("beep", "invalid parameter2");
-            handleErr(ERR_ARGUMENT);
+            handleErr(ERR_VARIABLE);
+        }
+    }
+
+
+    private void execSet() throws InterpreterException {
+        Log.w("execSet", "called.");
+        getToken();
+        if (token.equals(EOP) || kwToken == EOL || token.equals(":")) {
+            // パラメータエラー
+            Log.w("execSet", "invalid parameter1");
+            handleErr(ERR_SYNTAX);
+        } else if (1 <= token.length() && token.length() <= 2) {
+            char c1 = token.charAt(0);
+            char c2 = token.length() > 1 ? token.charAt(1) : '\0';
+            if (c1 == 'E' && '0' <= c2 && c2 <= '8') {
+                //
+                setEn = c2 - '0';
+                setFn = -1;
+                Log.w("execSet", String.format("SET %c%c", c1, c2));
+            } else if (c1 == 'F' && '0' <= c2 && c2 <= '9') {
+                //
+                setFn = c2 - '0';
+                setEn = -1;
+                Log.w("execSet", String.format("SET %c%c", c1, c2));
+            } else if (c1 == 'N') {
+                //
+                setEn = -1;
+                setFn = -1;
+                Log.w("execSet", String.format("SET %c", c1));
+            } else {
+                // パラメータエラー
+                Log.w("execSet", "invalid parameter2");
+                handleErr(ERR_SYNTAX);
+            }
+        } else {
+            // パラメータエラー
+            Log.w("execSet", "invalid parameter3");
+            handleErr(ERR_SYNTAX);
         }
     }
 
@@ -2211,7 +2295,8 @@ public class SBasic {
                 case '/':
                     if (partialResult.compareTo(BigDecimal.ZERO) == 0) handleErr(ERR_MATH);
                     //result = result / partialResult;
-                    int scale = result.signum()*partialResult.signum() >= 0 ? 10 : 9;
+                    //int scale = result.signum()*partialResult.signum() >= 0 ? 10 : 9;
+                    int scale = 99;
                     //a = a.divide(b, scale, BigDecimal.ROUND_HALF_UP);
                     result = result.divide(partialResult, scale, RoundingMode.HALF_UP);
                     break;

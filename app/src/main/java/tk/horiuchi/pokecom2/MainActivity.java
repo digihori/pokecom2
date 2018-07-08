@@ -564,14 +564,17 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     } else {
                         String s = lcd.getCmdBuf();
                         if (s == null) break;
+                        int result = 0;
                         try {
                             Log.w("EXE", String.format("%s", s));
-                            basic.calc(lcd.getCmdBuf());
+                            result = basic.calc(lcd.getCmdBuf());
                         } catch (InterpreterException e) {
                             Log.w("Main", String.format("error='%s'", e.toString()));
                         }
                         //initial = true;
-                        resultDisp = true;
+                        if (result != 0) {
+                            resultDisp = true;
+                        }
                         cmdHistory[idxHistory++&7] = s;
                         //idxHistory++;
                         for (int i = 0; i < 8; i++) {
