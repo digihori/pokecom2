@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Vibrator;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -31,12 +33,25 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.IllegalFormatCodePointException;
 import java.util.IllegalFormatException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static android.util.DisplayMetrics.DENSITY_280;
+import static android.util.DisplayMetrics.DENSITY_360;
+import static android.util.DisplayMetrics.DENSITY_400;
+import static android.util.DisplayMetrics.DENSITY_420;
+import static android.util.DisplayMetrics.DENSITY_560;
+import static android.util.DisplayMetrics.DENSITY_HIGH;
+import static android.util.DisplayMetrics.DENSITY_LOW;
+import static android.util.DisplayMetrics.DENSITY_MEDIUM;
+import static android.util.DisplayMetrics.DENSITY_TV;
+import static android.util.DisplayMetrics.DENSITY_XHIGH;
+import static android.util.DisplayMetrics.DENSITY_XXHIGH;
+import static android.util.DisplayMetrics.DENSITY_XXXHIGH;
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
 import static tk.horiuchi.pokecom2.Common.MODE_SAVE;
@@ -122,6 +137,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         setContentView(R.layout.activity_main);
 
+        String s = (String)findViewById(R.id.activity_main).getTag();
+        Log.w("Main", String.format("activity_main='%s'\n", s));
+
         // ファイルIOのパーミッション関係の設定
         verifyStoragePermissions(this);
 
@@ -134,15 +152,46 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // dp->px変換のためにDisplayMetricsを取得しておく
         DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        Display display = getWindowManager().getDefaultDisplay();
+        display.getMetrics(metrics);
+
+        Point point = new Point(0, 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            // Android 4.2-
+            display.getRealSize(point);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            // Android 3.2-
+            try {
+                Method getRawWidth = Display.class.getMethod("getRawWidth");
+                Method getRawHeight = Display.class.getMethod("getRawHeight");
+                int width = (Integer) getRawWidth.invoke(display);
+                int height = (Integer) getRawHeight.invoke(display);
+                point.set(width, height);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            // 流石にこれより古いバージョンは見ない
+        }
+
+        //DisplayMetrics metrics = new DisplayMetrics();
+        //getWindowManager().getDefaultDisplay().getMetrics(metrics);
         dpdx_org = dpdx = metrics.density;
-        Log.w("Main", String.format("widthPixels=%d\n", metrics.widthPixels));
-        Log.w("Main", String.format("heightPixels=%d\n", metrics.heightPixels));
+        //Log.w("Main", String.format("widthPixels=%d\n", metrics.widthPixels));
+        Log.w("Main", String.format("widthPixels=%d\n", point.x));
+        //Log.w("Main", String.format("heightPixels=%d\n", metrics.heightPixels));
+        Log.w("Main", String.format("heightPixels=%d\n", point.y));
         Log.w("Main", String.format("Xdpi=%f\n", metrics.xdpi));
         Log.w("Main", String.format("Ydpi=%f\n", metrics.ydpi));
         Log.w("Main", String.format("density=%f\n", metrics.density));
-        Log.w("Main", String.format("densityDpi=%d\n", metrics.densityDpi));
+        Log.w("Main", String.format("densityDpi=%d(%s)\n", metrics.densityDpi, getGeneralizedDensity(metrics.densityDpi)));
         Log.w("Main", String.format("scaledDensity=%f\n", metrics.scaledDensity));
+
+        double inchX = metrics.widthPixels / metrics.xdpi;
+        double inchY = metrics.heightPixels /metrics.ydpi;
+        double inch = Math.sqrt(inchX * inchX + inchY * inchY);
+        Log.w("Main", String.format("inch=%2.2f\n", inch));
+
         // デバイスタイプとスケールの設定
         if (getResources().getBoolean(R.bool.is_7inch)) {
             deviceType = type7inch;
@@ -150,7 +199,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 // nexus7(2012) tvdpi の時はスケール２倍
                 dpdx = 2.1f;
             } else if (dpdx_org == 1.0f) {
-                dpdx = 1.6f;    // mdpi の時はスケール1.5倍
+                dpdx = 1.7f;    // mdpi の時はスケール1.5倍
             } else {
                 // それ以外（多分xhdpiしかない？）の時はスケール３倍
                 dpdx = 3.1f;
@@ -158,21 +207,33 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             Log.w("Main", String.format("deviceType=7inch tablet(%d) scale=%f\n", deviceType, dpdx));
         } else if (getResources().getBoolean(R.bool.is_10inch)) {
             deviceType = type10inch;
-            dpdx = dpdx_org * 2;    // スケールは2倍
-            //if (dpdx_org == 1.5f) {
-            //    dpdx = 3f;
-            //} else {
-            //    dpdx = 4f;
-            //}
+            //dpdx = dpdx_org * 2;    // スケールは2倍
+            if (dpdx_org == 1.0f) {
+                dpdx = 2.1f;
+            } else if (dpdx_org == 1.5f) {
+                dpdx = 3.1f;
+            } else {
+                dpdx = dpdx_org * 2 + 0.1f;
+            }
             Log.w("Main", String.format("deviceType=10inch tablet(%d) scale=%f\n", deviceType, dpdx));
         } else {
             deviceType = typePhone;
-            if (dpdx_org == 1.5f) {
+            if (point.x <= 800 && dpdx_org == 1.5f) {
                 // hdpiの時は少し小さめにする
                 dpdx = 1.3f;
+            } else if (dpdx_org == 3.0f) {
+                if (point.x >= 2280) {
+                    dpdx = 3.2f;
+                } else if (point.x > 1920) {
+                    dpdx = 3.1f;
+                }
+                // xxdpiで幅が1920より大きい端末は少し大きめにする
+                //dpdx = 3.1f;
             } else if (dpdx_org == 3.5f) {
                 // xxxhdpiの時は少し大きめにする
                 dpdx = 4.0f;
+            } else if (dpdx_org == 4.0f) {
+                dpdx = 4.1f;
             }
             Log.w("Main", String.format("deviceType=phone(%d) scale=%f\n", deviceType, dpdx));
         }
@@ -251,6 +312,24 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         waveout = new WaveOut();
         waveout.setReference(this);
+    }
+
+    private String getGeneralizedDensity(int dpi) {
+        switch (dpi) {
+            default: return("mdpi");
+            case DENSITY_LOW: return("ldpi");
+            case DENSITY_MEDIUM: return("mdpi");
+            case DENSITY_TV: return("tvdpi");
+            case DENSITY_HIGH: return("hdpi");
+            case DENSITY_280: return("DENSITY_280");
+            case DENSITY_XHIGH: return("xhdpi");
+            case DENSITY_360: return("DENSITY_360");
+            case DENSITY_400: return("DENSITY_400");
+            case DENSITY_420: return("DENSITY_420");
+            case DENSITY_XXHIGH: return("xxhdpi");
+            case DENSITY_560: return("DENSITY_560");
+            case DENSITY_XXXHIGH: return("xxxhdpi");
+        }
     }
 
     private void deviceReset() {

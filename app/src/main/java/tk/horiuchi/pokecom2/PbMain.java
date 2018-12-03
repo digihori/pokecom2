@@ -114,7 +114,7 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
             Paint p = new Paint();
 
             x_org = 18;
-            y_org = 30;
+            y_org = 40;
             stp_x = 5;
             stp_y = 6;
             d_row=7;
