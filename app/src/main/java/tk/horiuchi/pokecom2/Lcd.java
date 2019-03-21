@@ -488,7 +488,7 @@ public class Lcd {
 
     private void printDigit(int x, int c) {
         int index = x * 5;
-        for (int i = 0; i < charData.length; i++) {
+        for (int i = 0; i < charData.length && index + 4 < digi.length; i++) {
             if (charData[i].code == c) {
                 digi[index] = (byte) ((charData[i].gdata >> 32) & 0xff);
                 digi[index + 1] = (byte) ((charData[i].gdata >> 24) & 0xff);
