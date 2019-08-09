@@ -2766,7 +2766,7 @@ public class SBasic {
                         {
                             BigDecimal tmp = new BigDecimal(Math.PI);
                             result = tmp;
-                            //getToken();
+                            getToken();
                         }
                         break;
 

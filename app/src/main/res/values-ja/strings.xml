@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Pokecom GO2</string>
+    <string name="app_name">Pokecom GO</string>
 
     <string name="action_settings">Settings</string>
 
@@ -30,7 +30,7 @@
     <string name="debug_checkbox_summary">Enable the function to display debugging information.</string>
 
 
-    <string name="about_title">About Pokecom GO2</string>
+    <string name="about_title">About Pokecom GO</string>
     <string name="about_body">
         CASIO PB-100のシミュレータです。\n
         初期のPB-100の頃の独特なBASICを再現しています。\n
