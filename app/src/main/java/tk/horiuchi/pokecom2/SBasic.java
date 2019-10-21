@@ -539,6 +539,10 @@ public class SBasic {
 
             putBack();
             assignment();
+        } else if (tokType == QUTEDSTR) {
+            putBack();
+            //Log.w("sbCmd", "xxxx");
+            strOpe = strOpe();
         } else if (tokType == COMMAND) {
             switch (kwToken) {
                 case RUN:
@@ -686,19 +690,27 @@ public class SBasic {
             return 1;
 
         } else {
-            //Log.w("sbCmd2", String.format("pc=%d", pc));
-            putBack();
-            //Log.w("sbCmd2", String.format("pc=%d", pc));
-            lastAns = evaluate();
-            //Log.w("sbCmd2", String.format("%d", lastAns.intValue()));
+            if (tokType == FUNCTION && (kwToken == MID || kwToken == STR)) {
+                // MIDとSTRは文字列操作
+                putBack();
+                //Log.w("sbCmd", "bbbbb");
+                strOpe = strOpe();
+            } else {
+                //Log.w("sbCmd2", String.format("pc=%d", pc));
+                putBack();
+                //Log.w("sbCmd2", String.format("pc=%d", pc));
+                //Log.w("sbCmd", "aaaa");
+                lastAns = evaluate();
+                //Log.w("sbCmd2", String.format("%d", lastAns.intValue()));
+            }
         }
 
         if (strOpe) {
-            Log.w("sbCmd", String.format("ans=%s", resultStr));
+            Log.w("sbCmd", String.format("string ans=%s", resultStr));
             lcdPrint(resultStr);
 
         } else {
-            Log.w("sbCmd", String.format("ans=%s", lastAns.toPlainString()));
+            Log.w("sbCmd", String.format("value ans=%s", lastAns.toPlainString()));
             lcdPrint(lastAns);
             //lcdPrintln();
         }
@@ -1108,16 +1120,21 @@ public class SBasic {
                 //Log.w("PRT", String.format("tokType=QUTEDSTR(%d)", tokType));
                 //System.out.print(token);
                 //lcdPrint(token);
+                putBack();
+                strOpe();
                 if (sb == null) {
-                    prtStr += token;
+                    //prtStr += token;
+                    prtStr += resultStr;
                 } else {
-                    sb.replace(pos, pos + token.length(), token);
-                    pos += token.length();
+                    //sb.replace(pos, pos + token.length(), token);
+                    //pos += token.length();
+                    sb.replace(pos, pos + resultStr.length(), resultStr);
+                    pos += resultStr.length();
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
                 //Log.w("PRT", String.format("%s", token));
                 //len += token.length();
-                getToken();
+                //getToken();
             } else if (tokType == VARIABLE || tokType == NUMBER ||
                     tokType == DELIMITER && (token.equals("+") || token.equals("-"))) {
                 lastDelim = "";
@@ -1904,6 +1921,7 @@ public class SBasic {
 
     //****************************************************
     private boolean strOpe() throws InterpreterException {
+        //Log.w("strOpe", String.format("exec : token='%s' tokType=%d", token, tokType));
         boolean result;
         getToken();
         if (token.equals(EOP)) {
@@ -1995,7 +2013,7 @@ public class SBasic {
         str1 = resultStr;
 
         while ((op = token.charAt(0)) == '+') {
-            //Log.w("eval2", String.format("op=%c", op));
+            Log.w("eval2", String.format("op=%c", op));
             getToken();
             //Log.w("eval2", String.format("next token=%s", token));
             strOpe3();
@@ -2046,6 +2064,7 @@ public class SBasic {
             case QUTEDSTR:
                 Log.w("strOpe3", "QUTERSTR");
                 resultStr = token;
+                result = true;
                 getToken();
                 break;
             case FUNCTION:
@@ -2085,6 +2104,7 @@ public class SBasic {
                                 result = true;
                                 //Log.w("strOpe3", String.format("m=%d ret='%s'", m, resultStr));
                                 getToken();
+                                Log.w("---- MID2", token);
                             } else if (token.equals(",")) {
                                 getToken();
                                 putBack();
@@ -2113,24 +2133,30 @@ public class SBasic {
                         //Log.w("strOpe3", "STR");
                         getToken();
                         //Log.w("---STR1", token);
+                        //Log.w("---STR1", String.format("%d %s", pc, token));
                         if (token.equals("(")) {
                             getToken();
+                            //Log.w("---STR2", String.format("%d %s", pc, token));
                             int x = 0;
                             if (tokType == NUMBER || tokType == VARIABLE) {
                                 putBack();
+                                //Log.w("---STR31", String.format("%d %s", pc, token));
                                 x = evaluate().intValue();
+                                getToken();
+                                //Log.w("---STR32", String.format("%d %s", pc, token));
                             } else {
                                 // エラー
-                                Log.w("strOpe3", String.format("STR:illegal parameters('%s').", token));
+                                Log.w("strOpe", String.format("STR:illegal parameters('%s').", token));
                                 handleErr(ERR_SYNTAX);
                             }
                             //Log.w("---STR2", ""+x);
+                            //Log.w("---STR4", String.format("%d %s", pc, token));
                             if (token.equals(")") || token.equals(":") || kwToken == EOL) {
                                 resultStr = String.valueOf(x);
                                 result = true;
-                                Log.w("strOpe3", String.format("STR:ret='%s'", resultStr));
+                                Log.w("strOpe5", String.format("STR:ret='%s'", resultStr));
                                 getToken();
-                                //Log.w("---STR3", token);
+                                //Log.w("---STR6", String.format("%d %s", pc, token));
                             }
                         } else {
                             handleErr(ERR_SYNTAX);
@@ -3014,7 +3040,9 @@ public class SBasic {
     private void putBack() {
         //if  (token == EOP) return;
         if (pc < 1) return;
-        for (int i = 0; i < token.length(); i++) {
+        int length = token.length() + (tokType == QUTEDSTR ? 2 : 0);
+        if (tokType == QUTEDSTR) Log.w("putBack", "!!!!");
+        for (int i = 0; i < length; i++) {
             if (pc > 0) pc--;
         }
         //Log.w("putBack", "pc="+pc);
