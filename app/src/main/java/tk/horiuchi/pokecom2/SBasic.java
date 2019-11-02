@@ -1103,9 +1103,9 @@ public class SBasic {
 
         boolean paramExist = false;
         do {
-            Log.w("PRT", "Exec PRINT do !!!!");
+            //Log.w("PRT", "Exec PRINT do !!!!");
             getToken();
-            Log.w("PRT", String.format("token=%s", token));
+            //Log.w("PRT", String.format("token=%s", token));
             if (kwToken == EOL || token.equals(EOP) || tokType != QUTEDSTR && token.equals(":")) {
                 if (!paramExist) {
                     prtStr = "";
@@ -1244,9 +1244,9 @@ public class SBasic {
                 lcdPrintAndPause(prtStr);
                 prtStr = "";
                 if (token.equals(",")) {
-                    Log.w("pre putBack", String.format("%d %s", pc, token));
+                    //Log.w("pre putBack", String.format("%d %s", pc, token));
                     putBack();
-                    Log.w("after putBack", String.format("%d %s", pc, token));
+                    //Log.w("after putBack", String.format("%d %s", pc, token));
                     printPause = true;
                 }
             }
