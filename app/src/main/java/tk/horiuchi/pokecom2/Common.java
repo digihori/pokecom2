@@ -71,7 +71,7 @@ public class Common {
     /*c0*/  "SAVE", "LOAD", "\0", "LET", "REM", "ON", "READ", "DATA", "RESTORE", "MID$", "STR$", "BEEP", "\0", "\0", "\0", "\0",
     /*d0*/  "SIN", "COS", "TAN", "ASN", "ACS", "ATN", "LOG", "LN", "EXP", "SQR", "ABS", "SGN", "INT", "FRAC", "\0", "\0",
     /*e0*/  "\\CI", "\\SQ", "\\TR", "\\CR", "\\DV", "\\SP", "\\HT", "\\DI", "\\CL", "\\BX", "\\DT", "\\DG", "\\SG", "\\OM", "\\MU", "\0",
-    /*f0*/  "\\EX", "\\EM", "\\NE", "\\PI", "\\LE", "\\GE", "\\LA", "\\DA", "\\RA", "\0", "\0", "\0", "\0", "\0", "\0", "\0"
+    /*f0*/  "\\EX", "\\EM", "\\NE", "\\PI", "\\LE", "\\GE", "\\LA", "\\DA", "\\RA", "\\UA", "\0", "\0", "\0", "\0", "\0", "\0"
     };
 
     // CASIO PB-100 コード体系

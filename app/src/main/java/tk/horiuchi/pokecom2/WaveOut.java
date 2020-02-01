@@ -20,6 +20,10 @@ import static tk.horiuchi.pokecom2.MainActivity.source;
 
 public class WaveOut {
     private byte[] mByteArray = null;
+    private byte[] mByteArray0 = null;
+    private byte[] mByteArray1 = null;
+    private AudioTrack mBeepTrack0 = null;
+    private AudioTrack mBeepTrack1 = null;
     private AudioTrack mAudioTrack = null;
     private ICallBack reference = null;
     private int linenum_top = 0;
@@ -77,6 +81,22 @@ public class WaveOut {
 
     public WaveOut() {
         Log.w("WaveOut", "created");
+    }
+
+    // audioTrackの解放処理
+    // これでいいのかよくわからんが
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if (mAudioTrack != null) {
+            mAudioTrack.release();
+        }
+        if (mBeepTrack0 != null) {
+            mBeepTrack0.release();
+        }
+        if (mBeepTrack1 != null) {
+            mBeepTrack1.release();
+        }
+        Log.w("WaveOut", "--- finalize!!! ---");
     }
 
     // BASIC プログラムの保存
@@ -310,42 +330,116 @@ public class WaveOut {
 
     public void beep0() {
         // 1200Hz
-        byte[] data = new byte[d1.length*30];
+        /*
+        byte[] data = new byte[d0.length*30];
         int p = 0;
         for (int i = 0; i < 30; i++ ){
-            for (int j = 0; j < d1.length; j++) data[p++] = d0[j];
+            for (int j = 0; j < d0.length; j++) data[p++] = d0[j];
         }
         makeBeepTrack(data);
+         */
+        // byte配列を生成し、音データを読み込む
+        if (mByteArray0 == null) {
+            mByteArray0 = new byte[d0.length*30];
+            int p = 0;
+            for (int i = 0; i < 30; i++ ){
+                for (int j = 0; j < d0.length; j++) mByteArray0[p++] = d0[j];
+            }
+        }
+
+        if (mBeepTrack0 == null) {
+            // AudioTrackを生成する
+            // (22kHz、モノラル、8bitの音声データ)
+            mBeepTrack0 = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    22050,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT,
+                    mByteArray0.length,
+                    AudioTrack.MODE_STATIC);
+
+            // 音声データを書き込む
+            mBeepTrack0.write(mByteArray0, 0, mByteArray0.length);
+        } else if(mBeepTrack0.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            mBeepTrack0.stop();
+        }
+
+        // 再生開始
+        //mAudioTrack.reloadStaticData();
+        mBeepTrack0.play();
+
     }
     public void beep1() {
         // 2400Hz
+        /*
         byte[] data = new byte[d1.length*30];
         int p = 0;
         for (int i = 0; i < 30; i++ ){
             for (int j = 0; j < d1.length; j++) data[p++] = d1[j];
         }
         makeBeepTrack(data);
-    }
-    private void makeBeepTrack(byte [] in) {
+
+         */
         // byte配列を生成し、音データを読み込む
-        mByteArray = new byte[in.length];
-        for (int i = 0; i < in.length; i++) {
-            mByteArray[i] = in[i];
+        if (mByteArray1 == null) {
+            mByteArray1 = new byte[d1.length*30];
+            int p = 0;
+            for (int i = 0; i < 30; i++ ){
+                for (int j = 0; j < d1.length; j++) mByteArray1[p++] = d1[j];
+            }
         }
 
-        // AudioTrackを生成する
-        // (22kHz、モノラル、8bitの音声データ)
-        mAudioTrack = new AudioTrack(
-                AudioManager.STREAM_MUSIC,
-                22050,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_8BIT,
-                in.length,
-                AudioTrack.MODE_STATIC);
+        if (mBeepTrack1 == null) {
+            // AudioTrackを生成する
+            // (22kHz、モノラル、8bitの音声データ)
+            mBeepTrack1 = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    22050,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT,
+                    mByteArray1.length,
+                    AudioTrack.MODE_STATIC);
 
-        // 音声データを書き込む
-        mAudioTrack.write(mByteArray, 0, mByteArray.length);
+            // 音声データを書き込む
+            mBeepTrack1.write(mByteArray1, 0, mByteArray1.length);
+        } else if(mBeepTrack1.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            mBeepTrack1.stop();
+        }
+
         // 再生開始
+        //mAudioTrack.reloadStaticData();
+        mBeepTrack1.play();
+
+    }
+
+    private void makeBeepTrack(byte [] in) {
+        // byte配列を生成し、音データを読み込む
+        if (mByteArray == null) {
+            mByteArray = new byte[in.length];
+            for (int i = 0; i < in.length; i++) {
+                mByteArray[i] = in[i];
+            }
+        }
+
+        if (mAudioTrack == null) {
+            // AudioTrackを生成する
+            // (22kHz、モノラル、8bitの音声データ)
+            mAudioTrack = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    22050,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT,
+                    in.length,
+                    AudioTrack.MODE_STATIC);
+
+            // 音声データを書き込む
+            mAudioTrack.write(mByteArray, 0, mByteArray.length);
+        } else if(mAudioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            mAudioTrack.stop();
+        }
+
+        // 再生開始
+        //mAudioTrack.reloadStaticData();
         mAudioTrack.play();
     }
 

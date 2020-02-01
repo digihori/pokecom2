@@ -915,7 +915,12 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                                     for (int jj = 0xe0; jj <= 0xff; jj++) {
                                         //Log.w("LOG", String.format("j=%02x='%s'(%d)", j, cmdTable[j], cmdTable[j].length()));
                                         if (cmdTable[jj].equals(ss)) {
-                                            dest[w++] = jj;  // エスケープ文字を内部コードに変換する
+                                            if (jj == 0xf9) {
+                                                dest[w++] = 0x5e;
+                                                // 0xf9 は上矢印で定義しているが内部的には'^'で使っているため変換する
+                                            } else {
+                                                dest[w++] = jj;  // エスケープ文字を内部コードに変換する
+                                            }
                                             //Log.w("LOG", String.format("s='%s'(%d)=%x", cmdTable[j], cmdTable[j].length(), j));
                                         }
                                     }
@@ -1060,15 +1065,15 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                             char c = temp[j].charAt(k);
                             if (0xe0 <= c && c <= 0xff) {
                                 switch (c) {
-                                    case 0xf1:
+                                    case 0xf2:
                                         buf[l++] = '<';
                                         buf[l++] = '>';
                                         break;
-                                    case 0xf3:
+                                    case 0xf4:
                                         buf[l++] = '<';
                                         buf[l++] = '=';
                                         break;
-                                    case 0xf4:
+                                    case 0xf5:
                                         buf[l++] = '>';
                                         buf[l++] = '=';
                                         break;
