@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/activity_main"
-    android:tag="sw720dp"
+    android:tag="default"
     android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -13,7 +13,7 @@
         android:orientation="vertical">
 
         <FrameLayout
-            android:layout_weight="4"
+            android:layout_weight="@dimen/screen_weight"
             android:layout_width="match_parent"
             android:layout_height="0dp">
 
@@ -25,12 +25,9 @@
                 android:scaleType="fitXY"></ImageView>
 
             <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="32dp"
-                android:layout_marginBottom="32dp"
-                android:layout_marginLeft="48dp"
-                android:layout_marginRight="48dp">
+                android:layout_gravity="center"
+                android:layout_width="@dimen/screen_width"
+                android:layout_height="@dimen/screen_hight">
 
                 <SurfaceView
                     android:id="@+id/surfaceView"
@@ -56,23 +53,23 @@
 
                         <ImageView
                             android:id="@+id/d1"
-                            android:layout_width="28dp"
-                            android:layout_height="56dp"
+                            android:layout_width="@dimen/digit_width"
+                            android:layout_height="@dimen/digit_hight"
                             android:src="@drawable/d10" />
                         <ImageView
                             android:id="@+id/d2"
-                            android:layout_width="28dp"
-                            android:layout_height="56dp"
+                            android:layout_width="@dimen/digit_width"
+                            android:layout_height="@dimen/digit_hight"
                             android:src="@drawable/d00" />
                         <ImageView
                             android:id="@+id/d3"
-                            android:layout_width="28dp"
-                            android:layout_height="56dp"
+                            android:layout_width="@dimen/digit_width"
+                            android:layout_height="@dimen/digit_hight"
                             android:src="@drawable/d00" />
                         <ImageView
                             android:id="@+id/d4"
-                            android:layout_width="28dp"
-                            android:layout_height="56dp"
+                            android:layout_width="@dimen/digit_width"
+                            android:layout_height="@dimen/digit_hight"
                             android:src="@drawable/d00" />
                     </LinearLayout>
 
@@ -84,15 +81,15 @@
         </FrameLayout>
 
         <FrameLayout
-            android:layout_weight="6"
+            android:layout_weight="@dimen/keyboard_weight"
             android:id="@+id/frameLayout1"
             android:layout_width="match_parent"
             android:layout_height="0dp">
 
             <ImageView
                 android:id="@+id/imageViewMainkey"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@drawable/fx700p_mainkey"
                 android:scaleType="fitStart"></ImageView>
 
@@ -150,6 +147,5 @@
         </FrameLayout>
 
     </LinearLayout>
-
 
 </LinearLayout>

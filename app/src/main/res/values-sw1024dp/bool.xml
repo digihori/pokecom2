@@ -3,5 +3,5 @@
     <bool name="is_tablet">true</bool>
     <bool name="is_10inch">true</bool>
     <bool name="is_7inch">false</bool>
-    <bool name="is_sw1024dp">false</bool>
+    <bool name="is_sw1024dp">true</bool>
 </resources>

@@ -3,4 +3,12 @@
     <dimen name="textsize_small">24sp</dimen>
     <dimen name="textsize_medium">36sp</dimen>
     <dimen name="textsize_large">46sp</dimen>
+
+    <dimen name="screen_width">760dp</dimen>
+    <dimen name="screen_hight">200dp</dimen>
+    <dimen name="digit_width">32dp</dimen>
+    <dimen name="digit_hight">68dp</dimen>
+
+    <dimen name="screen_weight">4</dimen>
+    <dimen name="keyboard_weight">6</dimen>
 </resources>

@@ -9,6 +9,7 @@ import android.graphics.Point;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
@@ -84,7 +85,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean keyMode = false;
     public static boolean keyFunc = false;
     public static boolean vibrate_enable, debug_info;
-    public static boolean cpuClockEmulateEnable;
+    //public static boolean cpuClockEmulateEnable;
+    public static int cpuClockWait;
     public static boolean memoryExtension;
     public static int ui_design;
     private Vibrator vib;
@@ -195,6 +197,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         // デバイスタイプとスケールの設定
         if (getResources().getBoolean(R.bool.is_7inch)) {
             deviceType = type7inch;
+            dpdx = dpdx_org * 1.5f; // 7inchタブレットはスケールを1.5倍する
+            /*
             if (1.3f < dpdx_org && dpdx_org< 1.4f) {
                 // nexus7(2012) tvdpi の時はスケール２倍
                 dpdx = 2.1f;
@@ -204,10 +208,16 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 // それ以外（多分xhdpiしかない？）の時はスケール３倍
                 dpdx = 3.1f;
             }
+            */
             Log.w("Main", String.format("deviceType=7inch tablet(%d) scale=%f\n", deviceType, dpdx));
         } else if (getResources().getBoolean(R.bool.is_10inch)) {
             deviceType = type10inch;
-            //dpdx = dpdx_org * 2;    // スケールは2倍
+            if (getResources().getBoolean(R.bool.is_sw1024dp)) {
+                dpdx = dpdx_org * 2.4f;
+            } else {
+                dpdx = dpdx_org * 2;    // スケールは2倍
+            }
+            /*
             if (dpdx_org == 1.0f) {
                 dpdx = 2.1f;
             } else if (dpdx_org == 1.5f) {
@@ -215,9 +225,12 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             } else {
                 dpdx = dpdx_org * 2 + 0.1f;
             }
+
+            */
             Log.w("Main", String.format("deviceType=10inch tablet(%d) scale=%f\n", deviceType, dpdx));
         } else {
             deviceType = typePhone;
+            /*
             if (point.x <= 800 && dpdx_org == 1.5f) {
                 // hdpiの時は少し小さめにする
                 dpdx = 1.3f;
@@ -235,6 +248,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
             } else if (dpdx_org == 4.0f) {
                 dpdx = 4.1f;
             }
+
+             */
             Log.w("Main", String.format("deviceType=phone(%d) scale=%f\n", deviceType, dpdx));
         }
 
@@ -254,7 +269,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         debug_info = sp.getBoolean("debug_checkbox_key", false);
         vibrate_enable = sp.getBoolean("vibrator_checkbox_key", true);
-        cpuClockEmulateEnable = sp.getBoolean("cpu_clock_key", true);
+        //cpuClockEmulateEnable = sp.getBoolean("cpu_clock_key", true);
+        cpuClockWait = Integer.parseInt(sp.getString("cpu_clock_wait_key", "2"));
         memoryExtension = sp.getBoolean("memory_unit_key", true);
         ui_design = Integer.parseInt(sp.getString("ui_design_key", "0"));
 
@@ -768,7 +784,22 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
 
         if (vibrate_enable) {
-            vib.vibrate(10);
+            //vib.vibrate(10);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vib.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
+                //debugText = String.format("SDK_INT=%d,%d -> vibration 1", Build.VERSION.SDK_INT, Build.VERSION_CODES.O);
+                //if (vib.hasVibrator()) {
+                //    debugText = String.format("Vibrate ---> YES");
+                //} else {
+                //    debugText = String.format("Vibrate ---> NO");
+                //}
+                Log.w("vib", debugText);
+            } else {
+                //deprecated in API 26
+                vib.vibrate(10);
+                //debugText = String.format("SDK_INT=%d,%d -> vibration 0", Build.VERSION.SDK_INT, Build.VERSION_CODES.O);
+                Log.w("vib", debugText);
+            }
         }
     }
 

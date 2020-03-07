@@ -20,7 +20,8 @@ import static tk.horiuchi.pokecom2.Common.cmdTable;
 import static tk.horiuchi.pokecom2.Common.reservCodePB100;
 import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.bank;
-import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
+//import static tk.horiuchi.pokecom2.MainActivity.cpuClockEmulateEnable;
+import static tk.horiuchi.pokecom2.MainActivity.cpuClockWait;
 import static tk.horiuchi.pokecom2.MainActivity.debugText;
 import static tk.horiuchi.pokecom2.MainActivity.initial;
 import static tk.horiuchi.pokecom2.MainActivity.inkey;
@@ -263,7 +264,7 @@ public class SBasic {
     }
 
     private void nop20ms() {
-        if (cpuClockEmulateEnable) {
+        if (cpuClockWait != 0) {
             Log.w("NOP", "--- WAIT ---");
             try {
                 Thread.sleep(20L);
@@ -734,7 +735,7 @@ public class SBasic {
         int loopCnt = 0;
 
         do {
-            if (cpuClockEmulateEnable) {
+            if (cpuClockWait != 0) {
                 if (loopCnt == 0) {
                     oldTime = System.currentTimeMillis();
                 }
@@ -835,11 +836,11 @@ public class SBasic {
             }
 
             // 処理速度の調整
-            if (cpuClockEmulateEnable) {
+            if (cpuClockWait != 0) {
                 if (++loopCnt > 5) {
                     loopCnt = 0;
                     newTime = System.currentTimeMillis();
-                    long sleepTime = 30 - (newTime - oldTime);
+                    long sleepTime = (30/2 * cpuClockWait) - (newTime - oldTime);
 
                     if (sleepTime > 0) {
                         try {

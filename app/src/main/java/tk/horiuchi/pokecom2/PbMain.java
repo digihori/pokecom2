@@ -17,6 +17,7 @@ import static tk.horiuchi.pokecom2.Common.MODE_RUN;
 import static tk.horiuchi.pokecom2.MainActivity.angleUnit;
 import static tk.horiuchi.pokecom2.MainActivity.basic;
 import static tk.horiuchi.pokecom2.MainActivity.dpdx;
+import static tk.horiuchi.pokecom2.MainActivity.dpdx_org;
 import static tk.horiuchi.pokecom2.MainActivity.keyExt;
 import static tk.horiuchi.pokecom2.MainActivity.keyFunc;
 import static tk.horiuchi.pokecom2.MainActivity.keyMaskCnt;
@@ -107,13 +108,15 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
 
         if (c != null) {
             c.scale(dpdx, dpdx);
+            //c.scale(dpdx_org, dpdx_org);
 
             int x_org, y_org, stp_x, stp_y, d_row, d_col;
             int x, y;
             int i, j, k;
             Paint p = new Paint();
 
-            x_org = 18;
+            //x_org = 18;
+            x_org = 10;
             y_org = 40;
             stp_x = 5;
             stp_y = 6;
