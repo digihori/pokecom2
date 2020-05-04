@@ -1567,13 +1567,14 @@ public class SBasic {
                 int offset = 0;
                 if (token.equals("(")) {
                     // 配列
+                    //Log.w("input", String.format("param is array."));
                     getToken();
                     offset = evalExp2().intValue();
                     if (!token.equals(")")) {
                         putBack();
                         handleErr(ERR_SYNTAX);
                     }
-                    //getToken();
+                    getToken();
                 }
                 BigDecimal value = new BigDecimal(0);
                 try {
@@ -1622,6 +1623,7 @@ public class SBasic {
                         if (!token.equals(")")) {
                             handleErr(ERR_SYNTAX);
                         }
+                        getToken();
                     }
                     if (inText.length() > 7) {
                         // 文字数が7文字を超えた
