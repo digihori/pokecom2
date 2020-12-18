@@ -2522,13 +2522,25 @@ public class SBasic {
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        ans = Math.sin(Math.toRadians(temp));
+                                        if (temp % 180 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.sin(Math.toRadians(temp));
+                                        }
                                         break;
                                     case 1:
-                                        ans = Math.sin(temp);
+                                        if (temp % Math.PI == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.sin(temp);
+                                        }
                                         break;
                                     case 2:
-                                        ans = Math.sin(Math.toRadians(temp*360/400));
+                                        if (temp % 200 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.sin(Math.toRadians(temp * 360 / 400));
+                                        }
                                         break;
                                 }
                                 BigDecimal tmp = new BigDecimal(ans);
@@ -2553,13 +2565,25 @@ public class SBasic {
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        ans = Math.cos(Math.toRadians(temp));
+                                        if ((temp - 90) % 180 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.cos(Math.toRadians(temp));
+                                        }
                                         break;
                                     case 1:
-                                        ans = Math.cos(temp);
+                                        if (((temp - Math.PI/2) % Math.PI) == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.cos(temp);
+                                        }
                                         break;
                                     case 2:
-                                        ans = Math.cos(Math.toRadians(temp*360/400));
+                                        if ((temp - 100) % 200 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.cos(Math.toRadians(temp * 360 / 400));
+                                        }
                                         break;
                                 }
                                 BigDecimal tmp = new BigDecimal(ans);
@@ -2583,13 +2607,25 @@ public class SBasic {
                                 switch (angleUnit) {
                                     default:
                                     case 0:
-                                        ans = Math.tan(Math.toRadians(temp));
+                                        if (temp % 180 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.tan(Math.toRadians(temp));
+                                        }
                                         break;
                                     case 1:
-                                        ans = Math.tan(temp);
+                                        if (temp % Math.PI == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.tan(temp);
+                                        }
                                         break;
                                     case 2:
-                                        ans = Math.tan(Math.toRadians(temp*360/400));
+                                        if (temp % 200 == 0) {
+                                            ans = 0;
+                                        } else {
+                                            ans = Math.tan(Math.toRadians(temp * 360 / 400));
+                                        }
                                         break;
                                 }
                                 BigDecimal tmp = new BigDecimal(ans);
