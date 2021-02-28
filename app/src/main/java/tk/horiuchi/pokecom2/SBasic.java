@@ -2828,6 +2828,31 @@ public class SBasic {
                         }
                         break;
 
+                    case RND:
+                        getToken();
+                        if (!token.equals(EOP)) {
+                            BigDecimal tmp = evalExp6();
+                            getToken();
+                            if (!token.equals(EOP)) {
+                                int n = evalExp6().intValue();
+                                if (n > 99 || -99 > n) {
+                                    Log.w("atom:RAN", "invalid param.");
+                                    handleErr(ERR_ARGUMENT);
+                                } else {
+                                    n = -n - 1; // 逆数にしてさらに-1
+                                    result = tmp.setScale(n, BigDecimal.ROUND_HALF_UP);
+                                    Log.w("atom:RAN", String.format("RND %f -> %f", tmp.doubleValue(), result.doubleValue()));
+                                }
+                            } else {
+                                Log.w("atom:RAN", "invalid param.");
+                                handleErr(ERR_SYNTAX);
+                            }
+                        } else {
+                            Log.w("atom:RAN", "invalid param.");
+                            handleErr(ERR_SYNTAX);
+                        }
+                        break;
+
                     case INT:
                         getToken();
                         if (!token.equals(EOP)) {
