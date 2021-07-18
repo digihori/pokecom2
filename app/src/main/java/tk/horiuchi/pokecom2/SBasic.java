@@ -466,6 +466,7 @@ public class SBasic {
         Log.w("RUN", String.format("-------- %s", labelTable));
         forcedExit = false;
         sb = null;
+        posX = 0;
         prtStr = "";
         if (s != null) {
             //String num = Integer.toString((int)evalExp2());
@@ -1094,11 +1095,12 @@ public class SBasic {
 
     private String prtStr = "";
     private boolean printPause = false;
+    private int posX = 0;
     private void print() throws InterpreterException {
         //double result;
         //int len = 0, spaces;
         String lastDelim = "";
-        int pos = 0;
+        //int pos = 0;
 
         //Log.w("PRT", "Exec PRINT !!!!");
 
@@ -1129,8 +1131,15 @@ public class SBasic {
                 } else {
                     //sb.replace(pos, pos + token.length(), token);
                     //pos += token.length();
-                    sb.replace(pos, pos + resultStr.length(), resultStr);
-                    pos += resultStr.length();
+                    int n = posX + resultStr.length();
+                    if (n > sb.length()) {
+                        int x = n - sb.length();
+                        for (int i = 0; i < x; i++) {
+                            sb.append(" ");
+                        }
+                    }
+                    sb.replace(posX, posX + resultStr.length(), resultStr);
+                    posX += resultStr.length();
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
                 //Log.w("PRT", String.format("%s", token));
@@ -1145,9 +1154,21 @@ public class SBasic {
                     if (sb == null) {
                         prtStr += resultStr;
                     } else {
-                        sb.replace(pos, pos + resultStr.length(), resultStr);
-                        pos += resultStr.length();
-                        Log.w("print", String.format("sb='%s'", sb.toString()));
+                        //Log.w("print", String.format("sb='%s' length=%d", sb.toString(), sb.length()));
+                        int n = posX + resultStr.length();
+                        //Log.w("print", String.format("n=%d length=%d length=%s", n, resultStr.length(), sb.length()));
+                        if (n > sb.length()) {
+                            //Log.w("print", String.format("n=%d length=%d", n, sb.length()));
+                            int x = n - sb.length();
+                            for (int i = 0; i < x; i++) {
+                                sb.append(" ");
+                                //Log.w("print", String.format("%d", i));
+                            }
+                        }
+                        Log.w("print", String.format("sb='%s' length=%d", sb.toString(), sb.length()));
+                        sb.replace(posX, posX + resultStr.length(), resultStr);
+                        posX += resultStr.length();
+                        Log.w("print", String.format("sb='%s' length=%d", sb.toString(), sb.length()));
                     }
 
                 }
@@ -1170,8 +1191,15 @@ public class SBasic {
                 if (sb == null) {
                     prtStr += s;
                 } else {
-                    sb.replace(pos, pos + s.length(), s);
-                    pos += s.length();
+                    int n = posX + s.length();
+                    if (n > sb.length()) {
+                        int x = n - sb.length();
+                        for (int i = 0; i < x; i++) {
+                            sb.append(" ");
+                        }
+                    }
+                    sb.replace(posX, posX + s.length(), s);
+                    posX += s.length();
                     Log.w("print", String.format("sb='%s'", sb.toString()));
                 }
 
@@ -1183,18 +1211,20 @@ public class SBasic {
                     //lcdPrint(prtStr);
                     //result = evaluate() + 0.01; // イマイチ！！
                     int x = evaluate().intValue();
-                    Log.w("CSR", "pos="+x);
+                    Log.w("CSR", "posX="+x);
                     if (0 <= x && x < 12) {
-                        pos = x;
-                        String s = "";
-                        if (prtStr.length() < 11) {
-                            for (int i = 0; i < 11 - prtStr.length(); i++) {
-                                s += " ";
-                            }
-                        }
+                        posX = x;
+                        //String s = "";
+                        //if (prtStr.length() < 11) {
+                        //    for (int i = 0; i < 11 - prtStr.length(); i++) {
+                        //        s += " ";
+                        //    }
+                        //}
                         if (sb == null) {
-                            Log.w("print", String.format("sb=new '%s'", prtStr+s));
-                            sb = new StringBuilder(prtStr + s);
+                            //Log.w("print", String.format("sb=new '%s'", prtStr+s));
+                            //sb = new StringBuilder(prtStr + s);
+                            Log.w("print", String.format("sb=new '%s'", prtStr));
+                            sb = new StringBuilder(prtStr);
                         }
                         Log.w("print", String.format("sb='%s'", sb.toString()));
                         //lcdPrint(prtStr);
@@ -1205,10 +1235,10 @@ public class SBasic {
                 }
             }
 
-            if (sb != null) {
-                prtStr = sb.toString();
-                lcdPrint(prtStr);
-            }
+            //if (sb != null) {
+                //prtStr = sb.toString();
+                //lcdPrint(prtStr);
+            //}
 
             if (kwToken == EOL || token.equals(EOP) || tokType != QUTEDSTR && token.equals(":")) {
                 break;
@@ -1236,16 +1266,24 @@ public class SBasic {
                 handleErr(ERR_SYNTAX);
             }
         } while (lastDelim.equals(";") /*|| lastDelim.equals(",")*/);
-        if (sb != null) prtStr = sb.toString();
+
+        if (!prtStr.isEmpty()) {
+            Log.w("print", String.format("prtStr='%s'", prtStr));
+        }
+        if (sb != null) {
+            prtStr = sb.toString();
+            Log.w("print", String.format("prtStr='%s'", prtStr));
+        }
         if (kwToken == EOL || token.equals(EOP) || token.equals(":") || token.equals(",") || lastDelim.equals(")")) {
             if (prtStr.isEmpty() || lastDelim.equals(";")) {
-                Log.w("print", "lcdPrint");
+                Log.w("print", String.format("lcdPrint str='%s'", prtStr));
                 lcdPrint(prtStr);
             } else {
                 Log.w("print", String.format("lcdPrintAndPause str='%s'", prtStr));
                 lcdPrintAndPause(prtStr);
                 prtStr = "";
                 sb = null;
+                posX = 0;
                 if (token.equals(",")) {
                     //Log.w("pre putBack", String.format("%d %s", pc, token));
                     putBack();
@@ -1547,7 +1585,12 @@ public class SBasic {
                 if (!token.equals(",")) handleErr(ERR_SYNTAX);
                 getToken();
             }
+
+            str = prtStr + str;
             lcdPrint(str + "?");
+            prtStr = "";
+            sb = null;
+
             getInputStream();
             if (forcedExit) {
                 // 入力中に強制終了された場合はループを抜けてメインループに戻す
@@ -3118,7 +3161,7 @@ public class SBasic {
     }
 
     public int defm(int n) throws InterpreterException {
-        if (n < 0 || memoryExtension && n > 222 || !memoryExtension && n > 94) {
+        if (n < 0 || memoryExtension && n > 196 || !memoryExtension && n > 68) {
             handleErr(ERR_MEMORYOVER);
         }
         if (n == 0) {
@@ -3126,6 +3169,9 @@ public class SBasic {
             exsvars = null;
         } else if (exvars == null || exvars.length != n) {
             exvars = new BigDecimal[n];
+            for (int i = 0; i < n; i++) {
+                exvars[i] = BigDecimal.ZERO;
+            }
             exsvars = new String[n];
             for (int i = 0; i < n; i++) {
                 exsvars[i] = "";
