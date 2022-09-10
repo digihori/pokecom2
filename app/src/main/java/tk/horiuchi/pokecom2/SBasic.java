@@ -2008,12 +2008,37 @@ public class SBasic {
 
     private int getReservCodePB100(String s) {
         if (s == null || s.isEmpty()) return -1;
-        String ss = s.substring(0, 1);
-        for (int i = 0; i < 0x80; i++) {
-            if (reservCodePB100[i].equals(ss)) return i;
-        }
+        // 一旦、バイナリデータをアスキー（制御キャラ含む）に戻す
+        String s1 = cmdTable[(int)s.charAt(0)];
+        if (s1.equals("^")) s1 = "\\UA";
+        Log.w("getReservCodePB100", String.format("string = '%s'", s1));
+
+//        if (isEscapeCharactor(s1)) {
+//            for (int i = 0; i < 0x80; i++) {
+//                if (reservCodePB100[i].equals(s1)) return i;
+//            }
+//        } else {
+            //String ss = s1.substring(0, 1);
+            // PB100のキャラクターコードを検索する
+            for (int i = 0; i < 0x80; i++) {
+                if (reservCodePB100[i].equals(s1)) return i;
+            }
+//        }
         return -1;
     }
+
+//    private boolean isEscapeCharactor(String s) {
+//        String[] escCharactor = {
+//            "\\UA","\\GE","\\LE","\\NE",
+//            "\\PI","\\EM","\\EX",
+//            "\\CI","\\SG","\\DG","\\TR","\\CR","\\DV","\\SP","\\LA","\\HT","\\DI","\\CL","\\MU","\\OM","\\DA","\\RA",
+//            "\\SQ","\\DT","\\BX"
+//        };
+//        for (int i = 0; i < escCharactor.length; i++) {
+//            if (escCharactor[i].equals(s)) return(true);
+//        }
+//        return(false);
+//    }
 
     private boolean strOpe1() throws InterpreterException {
         //Log.w("strOpe1", String.format("exec : token='%s' tokType=%d", token, tokType));
