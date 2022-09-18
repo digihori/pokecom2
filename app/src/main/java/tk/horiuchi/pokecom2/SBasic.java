@@ -2066,11 +2066,13 @@ public class SBasic {
             Log.w("strOpe1", String.format("compare!!! L='%s'(%02x) R='%s'(%02x)", l_temp, l_value, r_temp, r_value));
             switch (op) {
                 case '=':
-                    result = l_temp.equals(r_temp);
+                    //result = l_temp.equals(r_temp);
+                    result = l_value == r_value;
                     Log.w("strOpe", String.format("op='=' result=%d", result ? 1 : 0));
                     break;
                 case _NE:
-                    result = !l_temp.equals(r_temp);
+                    //result = !l_temp.equals(r_temp);
+                    result = l_value != r_value;
                     Log.w("strOpe", String.format("op='!=' result=%d", result ? 1 : 0));
                     break;
                 case '>':
