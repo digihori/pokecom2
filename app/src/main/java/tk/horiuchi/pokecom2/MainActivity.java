@@ -1,11 +1,18 @@
 package tk.horiuchi.pokecom2;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
+import androidx.appcompat.app.AppCompatActivity;
+
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -13,18 +20,21 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
+//import android.support.v4.app.ActivityCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowMetrics;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +44,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.IllegalFormatCodePointException;
@@ -65,7 +77,9 @@ import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 import static tk.horiuchi.pokecom2.SBasic.inputWait;
 
-public class MainActivity extends Activity implements View.OnClickListener, View.OnTouchListener, WaveOut.ICallBack {
+//import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener, WaveOut.ICallBack, PopupMenu.OnMenuItemClickListener {
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -84,7 +98,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     public static boolean keyExt = false;
     public static boolean keyMode = false;
     public static boolean keyFunc = false;
-    public static boolean vibrate_enable, debug_info;
+    public static boolean vibrate_enable, debug_info, legacy_storage_io;
     //public static boolean cpuClockEmulateEnable;
     public static int cpuClockWait;
     public static boolean memoryExtension;
@@ -136,6 +150,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_ACTION_BAR);
+        //getSupportActionBar().setDisplayShowHomeEnabled(true);
+        //getSupportActionBar().setIcon(R.mipmap.ic_launcher);
 
         setContentView(R.layout.activity_main);
 
@@ -145,11 +161,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         // ファイルIOのパーミッション関係の設定
         verifyStoragePermissions(this);
 
-        // ディレクトリがなければ作成する
-        File dir = new File(src_path);
-        if (!dir.exists()) {
-            dir.mkdirs();
-            Log.w("Main", "mkdir");
+        // ディレクトリがなければ作成する　これはAndroid10以降は使えない！
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            File dir = new File(src_path);
+            if (!dir.exists()) {
+                dir.mkdirs();
+                Log.w("Main", "mkdir");
+            }
         }
 
         // dp->px変換のためにDisplayMetricsを取得しておく
@@ -158,11 +176,22 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         display.getMetrics(metrics);
 
         Point point = new Point(0, 0);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+            // Android 10-
+            Log.w("DispChk", String.format("Version 10-"));
+            WindowMetrics windowMetrics = this.getWindowManager().getCurrentWindowMetrics();
+            //Insets insets = windowMetrics.getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+            int width = windowMetrics.getBounds().width();
+            int height = windowMetrics.getBounds().height();
+            point.set(width, height);
+            //Log.w("DispChk", String.format("point.x=%d y=%d", point.x, point.y));
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             // Android 4.2-
+            Log.w("DispChk", String.format("Version 4.2-"));
             display.getRealSize(point);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             // Android 3.2-
+            Log.w("DispChk", String.format("Version 3.2-"));
             try {
                 Method getRawWidth = Display.class.getMethod("getRawWidth");
                 Method getRawHeight = Display.class.getMethod("getRawHeight");
@@ -269,6 +298,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         debug_info = sp.getBoolean("debug_checkbox_key", false);
         vibrate_enable = sp.getBoolean("vibrator_checkbox_key", true);
+        legacy_storage_io = sp.getBoolean("storage_checkbox_key", true);
         //cpuClockEmulateEnable = sp.getBoolean("cpu_clock_key", true);
         cpuClockWait = Integer.parseInt(sp.getString("cpu_clock_wait_key", "2"));
         memoryExtension = sp.getBoolean("memory_unit_key", true);
@@ -278,6 +308,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
 
         // Buttonインスタンスの取得
         // ButtonインスタンスのリスナーをこのActivityクラスそのものにする
+        findViewById(R.id.popMenu).setOnClickListener(this);
         mBtnStatus = new Boolean[mBtnResIds.length];
         for (int i = 0; i < mBtnResIds.length; i++) {
             mBtnStatus[i] = false;
@@ -448,7 +479,9 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         Log.w("LOG", "w="+childWidth+" h="+childHeight);
         for (int i = 0; i < gl.getChildCount(); i++) {
             gl.getChildAt(i).setMinimumWidth(childWidth);
+            ((TextView)gl.getChildAt(i)).setMinWidth(childWidth);
             gl.getChildAt(i).setMinimumHeight(childHeight);
+            ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
         }
     }
     public void stretchItemSize(GridLayout gl, ImageView iv, int x) {
@@ -464,10 +497,14 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         for (int i = 0; i < gl.getChildCount(); i++) {
             if (i == x) {
                 gl.getChildAt(i).setMinimumWidth(childWidth * 2);
+                ((TextView)gl.getChildAt(i)).setMinWidth(childWidth * 2);
                 gl.getChildAt(i).setMinimumHeight(childHeight);
+                ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
             } else {
                 gl.getChildAt(i).setMinimumWidth(childWidth);
+                ((TextView)gl.getChildAt(i)).setMinWidth(childWidth);
                 gl.getChildAt(i).setMinimumHeight(childHeight);
+                ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
             }
         }
     }
@@ -575,6 +612,13 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         // モードの切り替え
         boolean modeChange = true;
         switch (c) {
+            case R.id.popMenu:
+                PopupMenu popup = new PopupMenu(getApplicationContext(), v);
+                MenuInflater inflater = popup.getMenuInflater();
+                inflater.inflate(R.menu.menu_main, popup.getMenu());
+                popup.show();
+                popup.setOnMenuItemClickListener(this);
+                return;
             case R.id.buttonMODE:
                 keyMode = !keyMode;
                 break;
@@ -803,24 +847,25 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        //super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    private boolean optionsItemSelectedSub(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.optionsMenu_01:
                 nosave = true;
-                actLoad();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || !legacy_storage_io) {
+                    // Android 11(Q)以降はストレージアクセス権限が厳密になったため
+                    actLoadx();
+                } else {
+                    actLoad();
+                }
                 return true;
             case R.id.optionsMenu_02:
                 nosave = true;
-                actSave();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || !legacy_storage_io) {
+                    // Android 11(Q)以降はストレージアクセス権限が厳密になったため
+                    actSavex();
+                } else {
+                    actSave();
+                }
                 return true;
             case R.id.optionsMenu_03:   // reset
                 deviceReset();
@@ -842,9 +887,27 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         }
     }
 
+    @Override
+    public boolean onMenuItemClick(MenuItem item) {
+        //Log.w("popMenu", String.format("menu item=%d", item.getItemId()));
+        return optionsItemSelectedSub(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return optionsItemSelectedSub(item);
+    }
+
 
     // BASICプログラムの読み込み
-    protected int load(String filename) {
+    protected int load(Uri uri) {
         int ret = 0;
         int b = 0;
         int[] idx = new int[bankMax];
@@ -853,11 +916,16 @@ public class MainActivity extends Activity implements View.OnClickListener, View
         FileInputStream fis = null;
 
         try {
-            fis = new FileInputStream(filename);
+            InputStream is = getContentResolver().openInputStream(uri);
+            byte[] buf = new byte[is.available()];
+            //is.read(buffer);
 
-            byte buf[] = new byte[progLength];
+
+            //fis = new FileInputStream(filename);
+
+            //byte buf[] = new byte[progLength];
             int len = 0, x;
-            while ((x = fis.read(buf)) != -1) {
+            while ((x = is.read(buf)) != -1) {
                 len += x;
             }
 
@@ -1022,7 +1090,7 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                 }
             }
 
-            Log.w("LOAD", String.format("file=%s length=%04x", filename, len));
+            //Log.w("LOAD", String.format("file=%s length=%04x", filename, len));
         } catch (IOException e) {
             Log.d("LOAD", e.toString());
         } finally {
@@ -1070,15 +1138,21 @@ public class MainActivity extends Activity implements View.OnClickListener, View
     }
 
     // BASIC プログラムの保存
-    protected void save(String filename) {
-        FileOutputStream fos = null;
+    protected void save(Uri uri) {
+        Log.w("save", String.format("uri=%s",uri));
+
+        //FileOutputStream fos = null;
 
         try {
-            File dir = new File(src_path);
-            if (!dir.exists()) {
-                dir.mkdirs();
+            OutputStream os = getContentResolver().openOutputStream(uri);
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                File dir = new File(src_path);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
             }
-            fos = new FileOutputStream(filename);
+            //fos = new FileOutputStream(filename);
             byte buf[] = new byte[progLength];
 
             int l = 0;
@@ -1123,36 +1197,78 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     buf[l++] = '\n';
                 }
             }
-            fos.write(buf, 0, l);
-            fos.flush();
+            os.write(buf, 0, l);
+            os.flush();
+            os.close();
 
         } catch (IOException e) {
             Log.d("MainActivity", e.toString());
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        //} finally {
+        //    if (os != null) {
+        //        try {
+        //            os.close();
+        //        } catch (IOException e) {
+        //            e.printStackTrace();
+        //        }
+        //    }
         }
     }
 
+    private final ActivityResultLauncher<Intent> actLoadResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    if (result.getData() != null) {
+                        //結果を受け取った後の処理
+                        Uri uri = result.getData().getData();
+                        Log.w("actLoadResultLauncher", String.format("uri=%s",uri));
+                        source.clearSourceAll();
+                        int len = load(uri);
+                        Toast.makeText(this, "loaded:"+uri+"("+len+" bytes)", Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
 
+    public void actLoadx(){
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
+        actLoadResultLauncher.launch(intent);
+    }
     public void actLoad(){
         Intent intent = new android.content.Intent(getApplication(), FileLoad.class);
         startActivityForResult(intent, 0);
     }
 
+    private final ActivityResultLauncher<Intent> actSaveResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    if (result.getData() != null) {
+                        //結果を受け取った後の処理
+                        Uri uri = result.getData().getData();
+                        Log.w("actSaveResultLauncher", String.format("uri=%s",uri));
+                        save(uri);
+                        Toast.makeText(this, "saved:"+uri, Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+
+    private void actSavex() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        actSaveResultLauncher.launch(intent);
+    }
     public void actSave() {
         Intent intent = new android.content.Intent(getApplication(), FileSave.class);
         startActivityForResult(intent, 1);
     }
 
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
+        super.onActivityResult(requestCode, resultCode, data);
         Log.w("LOG", "onActivityResult.");
 
         switch (requestCode) {
@@ -1162,7 +1278,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     if (txt1 != null) {
                         Log.w("LOG", "path="+txt1);
                         source.clearSourceAll();
-                        int len = load(txt1);
+                        File f = new File(txt1);
+                        int len = load(Uri.fromFile(f));
                         Toast.makeText(this, "loaded:"+txt1+"("+len+")", Toast.LENGTH_LONG).show();
                     } else {
                         // エラー
@@ -1180,7 +1297,8 @@ public class MainActivity extends Activity implements View.OnClickListener, View
                     if (txt1 != null) {
                         txt1 = src_path + "/" + txt1; // オープンするファイルのパスとファイル名
                         Log.w("LOG", "path=" + txt1);
-                        save(txt1);
+                        File f = new File(txt1);
+                        save(Uri.fromFile(f));
                         Toast.makeText(this, "saved:"+txt1, Toast.LENGTH_LONG).show();
                     } else {
                         // エラー

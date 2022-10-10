@@ -6,11 +6,13 @@ package tk.horiuchi.pokecom2;
 
 import android.content.Context;
 import android.os.Handler;
-import android.support.v7.widget.AppCompatButton;
+//import android.support.v7.widget.AppCompatButton;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnLongClickListener;
+
+import androidx.appcompat.widget.AppCompatButton;
 
 
 public class RepeatButton extends AppCompatButton implements OnLongClickListener {

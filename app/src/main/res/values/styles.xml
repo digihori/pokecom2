@@ -1,11 +1,13 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="@android:style/Theme.Holo.Light">
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
         <!-- Customize your theme here. -->
-        <item name="windowNoTitle">false</item>
-        <item name="windowActionBar">true</item>
+        <item name="colorPrimary">@color/colorActionBar</item>
+        <item name="colorOnPrimary">#000000</item>
+        <!--item name="windowNoTitle">false</item>
+        <item name="windowActionBar">true</item-->
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:actionBarStyle">@style/ActionBar</item>

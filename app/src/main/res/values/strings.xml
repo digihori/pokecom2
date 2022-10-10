@@ -24,6 +24,8 @@
     <string name="cpu_clock_summary">Set the cpu emulation speed.</string>
     <string name="memory_unit">memory unit</string>
     <string name="memory_unit_summary">Enable extended memory unit.</string>
+    <string name="storage_checkbox_title">legacy file io function</string>
+    <string name="storage_checkbox_summary">Use legacy file io function.If Android version 10 or less.</string>
     <string name="vibrator_checkbox_title">viblation</string>
     <string name="vibrator_checkbox_summary">Activate vibrator function when key is pressed.</string>
     <string name="debug_checkbox_title">debug</string>
