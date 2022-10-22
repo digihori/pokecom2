@@ -2006,25 +2006,41 @@ public class SBasic {
         return result;
     }
 
-    private int getReservCodePB100(String s) {
-        if (s == null || s.isEmpty()) return -1;
-        // 一旦、バイナリデータをアスキー（制御キャラ含む）に戻す
-        String s1 = cmdTable[(int)s.charAt(0)];
-        if (s1.equals("^")) s1 = "\\UA";
-        Log.w("getReservCodePB100", String.format("string = '%s'", s1));
+    private String ConvPB100Code(String s) {
+        if (s == null || s.isEmpty()) return null;
+        String ss = "";
+        String org = "", cnv = "";
+        for (int i = 0; i < s.length(); i++) {
+            org += String.format("%02x ", (int)s.charAt(i));
+            String s1 = cmdTable[(int)s.charAt(i)];
+            if (s1.equals("^")) s1 = "\\UA";
 
-//        if (isEscapeCharactor(s1)) {
-//            for (int i = 0; i < 0x80; i++) {
-//                if (reservCodePB100[i].equals(s1)) return i;
-//            }
-//        } else {
-            //String ss = s1.substring(0, 1);
             // PB100のキャラクターコードを検索する
-            for (int i = 0; i < 0x80; i++) {
-                if (reservCodePB100[i].equals(s1)) return i;
+            for (int j = 0; j < 0x80; j++) {
+                if (reservCodePB100[j].equals(s1)) {
+                    ss += (char)j;
+                    cnv += String.format("%02x ", j);
+                    break;
+                }
             }
-//        }
-        return -1;
+        }
+        Log.w("ConvPB100Code", String.format("%s -> %s", org, cnv));
+        return ss;
+    }
+
+    private int compareString(String s1, String s2) {
+        String ss1 = ConvPB100Code(s1);
+        String ss2 = ConvPB100Code(s2);
+        int i;
+        for (i = 0; i < ss1.length(); i++) {
+            if (i >= ss2.length()) return 1;
+            char a = ss1.charAt(i);
+            char b = ss2.charAt(i);
+            if (a > b) return 1;
+            else if (a < b) return -1;
+        }
+        if (i < ss2.length()) return -1;
+        return 0;
     }
 
 //    private boolean isEscapeCharactor(String s) {
@@ -2061,38 +2077,44 @@ public class SBasic {
             strOpe1();
             r_temp = resultStr;
 
-            int l_value = getReservCodePB100(l_temp);
-            int r_value = getReservCodePB100(r_temp);
-            Log.w("strOpe1", String.format("compare!!! L='%s'(%02x) R='%s'(%02x)", l_temp, l_value, r_temp, r_value));
+            //int l_value = getReservCodePB100(l_temp);
+            //int r_value = getReservCodePB100(r_temp);
+            //Log.w("strOpe1", String.format("compare!!! L='%s'(%02x) R='%s'(%02x)", l_temp, l_value, r_temp, r_value));
             switch (op) {
                 case '=':
                     //result = l_temp.equals(r_temp);
-                    result = l_value == r_value;
+                    //result = l_value == r_value;
+                    result = compareString(l_temp, r_temp) == 0;
                     Log.w("strOpe", String.format("op='=' result=%d", result ? 1 : 0));
                     break;
                 case _NE:
                     //result = !l_temp.equals(r_temp);
-                    result = l_value != r_value;
+                    //result = l_value != r_value;
+                    result = compareString(l_temp, r_temp) != 0;
                     Log.w("strOpe", String.format("op='!=' result=%d", result ? 1 : 0));
                     break;
                 case '>':
                     //result = l_value > r_value ? true : false;
-                    result = l_value > r_value;
+                    //result = l_value > r_value;
+                    result = compareString(l_temp, r_temp) == 1;
                     Log.w("strOpe", String.format("op='>' result=%d", result ? 1 : 0));
                     break;
                 case _GE:
                     //result = l_value >= r_value ? true : false;
-                    result = l_value >= r_value;
+                    result = compareString(l_temp, r_temp) != -1;
+                    //result = l_value >= r_value;
                     Log.w("strOpe", String.format("op='>=' result=%d", result ? 1 : 0));
                     break;
                 case '<':
                     //result = l_value < r_value ? true : false;
-                    result = l_value < r_value;
+                    //result = l_value < r_value;
+                    result = compareString(l_temp, r_temp) == -1;
                     Log.w("strOpe", String.format("op='<' result=%d", result ? 1 : 0));
                     break;
                 case _LE:
                     //result = l_value <= r_value ? true : false;
-                    result = l_value <= r_value;
+                    //result = l_value <= r_value;
+                    result = compareString(l_temp, r_temp) != 1;
                     Log.w("strOpe", String.format("op='<=' result=%d", result ? 1 : 0));
                     break;
                 default:

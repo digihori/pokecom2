@@ -2,12 +2,12 @@ package tk.horiuchi.pokecom2;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -20,7 +20,6 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
-//import android.support.v4.app.ActivityCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -42,7 +41,6 @@ import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,7 +75,6 @@ import static tk.horiuchi.pokecom2.Common.type7inch;
 import static tk.horiuchi.pokecom2.Common.typePhone;
 import static tk.horiuchi.pokecom2.SBasic.inputWait;
 
-//import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener, WaveOut.ICallBack, PopupMenu.OnMenuItemClickListener {
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -122,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static int keyMaskCnt = 0;
     private int debugPrintCnt = 0;
     public static WaveOut waveout;
+    public static String activityTag;
+    public String debugInfo;
 
 
     public static int[] mBtnResIds = {
@@ -155,8 +154,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         setContentView(R.layout.activity_main);
 
-        String s = (String)findViewById(R.id.activity_main).getTag();
-        Log.w("Main", String.format("activity_main='%s'\n", s));
+        activityTag = (String)findViewById(R.id.activity_main).getTag();
+        Log.w("Main", String.format("activity_main='%s'\n", activityTag));
 
         // ファイルIOのパーミッション関係の設定
         verifyStoragePermissions(this);
@@ -359,6 +358,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         waveout = new WaveOut();
         waveout.setReference(this);
+
+        debugInfo =
+                String.format("activity_main='%s'\n", activityTag)+
+                String.format("widthPixels=%d\n", point.x)+
+                String.format("heightPixels=%d\n", point.y)+
+                String.format("Xdpi=%f\n", metrics.xdpi)+
+                String.format("Ydpi=%f\n", metrics.ydpi)+
+                String.format("density=%f\n", metrics.density)+
+                String.format("densityDpi=%d(%s)\n", metrics.densityDpi, getGeneralizedDensity(metrics.densityDpi))+
+                String.format("scaledDensity=%f\n", metrics.scaledDensity)+
+                String.format("inch=%2.2f\n", inch)+
+                String.format("deviceType=%d\n", deviceType)+
+                String.format("dpdx=%f", dpdx);
     }
 
     private String getGeneralizedDensity(int dpi) {
@@ -616,6 +628,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 PopupMenu popup = new PopupMenu(getApplicationContext(), v);
                 MenuInflater inflater = popup.getMenuInflater();
                 inflater.inflate(R.menu.menu_main, popup.getMenu());
+                popup.getMenu().findItem(R.id.optionsMenu_debug).setVisible(debug_info);
                 popup.show();
                 popup.setOnMenuItemClickListener(this);
                 return;
@@ -882,7 +895,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.optionsMenu_06:   // exit
                 finish();
                 return true;
-            default:
+            case R.id.optionsMenu_debug:
+                new AlertDialog.Builder(this)
+                        .setTitle("Debug info")
+                        .setMessage(debugInfo)
+                        .setPositiveButton("OK", null)
+                        .create()
+                        .show();
+                return true;
+
+                default:
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -901,10 +923,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        Log.w("onPrepareOptionsMenu", "called");
+        MenuItem item = menu.findItem(R.id.optionsMenu_debug);
+        item.setVisible(debug_info);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return optionsItemSelectedSub(item);
     }
-
 
     // BASICプログラムの読み込み
     protected int load(Uri uri) {

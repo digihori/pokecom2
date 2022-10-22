@@ -143,12 +143,12 @@
 
                 <Button
                     android:id="@+id/popMenu"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="≡"
-                    android:textSize="@dimen/textsize_large"
-                    android:minWidth="0dp"
-                    android:layout_gravity="top|right"></Button>
+                    android:layout_width="@dimen/circle_button_size"
+                    android:layout_height="@dimen/circle_button_size"
+                    android:text="︙"
+                    android:textSize="@dimen/textsize_medium"
+                    android:background="@drawable/circle_button_ripple"
+                    android:layout_gravity="top|right"/>
 
                 <ImageView
                     android:id="@+id/imageViewTenkey"

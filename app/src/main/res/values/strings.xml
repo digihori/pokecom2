@@ -9,6 +9,7 @@
     <string name="opt_menu_reset">reset</string>
     <string name="opt_menu_settings">settings...</string>
     <string name="opt_menu_about">about...</string>
+    <string name="opt_menu_debug">debug...</string>
     <string name="opt_menu_exit">exit</string>
 
     <!-- file select used -->

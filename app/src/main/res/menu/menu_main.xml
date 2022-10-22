@@ -27,6 +27,11 @@
         />
 
     <item
+        android:id="@+id/optionsMenu_debug"
+        android:title="@string/opt_menu_debug"
+        />
+
+    <item
         android:id="@+id/optionsMenu_06"
         android:title="@string/opt_menu_exit"
         />

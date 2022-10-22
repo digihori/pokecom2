@@ -3,6 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/drawable/circle_button.xml" value="0.109" />
+        <entry key="app/src/main/res/drawable/circle_button_normal.xml" value="0.109" />
+        <entry key="app/src/main/res/drawable/circle_button_pressed.xml" value="0.109" />
+        <entry key="app/src/main/res/drawable/circle_button_ripple.xml" value="0.109" />
         <entry key="app/src/main/res/layout-hdpi/activity_main.xml" value="0.42063492063492064" />
         <entry key="app/src/main/res/layout-sw600dp/activity_main.xml" value="0.33974358974358976" />
         <entry key="app/src/main/res/layout-sw720dp/activity_main.xml" value="0.1448087431693989" />
@@ -10,6 +14,7 @@
         <entry key="app/src/main/res/layout-xxxhdpi/activity_main.xml" value="0.1448087431693989" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.45625" />
         <entry key="app/src/main/res/layout/activity_savefile.xml" value="0.1140625" />
+        <entry key="app/src/main/res/menu/help.xml" value="0.22604166666666667" />
         <entry key="app/src/main/res/xml/default_values.xml" value="0.19202898550724637" />
       </map>
     </option>
