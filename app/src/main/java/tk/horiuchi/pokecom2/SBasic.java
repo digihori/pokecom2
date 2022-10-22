@@ -2007,7 +2007,7 @@ public class SBasic {
     }
 
     private String ConvPB100Code(String s) {
-        if (s == null || s.isEmpty()) return null;
+        if (s == null || s.isEmpty()) return "";
         String ss = "";
         String org = "", cnv = "";
         for (int i = 0; i < s.length(); i++) {
@@ -2030,7 +2030,9 @@ public class SBasic {
 
     private int compareString(String s1, String s2) {
         String ss1 = ConvPB100Code(s1);
+        //Log.w("compareString", String.format("ss1='%s'", ss1));
         String ss2 = ConvPB100Code(s2);
+        //Log.w("compareString", String.format("ss2='%s'", ss2));
         int i;
         for (i = 0; i < ss1.length(); i++) {
             if (i >= ss2.length()) return 1;
