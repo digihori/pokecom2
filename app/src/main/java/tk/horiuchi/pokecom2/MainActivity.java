@@ -1218,7 +1218,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                         break;
                                 }
                             } else {
-                                buf[l++] = (byte)c;
+                                if (c == '\\') {
+                                    buf[l++] = buf[l++] = (byte)c;
+                                } else {
+                                    buf[l++] = (byte)c;
+                                }
                             }
                         }
                         buf[l++] = '\n';

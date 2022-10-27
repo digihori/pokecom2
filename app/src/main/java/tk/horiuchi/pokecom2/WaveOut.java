@@ -181,6 +181,8 @@ public class WaveOut {
                                 if (isSpecialChar((byte)c)) {
                                     buf[l++] = getInternalCode(cmdTable[c]);
                                     //Log.w("---", String.format("%s\n", cmdTable[c]));
+                                } else if (c == '^') {
+                                    buf[l++] = 0x05;    // '^' -> '↑'
                                 } else {
                                     buf[l++] = getInternalCode(String.valueOf(c));
                                 }
@@ -246,7 +248,9 @@ public class WaveOut {
                                             //Log.w("---", String.format("%s\n", cmdTable[c]));
                                         } else {
                                             if (c == ':') {
-                                                buf[l++] = (byte)0xfe;		// statement delimiter
+                                                buf[l++] = (byte) 0xfe;        // statement delimiter
+                                            } else if (c == '^') {
+                                                buf[l++] = (byte) 0x05;        // '^' -> '↑'
                                             } else {
                                                 buf[l++] = getInternalCode(String.valueOf(c));
                                             }
