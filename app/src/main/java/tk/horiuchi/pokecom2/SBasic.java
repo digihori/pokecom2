@@ -2448,7 +2448,7 @@ public class SBasic {
                 case '*':
                     //result = result * partialResult;
                     //a = a.multiply(b);
-                    result = result.multiply(partialResult);
+                    result = result.multiply(partialResult).setScale(99, RoundingMode.HALF_UP);
                     break;
                 case '/':
                     if (partialResult.compareTo(BigDecimal.ZERO) == 0) handleErr(ERR_MATH);
@@ -2609,7 +2609,7 @@ public class SBasic {
                         getToken();
                         if (!token.equals(EOP)) {
                             //double temp = evalExp2();
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.sin(Math.toRadians(temp));
@@ -2652,7 +2652,7 @@ public class SBasic {
                     case COS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.cos(Math.toRadians(temp));
@@ -2694,7 +2694,7 @@ public class SBasic {
                     case TAN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.tan(Math.toRadians(temp));
@@ -2736,7 +2736,7 @@ public class SBasic {
                     case ASN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.toDegrees(Math.asin(temp));
@@ -2766,7 +2766,7 @@ public class SBasic {
                     case ACS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.toDegrees(Math.acos(temp));
@@ -2796,7 +2796,7 @@ public class SBasic {
                     case ATN:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             double ans;
                             try {
                                 //result = Math.toDegrees(Math.atan(temp));
@@ -2826,7 +2826,7 @@ public class SBasic {
                     case ABS:
                         getToken();
                         if (!token.equals(EOP)) {
-                            BigDecimal temp = evalExp6();
+                            BigDecimal temp = evalExp5();
                             try {
                                 //result = Math.abs(temp);
                                 result = temp.abs();
@@ -2891,7 +2891,7 @@ public class SBasic {
                     case EXP:
                         getToken();
                         if (!token.equals(EOP)) {
-                            double temp = evalExp6().doubleValue();
+                            double temp = evalExp5().doubleValue();
                             try {
                                 double ans = Math.exp(temp);
                                 BigDecimal tmp = new BigDecimal(ans);
@@ -2950,17 +2950,22 @@ public class SBasic {
                     case INT:
                         getToken();
                         if (!token.equals(EOP)) {
-                            //double temp = evalExp6();
-                            result = evalExp6().setScale(0, BigDecimal.ROUND_DOWN);
+                            // BigDecimal の RoundigMode.DOWN はゼロ方向に切り捨てるので、
+                            // INT 関数は正負で処理を分ける
+                            BigDecimal tmp = evalExp5();
+                            if (tmp.compareTo(BigDecimal.ZERO) < 0 ) {
+                                result = tmp.setScale(0, RoundingMode.UP);
+                            } else {
+                                result = tmp.setScale(0, RoundingMode.DOWN);
+                            }
                         }
-                        //getToken();
                         break;
 
                     case FRAC:
                         getToken();
                         if (!token.equals(EOP)) {
                             //double temp = evalExp6();
-                            result = evalExp6().remainder(BigDecimal.ONE);
+                            result = evalExp5().remainder(BigDecimal.ONE);
                         }
                         //getToken();
                         break;
@@ -2969,7 +2974,7 @@ public class SBasic {
                         getToken();
                         if (!token.equals(EOP)) {
                             //int temp = evalExp6().compareTo(BigDecimal.ZERO);
-                            int temp = evalExp6().signum();
+                            int temp = evalExp5().signum();
                             if (temp > 0) {
                                 result = BigDecimal.ONE;
                             } else if (temp < 0) {
