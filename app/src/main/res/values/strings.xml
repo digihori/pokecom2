@@ -87,6 +87,8 @@
         ・UI design\n
         　When set to \'PB-100 compatible\' it will be like PB-100.\n
         　When set to \'PB-100 custom\' the \'F\'key and \'↑\'/\'↓\'key is enabled.\n
+        ・legacy file io functio\n
+        　Use legacy file io function, if Android version 10 or less.\n
         ・viblation\n
         　It vibrates when the key is pressed.\n
         ・debug\n

@@ -84,6 +84,8 @@
         ・UI design\n
         　PB-100 compatible にすると PB-100 っぽくなります。\n
         　PB-100 custom にすると Fキーや↑↓キーが出てきます。\n
+        ・legacy file io function\n
+        　初期のファイル入出力UIを使う場合の設定。アンドロイド10未満の場合に有効。\n
         ・viblation\n
         　キー押下時に振動します。\n
         ・debug\n
