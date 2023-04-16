@@ -9,8 +9,8 @@ android {
         applicationId "tk.horiuchi.pokecom2"
         minSdk 21
         targetSdk 33
-        versionCode 55
-        versionName "1.06.05"
+        versionCode 56
+        versionName "1.06.06"
         testInstrumentationRunner "androidx.support.test.runner.AndroidJUnitRunner"
         archivesBaseName = "${applicationName}-${versionName}"
     }

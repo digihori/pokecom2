@@ -862,6 +862,8 @@ public class SBasic {
     private int rdataIdx;
     private final int rdataMax = 512;    // 仮
 
+    private boolean read_data = false;
+
     private void scanLabels() throws InterpreterException {
         Object result;
         int id;
@@ -886,21 +888,27 @@ public class SBasic {
                 //tmp = getData();
 
                 do {
+                    read_data = true;
                     getToken();
-                    if (tokType == NUMBER || tokType == QUTEDSTR) {
+                    read_data = false;
+                    String s;
+                    if (true || tokType == NUMBER || tokType == QUTEDSTR) {
+                        // ダブルコートされていない部分も文字列として読み込む
                         if (idx + 1 > rdataMax) {
                             Log.w("scanLabels", "too many parameters");
                             handleErr(ERR_SYSTEM);
                             return;
                         }
-                        tmp[idx++] = linenum+":"+token;
+                        tmp[idx++] = linenum+":"+((kwToken == EOL || token.equals(","))?"":token);
+                        //Log.w("scanLabels", String.format("param set ->'%s'", tmp[idx-1]));
+                        if (kwToken == EOL || token.equals(",")) continue;
                     } else {
-                        Log.w("scanLabels", String.format("param error ->%s", token));
+                        Log.w("scanLabels", String.format("param error1 ->'%s'", token));
                         handleErr(ERR_SYNTAX);
                     }
                     getToken();
                     if (kwToken != EOL && !token.equals(",")) {
-                        Log.w("scanLabels", String.format("param error ->%s", token));
+                        Log.w("scanLabels", String.format("param error2 ->'%s'", token));
                         handleErr(ERR_SYNTAX);
                     }
                 } while (kwToken != EOL);
@@ -2925,20 +2933,21 @@ public class SBasic {
                     case RND:
                         getToken();
                         if (!token.equals(EOP)) {
-                            BigDecimal tmp = evalExp6();
+                            BigDecimal tmp = evalExp5();
                             getToken();
                             if (!token.equals(EOP)) {
-                                int n = evalExp6().intValue();
+                                int n = evalExp5().intValue();
                                 if (n > 99 || -99 > n) {
-                                    Log.w("atom:RAN", "invalid param.");
+                                    Log.w("atom:RND", "invalid param.");
                                     handleErr(ERR_ARGUMENT);
                                 } else {
-                                    n = -n - 1; // 逆数にしてさらに-1
+                                    Log.w("atom:RND", String.format("RND(%f, %d)", tmp.doubleValue(), n));
+                                    n = -n - 1; // 符号を反転して-1
                                     result = tmp.setScale(n, BigDecimal.ROUND_HALF_UP);
-                                    Log.w("atom:RAN", String.format("RND %f -> %f", tmp.doubleValue(), result.doubleValue()));
+                                    Log.w("atom:RND", String.format("setScale %d : %f -> %f", n, tmp.doubleValue(), result.doubleValue()));
                                 }
                             } else {
-                                Log.w("atom:RAN", "invalid param.");
+                                Log.w("atom:RND", "invalid param.");
                                 handleErr(ERR_SYNTAX);
                             }
                         } else {
@@ -3499,7 +3508,9 @@ public class SBasic {
     }
 
     private boolean isDelim(int c) {
-        if ((" \n,;<>+-/*%^=():"+_NE+_LE+_GE).indexOf(c) != -1) {
+        String s = " \n,;<>+-/*%^=():"+_NE+_LE+_GE;
+        if (read_data) s = "\n,";
+        if (s.indexOf(c) != -1) {
             return true;
         }
         return false;

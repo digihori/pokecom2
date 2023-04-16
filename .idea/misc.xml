@@ -15,7 +15,9 @@
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.45625" />
         <entry key="app/src/main/res/layout/activity_savefile.xml" value="0.1140625" />
         <entry key="app/src/main/res/layout/include_keys_mainkey.xml" value="0.22604166666666667" />
+        <entry key="app/src/main/res/layout/include_keys_tenkey.xml" value="0.22604166666666667" />
         <entry key="app/src/main/res/menu/help.xml" value="0.22604166666666667" />
+        <entry key="app/src/main/res/menu/option_menu.xml" value="0.22604166666666667" />
         <entry key="app/src/main/res/xml/default_values.xml" value="0.19202898550724637" />
       </map>
     </option>
@@ -61,7 +63,7 @@
       </value>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="jbr-17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
