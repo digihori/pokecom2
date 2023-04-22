@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static tk.horiuchi.pokecom2.Common.MODE_PRO;
 import static tk.horiuchi.pokecom2.Common.MODE_RUN;
@@ -3110,6 +3112,12 @@ public class SBasic {
                         } while (kwToken != EOL && !token.equals(EOP));
                         */
 
+                        Pattern pattern = Pattern.compile("^\\d+");
+                        Matcher matcher = pattern.matcher(str);
+                        if (matcher.find()) {
+                            Log.w("atom:VAL", String.format("str->'%s' find->'%s'", str, matcher.group()));
+                            str = matcher.group();
+                        }
                         try {
                             //result = Integer.parseInt(str);
                             BigDecimal tmp = new BigDecimal(str);

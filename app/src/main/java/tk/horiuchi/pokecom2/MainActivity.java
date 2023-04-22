@@ -23,6 +23,8 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -31,9 +33,12 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowMetrics;
+import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -84,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
     public static float dpdx, dpdx_org;
     public static int deviceType;
-    public final static String src_path = Environment.getExternalStorageDirectory().getPath()+"/pokecom2";
+    public final static String src_path = Environment.getExternalStorageDirectory().getPath() + "/pokecom2";
     //private Common define;
     public static PbMain pb = null;
     public static Keyboard inkey = null;
@@ -121,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static WaveOut waveout;
     public static String activityTag;
     public String debugInfo;
+    private LinearLayout background;
 
 
     public static int[] mBtnResIds = {
@@ -154,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         setContentView(R.layout.activity_main);
 
-        activityTag = (String)findViewById(R.id.activity_main).getTag();
+        activityTag = (String) findViewById(R.id.activity_main).getTag();
         Log.w("Main", String.format("activity_main='%s'\n", activityTag));
 
         // ファイルIOのパーミッション関係の設定
@@ -218,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.w("Main", String.format("scaledDensity=%f\n", metrics.scaledDensity));
 
         double inchX = metrics.widthPixels / metrics.xdpi;
-        double inchY = metrics.heightPixels /metrics.ydpi;
+        double inchY = metrics.heightPixels / metrics.ydpi;
         double inch = Math.sqrt(inchX * inchX + inchY * inchY);
         Log.w("Main", String.format("inch=%2.2f\n", inch));
 
@@ -334,7 +340,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Log.w("Main", String.format("error='%s'", e.toString()));
         }
 
-        debugWindow = (TextView)findViewById(R.id.debugWindow);
+        debugWindow = (TextView) findViewById(R.id.debugWindow);
 
         final Handler _handler1 = new Handler();
         final int DELAY1 = 50;
@@ -360,34 +366,47 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         waveout.setReference(this);
 
         debugInfo =
-                String.format("activity_main='%s'\n", activityTag)+
-                String.format("widthPixels=%d\n", point.x)+
-                String.format("heightPixels=%d\n", point.y)+
-                String.format("Xdpi=%f\n", metrics.xdpi)+
-                String.format("Ydpi=%f\n", metrics.ydpi)+
-                String.format("density=%f\n", metrics.density)+
-                String.format("densityDpi=%d(%s)\n", metrics.densityDpi, getGeneralizedDensity(metrics.densityDpi))+
-                String.format("scaledDensity=%f\n", metrics.scaledDensity)+
-                String.format("inch=%2.2f\n", inch)+
-                String.format("deviceType=%d\n", deviceType)+
-                String.format("dpdx=%f", dpdx);
+                String.format("activity_main='%s'\n", activityTag) +
+                        String.format("widthPixels=%d\n", point.x) +
+                        String.format("heightPixels=%d\n", point.y) +
+                        String.format("Xdpi=%f\n", metrics.xdpi) +
+                        String.format("Ydpi=%f\n", metrics.ydpi) +
+                        String.format("density=%f\n", metrics.density) +
+                        String.format("densityDpi=%d(%s)\n", metrics.densityDpi, getGeneralizedDensity(metrics.densityDpi)) +
+                        String.format("scaledDensity=%f\n", metrics.scaledDensity) +
+                        String.format("inch=%2.2f\n", inch) +
+                        String.format("deviceType=%d\n", deviceType) +
+                        String.format("dpdx=%f", dpdx);
     }
 
     private String getGeneralizedDensity(int dpi) {
         switch (dpi) {
-            default: return("mdpi");
-            case DENSITY_LOW: return("ldpi");
-            case DENSITY_MEDIUM: return("mdpi");
-            case DENSITY_TV: return("tvdpi");
-            case DENSITY_HIGH: return("hdpi");
-            case DENSITY_280: return("DENSITY_280");
-            case DENSITY_XHIGH: return("xhdpi");
-            case DENSITY_360: return("DENSITY_360");
-            case DENSITY_400: return("DENSITY_400");
-            case DENSITY_420: return("DENSITY_420");
-            case DENSITY_XXHIGH: return("xxhdpi");
-            case DENSITY_560: return("DENSITY_560");
-            case DENSITY_XXXHIGH: return("xxxhdpi");
+            default:
+                return ("mdpi");
+            case DENSITY_LOW:
+                return ("ldpi");
+            case DENSITY_MEDIUM:
+                return ("mdpi");
+            case DENSITY_TV:
+                return ("tvdpi");
+            case DENSITY_HIGH:
+                return ("hdpi");
+            case DENSITY_280:
+                return ("DENSITY_280");
+            case DENSITY_XHIGH:
+                return ("xhdpi");
+            case DENSITY_360:
+                return ("DENSITY_360");
+            case DENSITY_400:
+                return ("DENSITY_400");
+            case DENSITY_420:
+                return ("DENSITY_420");
+            case DENSITY_XXHIGH:
+                return ("xxhdpi");
+            case DENSITY_560:
+                return ("DENSITY_560");
+            case DENSITY_XXXHIGH:
+                return ("xxxhdpi");
         }
     }
 
@@ -400,7 +419,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         basic.vac();
         try {
             basic.defm(0);
-        } catch (InterpreterException e) {}
+        } catch (InterpreterException e) {
+        }
         // プログラムのオールクリア
         source.clearSourceAll();
         // モードの初期化
@@ -442,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onWindowFocusChanged(hasFocus);
 
         // メインキーの画像を切り替える
-        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
+        ImageView iv = (ImageView) findViewById(R.id.imageViewMainkey);
         if (ui_design == 0) {
             iv.setImageResource(R.drawable.pb100_mainkey);
             for (int i = 0; i < 3; i++) {
@@ -456,8 +476,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         // キーレイアウトを更新する
-        stretchItemSize((GridLayout)findViewById(R.id.keyAreaMainkey), (ImageView)findViewById(R.id.imageViewMainkey));
-        stretchItemSize((GridLayout)findViewById(R.id.keyAreaTenkey), (ImageView)findViewById(R.id.imageViewTenkey), 20);
+        stretchItemSize((GridLayout) findViewById(R.id.keyAreaMainkey), (ImageView) findViewById(R.id.imageViewMainkey));
+        stretchItemSize((GridLayout) findViewById(R.id.keyAreaTenkey), (ImageView) findViewById(R.id.imageViewTenkey), 20);
 
     }
 
@@ -481,42 +501,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void stretchItemSize(GridLayout gl, ImageView iv) {
         Point p = getBitmapSizeFromDynamicImageLayer(iv);
-        Log.w("LOG", "p.x="+p.x+" p.y="+p.y);
+        Log.w("LOG", "p.x=" + p.x + " p.y=" + p.y);
 
         int childWidth = p.x / gl.getColumnCount();
         int childHeight = p.y / gl.getRowCount();
 
-        Log.w("LOG", "iv w="+iv.getWidth()+" h="+iv.getHeight());
-        Log.w("LOG", "column="+gl.getColumnCount()+" row="+gl.getRowCount());
-        Log.w("LOG", "w="+childWidth+" h="+childHeight);
+        Log.w("LOG", "iv w=" + iv.getWidth() + " h=" + iv.getHeight());
+        Log.w("LOG", "column=" + gl.getColumnCount() + " row=" + gl.getRowCount());
+        Log.w("LOG", "w=" + childWidth + " h=" + childHeight);
         for (int i = 0; i < gl.getChildCount(); i++) {
             gl.getChildAt(i).setMinimumWidth(childWidth);
-            ((TextView)gl.getChildAt(i)).setMinWidth(childWidth);
+            ((TextView) gl.getChildAt(i)).setMinWidth(childWidth);
             gl.getChildAt(i).setMinimumHeight(childHeight);
-            ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
+            ((TextView) gl.getChildAt(i)).setMinHeight(childHeight);
         }
     }
+
     public void stretchItemSize(GridLayout gl, ImageView iv, int x) {
         Point p = getBitmapSizeFromDynamicImageLayer(iv);
-        Log.w("LOG", "p.x="+p.x+" p.y="+p.y);
+        Log.w("LOG", "p.x=" + p.x + " p.y=" + p.y);
 
         int childWidth = p.x / gl.getColumnCount();
         int childHeight = p.y / gl.getRowCount();
 
-        Log.w("LOG", "iv w="+iv.getWidth()+" h="+iv.getHeight());
-        Log.w("LOG", "column="+gl.getColumnCount()+" row="+gl.getRowCount());
-        Log.w("LOG", "w="+childWidth+" h="+childHeight);
+        Log.w("LOG", "iv w=" + iv.getWidth() + " h=" + iv.getHeight());
+        Log.w("LOG", "column=" + gl.getColumnCount() + " row=" + gl.getRowCount());
+        Log.w("LOG", "w=" + childWidth + " h=" + childHeight);
         for (int i = 0; i < gl.getChildCount(); i++) {
             if (i == x) {
                 gl.getChildAt(i).setMinimumWidth(childWidth * 2);
-                ((TextView)gl.getChildAt(i)).setMinWidth(childWidth * 2);
+                ((TextView) gl.getChildAt(i)).setMinWidth(childWidth * 2);
                 gl.getChildAt(i).setMinimumHeight(childHeight);
-                ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
+                ((TextView) gl.getChildAt(i)).setMinHeight(childHeight);
             } else {
                 gl.getChildAt(i).setMinimumWidth(childWidth);
-                ((TextView)gl.getChildAt(i)).setMinWidth(childWidth);
+                ((TextView) gl.getChildAt(i)).setMinWidth(childWidth);
                 gl.getChildAt(i).setMinimumHeight(childHeight);
-                ((TextView)gl.getChildAt(i)).setMinHeight(childHeight);
+                ((TextView) gl.getChildAt(i)).setMinHeight(childHeight);
             }
         }
     }
@@ -576,8 +597,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         for (int i = 0; i < bankMax; i++) {
             // 保存されているjson文字列を取得
-            String s = prefs.getString("PREF_P"+i, "");
-            prefs.edit().putString("PREF_P"+i, "").apply();  // 読み出した部分はクリア
+            String s = prefs.getString("PREF_P" + i, "");
+            prefs.edit().putString("PREF_P" + i, "").apply();  // 読み出した部分はクリア
 
             if (s != null && !s.isEmpty()) {
                 Gson gson = new Gson();
@@ -602,7 +623,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void changeFunckeyImg(boolean f) {
         if (ui_design == 0) return;
 
-        ImageView iv = (ImageView)findViewById(R.id.imageViewMainkey);
+        ImageView iv = (ImageView) findViewById(R.id.imageViewMainkey);
         if (f) {
             iv.setImageResource(R.drawable.fx700p_mainkey_f);
         } else {
@@ -614,9 +635,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void onClick(View v) {
         int c = v.getId();
-
         Log.w("Click", String.format("key=%d", c));
 
+        // 通常のキー入力処理
+        inKey(c, v);
+    }
+
+    private void inKey(int c, View v) {
         if (keyMaskCnt > 0) return;
         if (mode == MODE_SAVE && c != R.id.buttonSTOP) return;
         if (c != R.id.buttonSTOP && (pb.isProgRunning() && !inputWait)) return;
@@ -625,6 +650,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         boolean modeChange = true;
         switch (c) {
             case R.id.popMenu:
+                if (v == null) return;
                 PopupMenu popup = new PopupMenu(getApplicationContext(), v);
                 MenuInflater inflater = popup.getMenuInflater();
                 inflater.inflate(R.menu.menu_main, popup.getMenu());
@@ -727,7 +753,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (result != 0) {
                             resultDisp = true;
                         }
-                        cmdHistory[idxHistory++&7] = s;
+                        cmdHistory[idxHistory++ & 7] = s;
                         //idxHistory++;
                         for (int i = 0; i < 8; i++) {
                             Log.w("history", String.format("[%d] '%s'", i, cmdHistory[i]));
@@ -741,25 +767,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 case R.id.buttonDA:
                 case R.id.buttonLA:
                     if (c == R.id.buttonLA && resultDisp &&
-                            cmdHistory[(idxHistory-1)&7] !=null &&
-                            !cmdHistory[(idxHistory-1)&7].isEmpty()) {
+                            cmdHistory[(idxHistory - 1) & 7] != null &&
+                            !cmdHistory[(idxHistory - 1) & 7].isEmpty()) {
                         idxHistoryDisp = idxHistory - 1;
-                        lcd.print(cmdHistory[idxHistoryDisp&7]);
+                        lcd.print(cmdHistory[idxHistoryDisp & 7]);
                         break;
                     }
                     if (c == R.id.buttonUA &&
-                            cmdHistory[(idxHistoryDisp-1)&7] != null &&
-                            !cmdHistory[(idxHistoryDisp-1)&7].isEmpty()) {
+                            cmdHistory[(idxHistoryDisp - 1) & 7] != null &&
+                            !cmdHistory[(idxHistoryDisp - 1) & 7].isEmpty()) {
                         idxHistoryDisp--;
                         lcd.cls();
-                        lcd.print(cmdHistory[idxHistoryDisp&7]);
+                        lcd.print(cmdHistory[idxHistoryDisp & 7]);
                     }
                     if (c == R.id.buttonDA &&
-                            cmdHistory[(idxHistoryDisp+1)&7] != null &&
-                            !cmdHistory[(idxHistoryDisp+1)&7].isEmpty()) {
+                            cmdHistory[(idxHistoryDisp + 1) & 7] != null &&
+                            !cmdHistory[(idxHistoryDisp + 1) & 7].isEmpty()) {
                         idxHistoryDisp++;
                         lcd.cls();
-                        lcd.print(cmdHistory[idxHistoryDisp&7]);
+                        lcd.print(cmdHistory[idxHistoryDisp & 7]);
                     }
                     // no break!
                 default:
@@ -858,6 +884,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.w("vib", debugText);
             }
         }
+
     }
 
     private boolean optionsItemSelectedSub(MenuItem item) {
@@ -904,7 +931,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         .show();
                 return true;
 
-                default:
+            default:
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -1115,7 +1142,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     */
                 }
                 for (int i = 0; i < w; i++, idx[b]++) {
-                    ch[idx[b]][b] = (char)dest[i];
+                    ch[idx[b]][b] = (char) dest[i];
                 }
             }
 
@@ -1168,7 +1195,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // BASIC プログラムの保存
     protected void save(Uri uri) {
-        Log.w("save", String.format("uri=%s",uri));
+        Log.w("save", String.format("uri=%s", uri));
 
         //FileOutputStream fos = null;
 
@@ -1190,7 +1217,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (temp != null) {
                     String s = String.format("[P%d]", i);
                     for (int n = 0; n < s.length(); n++) {
-                        buf[l++] = (byte)s.charAt(n);
+                        buf[l++] = (byte) s.charAt(n);
                     }
                     buf[l++] = '\n';
 
@@ -1219,9 +1246,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 }
                             } else {
                                 if (c == '\\') {
-                                    buf[l++] = buf[l++] = (byte)c;
+                                    buf[l++] = buf[l++] = (byte) c;
                                 } else {
-                                    buf[l++] = (byte)c;
+                                    buf[l++] = (byte) c;
                                 }
                             }
                         }
@@ -1236,14 +1263,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } catch (IOException e) {
             Log.d("MainActivity", e.toString());
-        //} finally {
-        //    if (os != null) {
-        //        try {
-        //            os.close();
-        //        } catch (IOException e) {
-        //            e.printStackTrace();
-        //        }
-        //    }
+            //} finally {
+            //    if (os != null) {
+            //        try {
+            //            os.close();
+            //        } catch (IOException e) {
+            //            e.printStackTrace();
+            //        }
+            //    }
         }
     }
 
@@ -1253,22 +1280,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if (result.getData() != null) {
                         //結果を受け取った後の処理
                         Uri uri = result.getData().getData();
-                        Log.w("actLoadResultLauncher", String.format("uri=%s",uri));
+                        Log.w("actLoadResultLauncher", String.format("uri=%s", uri));
                         source.clearSourceAll();
                         int len = load(uri);
-                        Toast.makeText(this, "loaded:"+uri+"("+len+" bytes)", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "loaded:" + uri + "(" + len + " bytes)", Toast.LENGTH_LONG).show();
                     }
                 }
             });
 
-    public void actLoadx(){
+    public void actLoadx() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
         actLoadResultLauncher.launch(intent);
     }
-    public void actLoad(){
+
+    public void actLoad() {
         Intent intent = new android.content.Intent(getApplication(), FileLoad.class);
         startActivityForResult(intent, 0);
     }
@@ -1279,9 +1307,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if (result.getData() != null) {
                         //結果を受け取った後の処理
                         Uri uri = result.getData().getData();
-                        Log.w("actSaveResultLauncher", String.format("uri=%s",uri));
+                        Log.w("actSaveResultLauncher", String.format("uri=%s", uri));
                         save(uri);
-                        Toast.makeText(this, "saved:"+uri, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "saved:" + uri, Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -1292,6 +1320,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         intent.setType("*/*");
         actSaveResultLauncher.launch(intent);
     }
+
     public void actSave() {
         Intent intent = new android.content.Intent(getApplication(), FileSave.class);
         startActivityForResult(intent, 1);
@@ -1309,11 +1338,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (resultCode == RESULT_OK) {
                     String txt1 = data.getExtras().getString("filePath");
                     if (txt1 != null) {
-                        Log.w("LOG", "path="+txt1);
+                        Log.w("LOG", "path=" + txt1);
                         source.clearSourceAll();
                         File f = new File(txt1);
                         int len = load(Uri.fromFile(f));
-                        Toast.makeText(this, "loaded:"+txt1+"("+len+")", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "loaded:" + txt1 + "(" + len + ")", Toast.LENGTH_LONG).show();
                     } else {
                         // エラー
                         Log.w("MainAct", "load error!");
@@ -1332,7 +1361,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Log.w("LOG", "path=" + txt1);
                         File f = new File(txt1);
                         save(Uri.fromFile(f));
-                        Toast.makeText(this, "saved:"+txt1, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "saved:" + txt1, Toast.LENGTH_LONG).show();
                     } else {
                         // エラー
                         Log.w("MainAct", "save error!");
@@ -1349,18 +1378,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void calcMemoryAndDisp(boolean disp) {
         if (!disp) {
-            ((ImageView)findViewById(R.id.d1)).setImageResource(R.drawable.d10);
-            ((ImageView)findViewById(R.id.d2)).setImageResource(R.drawable.d00);
-            ((ImageView)findViewById(R.id.d3)).setImageResource(R.drawable.d00);
-            ((ImageView)findViewById(R.id.d4)).setImageResource(R.drawable.d00);
+            ((ImageView) findViewById(R.id.d1)).setImageResource(R.drawable.d10);
+            ((ImageView) findViewById(R.id.d2)).setImageResource(R.drawable.d00);
+            ((ImageView) findViewById(R.id.d3)).setImageResource(R.drawable.d00);
+            ((ImageView) findViewById(R.id.d4)).setImageResource(R.drawable.d00);
             return;
         }
 
         int total = 0;
-        int remain = memoryExtension ? 544+1024 : 544;
+        int remain = memoryExtension ? 544 + 1024 : 544;
         total = source.getUsedMemorySize();
         total += basic.getDefmSize();
-        Log.w("calcMem", String.format("memory=%d use=%d remain=%d", remain, total, remain-total));
+        Log.w("calcMem", String.format("memory=%d use=%d remain=%d", remain, total, remain - total));
         remain -= total;
         if (remain < 0) remain = 0;
 
@@ -1372,15 +1401,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         int digit1 = remain - digit1000 * 1000 - digit100 * 100 - digit10 * 10;
 
         int res;
-        ImageView iv = (ImageView)findViewById(R.id.d1);
+        ImageView iv = (ImageView) findViewById(R.id.d1);
         switch (digit1000) {
             default:
-            case 0: res = R.drawable.d10; break;
-            case 1: res = R.drawable.d11; break;
+            case 0:
+                res = R.drawable.d10;
+                break;
+            case 1:
+                res = R.drawable.d11;
+                break;
         }
         iv.setImageResource(res);
 
-        iv = (ImageView)findViewById(R.id.d2);
+        iv = (ImageView) findViewById(R.id.d2);
         switch (digit100) {
             default:
             case 0:
@@ -1390,19 +1423,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     res = R.drawable.d0;
                 }
                 break;
-            case 1: res = R.drawable.d1; break;
-            case 2: res = R.drawable.d2; break;
-            case 3: res = R.drawable.d3; break;
-            case 4: res = R.drawable.d4; break;
-            case 5: res = R.drawable.d5; break;
-            case 6: res = R.drawable.d6; break;
-            case 7: res = R.drawable.d7; break;
-            case 8: res = R.drawable.d8; break;
-            case 9: res = R.drawable.d9; break;
+            case 1:
+                res = R.drawable.d1;
+                break;
+            case 2:
+                res = R.drawable.d2;
+                break;
+            case 3:
+                res = R.drawable.d3;
+                break;
+            case 4:
+                res = R.drawable.d4;
+                break;
+            case 5:
+                res = R.drawable.d5;
+                break;
+            case 6:
+                res = R.drawable.d6;
+                break;
+            case 7:
+                res = R.drawable.d7;
+                break;
+            case 8:
+                res = R.drawable.d8;
+                break;
+            case 9:
+                res = R.drawable.d9;
+                break;
         }
         iv.setImageResource(res);
 
-        iv = (ImageView)findViewById(R.id.d3);
+        iv = (ImageView) findViewById(R.id.d3);
         switch (digit10) {
             default:
             case 0:
@@ -1412,31 +1463,69 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     res = R.drawable.d0;
                 }
                 break;
-            case 1: res = R.drawable.d1; break;
-            case 2: res = R.drawable.d2; break;
-            case 3: res = R.drawable.d3; break;
-            case 4: res = R.drawable.d4; break;
-            case 5: res = R.drawable.d5; break;
-            case 6: res = R.drawable.d6; break;
-            case 7: res = R.drawable.d7; break;
-            case 8: res = R.drawable.d8; break;
-            case 9: res = R.drawable.d9; break;
+            case 1:
+                res = R.drawable.d1;
+                break;
+            case 2:
+                res = R.drawable.d2;
+                break;
+            case 3:
+                res = R.drawable.d3;
+                break;
+            case 4:
+                res = R.drawable.d4;
+                break;
+            case 5:
+                res = R.drawable.d5;
+                break;
+            case 6:
+                res = R.drawable.d6;
+                break;
+            case 7:
+                res = R.drawable.d7;
+                break;
+            case 8:
+                res = R.drawable.d8;
+                break;
+            case 9:
+                res = R.drawable.d9;
+                break;
         }
         iv.setImageResource(res);
 
-        iv = (ImageView)findViewById(R.id.d4);
+        iv = (ImageView) findViewById(R.id.d4);
         switch (digit1) {
             default:
-            case 0: res = R.drawable.d0; break;
-            case 1: res = R.drawable.d1; break;
-            case 2: res = R.drawable.d2; break;
-            case 3: res = R.drawable.d3; break;
-            case 4: res = R.drawable.d4; break;
-            case 5: res = R.drawable.d5; break;
-            case 6: res = R.drawable.d6; break;
-            case 7: res = R.drawable.d7; break;
-            case 8: res = R.drawable.d8; break;
-            case 9: res = R.drawable.d9; break;
+            case 0:
+                res = R.drawable.d0;
+                break;
+            case 1:
+                res = R.drawable.d1;
+                break;
+            case 2:
+                res = R.drawable.d2;
+                break;
+            case 3:
+                res = R.drawable.d3;
+                break;
+            case 4:
+                res = R.drawable.d4;
+                break;
+            case 5:
+                res = R.drawable.d5;
+                break;
+            case 6:
+                res = R.drawable.d6;
+                break;
+            case 7:
+                res = R.drawable.d7;
+                break;
+            case 8:
+                res = R.drawable.d8;
+                break;
+            case 9:
+                res = R.drawable.d9;
+                break;
         }
         iv.setImageResource(res);
     }
@@ -1492,5 +1581,133 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             lcd.refresh();
         }
     }
+
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        int action = event.getAction();
+        int inputDevice = event.getSource();
+
+        Log.w("dispatchKeyEvent", String.format("device=%s",Integer.toBinaryString(inputDevice)));
+
+        if (event.isShiftPressed()) {
+            Log.w("dispatchKeyEvent", String.format("shift!!!!!!!!!!!"));
+        }
+
+        int id = 0;
+        if (true || (inputDevice & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK ||
+                (inputDevice & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+                (inputDevice & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD ||
+                (inputDevice & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+
+            Log.w("dispatchKeyEvent", String.format("code=%d", keyCode));
+
+            for (int i = 0; i < keyTbl.length; i++) {
+                if (keyCode == keyTbl[i].keycode) {
+                    id = keyTbl[i].btnid;
+                    break;
+                }
+            }
+            if (id != 0) {
+                if (action == KeyEvent.ACTION_DOWN) {
+                    //Log.w("dispatchKeyEvent", String.format("key down! code=%d id=%d", keyCode, id));
+                    inKey(id, null);
+                    setBtnStatus(id, true);
+                } else {
+                    //Log.w("dispatchKeyEvent", String.format("key down or not"));
+                    setBtnStatus(id, false);
+                }
+            }
+
+            // キーコードをログ出力
+            String msg = "keyCode:" + keyCode;
+
+            //background.requestFocus();
+        }
+        //return super.dispatchKeyEvent(event);
+        return true;
+
+    }
+
+    private class Keytbl {
+        int keycode;
+        int btnid;
+
+        Keytbl(int k, int i) {
+            keycode = k;
+            btnid = i;
+        }
+    }
+
+    private Keytbl keyTbl[] = {
+            new Keytbl(KeyEvent.KEYCODE_A, R.id.buttonA),
+            new Keytbl(KeyEvent.KEYCODE_B, R.id.buttonB),
+            new Keytbl(KeyEvent.KEYCODE_C, R.id.buttonC),
+            new Keytbl(KeyEvent.KEYCODE_D, R.id.buttonD),
+            new Keytbl(KeyEvent.KEYCODE_E, R.id.buttonE),
+            new Keytbl(KeyEvent.KEYCODE_F, R.id.buttonF),
+            new Keytbl(KeyEvent.KEYCODE_G, R.id.buttonG),
+            new Keytbl(KeyEvent.KEYCODE_H, R.id.buttonH),
+            new Keytbl(KeyEvent.KEYCODE_I, R.id.buttonI),
+            new Keytbl(KeyEvent.KEYCODE_J, R.id.buttonJ),
+            new Keytbl(KeyEvent.KEYCODE_K, R.id.buttonK),
+            new Keytbl(KeyEvent.KEYCODE_L, R.id.buttonL),
+            new Keytbl(KeyEvent.KEYCODE_M, R.id.buttonM),
+            new Keytbl(KeyEvent.KEYCODE_N, R.id.buttonN),
+            new Keytbl(KeyEvent.KEYCODE_O, R.id.buttonO),
+            new Keytbl(KeyEvent.KEYCODE_P, R.id.buttonP),
+            new Keytbl(KeyEvent.KEYCODE_Q, R.id.buttonQ),
+            new Keytbl(KeyEvent.KEYCODE_R, R.id.buttonR),
+            new Keytbl(KeyEvent.KEYCODE_S, R.id.buttonS),
+            new Keytbl(KeyEvent.KEYCODE_T, R.id.buttonT),
+            new Keytbl(KeyEvent.KEYCODE_U, R.id.buttonU),
+            new Keytbl(KeyEvent.KEYCODE_V, R.id.buttonV),
+            new Keytbl(KeyEvent.KEYCODE_W, R.id.buttonW),
+            new Keytbl(KeyEvent.KEYCODE_X, R.id.buttonX),
+            new Keytbl(KeyEvent.KEYCODE_Y, R.id.buttonY),
+            new Keytbl(KeyEvent.KEYCODE_Z, R.id.buttonZ),
+            new Keytbl(KeyEvent.KEYCODE_0, R.id.button0),
+            new Keytbl(KeyEvent.KEYCODE_1, R.id.button1),
+            new Keytbl(KeyEvent.KEYCODE_2, R.id.button2),
+            new Keytbl(KeyEvent.KEYCODE_3, R.id.button3),
+            new Keytbl(KeyEvent.KEYCODE_4, R.id.button4),
+            new Keytbl(KeyEvent.KEYCODE_5, R.id.button5),
+            new Keytbl(KeyEvent.KEYCODE_6, R.id.button6),
+            new Keytbl(KeyEvent.KEYCODE_7, R.id.button7),
+            new Keytbl(KeyEvent.KEYCODE_8, R.id.button8),
+            new Keytbl(KeyEvent.KEYCODE_9, R.id.button9),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_0, R.id.button0),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_1, R.id.button1),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_2, R.id.button2),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_3, R.id.button3),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_4, R.id.button4),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_5, R.id.button5),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_6, R.id.button6),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_7, R.id.button7),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_8, R.id.button8),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_9, R.id.button9),
+            new Keytbl(KeyEvent.KEYCODE_CTRL_LEFT, R.id.buttonFUNC),
+            new Keytbl(KeyEvent.KEYCODE_ALT_LEFT, R.id.buttonMODE),
+            new Keytbl(KeyEvent.KEYCODE_SHIFT_LEFT, R.id.buttonSHIFT),
+            new Keytbl(KeyEvent.KEYCODE_SHIFT_RIGHT, R.id.buttonSHIFT),
+            new Keytbl(KeyEvent.KEYCODE_DPAD_DOWN, R.id.buttonDA),
+            new Keytbl(KeyEvent.KEYCODE_DPAD_UP, R.id.buttonUA),
+            new Keytbl(KeyEvent.KEYCODE_DPAD_LEFT, R.id.buttonLA),
+            new Keytbl(KeyEvent.KEYCODE_DPAD_RIGHT, R.id.buttonRA),
+            new Keytbl(KeyEvent.KEYCODE_SPACE, R.id.buttonSPC),
+            new Keytbl(KeyEvent.KEYCODE_ENTER, R.id.buttonEXE),
+            new Keytbl(0, R.id.buttonANS),
+            new Keytbl(KeyEvent.KEYCODE_EQUALS, R.id.buttonEQ),
+            new Keytbl(KeyEvent.KEYCODE_CLEAR, R.id.buttonAC),
+            new Keytbl(KeyEvent.KEYCODE_DEL, R.id.buttonDEL),
+            new Keytbl(KeyEvent.KEYCODE_ESCAPE, R.id.buttonSTOP),
+            new Keytbl(KeyEvent.KEYCODE_SLASH, R.id.buttonDIV),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_MULTIPLY, R.id.buttonMLT),
+            new Keytbl(KeyEvent.KEYCODE_MINUS, R.id.buttonMINUS),
+            new Keytbl(KeyEvent.KEYCODE_PLUS, R.id.buttonPLS),
+            new Keytbl(KeyEvent.KEYCODE_PERIOD, R.id.buttonDOT),
+            new Keytbl(0, R.id.buttonEXP),
+    };
 
 }
