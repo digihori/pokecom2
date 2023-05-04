@@ -119,6 +119,7 @@ public class SBasic {
     final int KEY  = 71;
     final int PI   = 72;
     final int STR  = 73;
+    final int MODE = 74;
 
     //
     //final int EOL = '\n';
@@ -190,6 +191,7 @@ public class SBasic {
             new Keyword("stop", STOP),
             new Keyword("save", SAVE),
             new Keyword("load", LOAD),
+            new Keyword("mode", MODE),
 
             new Keyword("let", LET),
             new Keyword("rem", REM),
@@ -699,6 +701,8 @@ public class SBasic {
                 putBack();
                 //Log.w("sbCmd", "bbbbb");
                 strOpe = strOpe();
+            } else if (tokType == FUNCTION && kwToken == MODE) {
+                handleErr(ERR_SYNTAX);
             } else {
                 //Log.w("sbCmd2", String.format("pc=%d", pc));
                 putBack();
@@ -831,6 +835,34 @@ public class SBasic {
                     case SET:
                         execSet();
                         break;
+                }
+            } else if (tokType == FUNCTION && kwToken == MODE) {
+                //Log.w("MODE", "MODE!!!");
+                getToken();
+                if (!token.equals(EOP)) {
+                    int x = evalExp5().intValue();
+                    switch (x) {
+                        case 4:
+                            angleUnit = 0;
+                            Log.w("MODE", "angleUnit -> 'DEG'");
+                            break;
+                        case 5:
+                            angleUnit = 1;
+                            Log.w("MODE", "angleUnit -> 'RAD'");
+                            break;
+                        case 6:
+                            angleUnit = 2;
+                            Log.w("MODE", "angleUnit -> 'GRAD'");
+                            break;
+                        case 7:
+                        case 8:
+                            break;
+                        default:
+                            handleErr(ERR_ARGUMENT);
+                            break;
+                    }
+                } else {
+                    handleErr(ERR_SYNTAX);
                 }
             } else if (tokType == DELIMITER) {
                 //Log.w("sbInterp", "DELIMITER");
