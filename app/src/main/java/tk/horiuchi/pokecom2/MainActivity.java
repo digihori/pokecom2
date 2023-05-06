@@ -1703,10 +1703,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             new Keytbl(KeyEvent.KEYCODE_DEL, R.id.buttonDEL),
             new Keytbl(KeyEvent.KEYCODE_ESCAPE, R.id.buttonSTOP),
             new Keytbl(KeyEvent.KEYCODE_SLASH, R.id.buttonDIV),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_DIVIDE, R.id.buttonDIV),
             new Keytbl(KeyEvent.KEYCODE_NUMPAD_MULTIPLY, R.id.buttonMLT),
+            new Keytbl(KeyEvent.KEYCODE_APOSTROPHE, R.id.buttonMLT),
             new Keytbl(KeyEvent.KEYCODE_MINUS, R.id.buttonMINUS),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_SUBTRACT, R.id.buttonMINUS),
             new Keytbl(KeyEvent.KEYCODE_PLUS, R.id.buttonPLS),
+            new Keytbl(KeyEvent.KEYCODE_SEMICOLON, R.id.buttonPLS),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_ADD, R.id.buttonPLS),
             new Keytbl(KeyEvent.KEYCODE_PERIOD, R.id.buttonDOT),
+            new Keytbl(KeyEvent.KEYCODE_NUMPAD_DOT, R.id.buttonDOT),
             new Keytbl(0, R.id.buttonEXP),
     };
 
