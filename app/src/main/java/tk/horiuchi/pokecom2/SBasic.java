@@ -361,18 +361,21 @@ public class SBasic {
             double d = bd.doubleValue();
             if (d == 0) {
                 str = String.format(Locale.US, "%.11g", 0d);
-            } else if (d > 0) {
+            //} else if (d > 0) {
                 //str = String.format(Locale.US, "%.8g", d);
-                str = String.format(Locale.US, "%.11g", d);
+                //str = String.format(Locale.US, "%.10g", d);
             } else {
                 str = String.format(Locale.US, "%.10g", d);
             }
         }
+        Log.w("numberFormat---0", String.format("%s", str));
 
         // 一旦指数部を切り離す
         String[] temp = str.split("(?=[Ee][\\+\\-]{0,1})", 2);
         // 小数点以下の末尾の0を削除する
-        if (setEn == -1) {
+        String[] temp1 = temp[0].split("\\.", 2);
+        Log.w("numberFormat---1", String.format("%d", temp1.length));
+        if (temp1.length != 1 && setEn == -1) {
             temp[0] = temp[0].replaceAll("[0]+$", "").replaceAll("(\\.)(?!.*?[1-9]+)", "");
             if (temp.length > 1 && temp[0].length() > 9) {
                 temp[0] = temp[0].substring(0, 9);
