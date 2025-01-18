@@ -61,6 +61,13 @@ public class PbMain extends SurfaceView implements RefreshScreenInterFace, Surfa
     @Override
     public void surfaceChanged(SurfaceHolder holder, int f, int w, int h) {
 
+        Log.w("!!!surfaceChanged!!!", String.format("width = %d, height=%d\n", w, h));
+        //float s1 = (float)h / 90f;
+        //float s2 = (float)w * 0.94f / 380f;
+        dpdx = (float)h / 90f;
+        //dpdx = s1 < s2 ? s1 : s2;
+        Log.w("!!!surfaceChanged!!!", String.format("dpdx = %f\n", dpdx));
+
         Timer timer1 = new Timer();
         timer1.scheduleAtFixedRate(new TimerTask() {
             @Override

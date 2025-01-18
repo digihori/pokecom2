@@ -9,8 +9,8 @@ android {
         applicationId "tk.horiuchi.pokecom2"
         minSdk 21
         targetSdk 34
-        versionCode 63
-        versionName "1.06.12"
+        versionCode 64
+        versionName "1.06.13"
         testInstrumentationRunner "androidx.support.test.runner.AndroidJUnitRunner"
         archivesBaseName = "${applicationName}-${versionName}"
     }
@@ -25,6 +25,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+    namespace 'tk.horiuchi.pokecom2'
 }
 
 dependencies {
