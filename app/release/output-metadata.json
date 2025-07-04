@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "tk.horiuchi.pokecom2",
+  "variantName": "release",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "attributes": [],
+      "versionCode": 65,
+      "versionName": "1.06.14",
+      "outputFile": "pokecom2-1.06.14-release.apk"
+    }
+  ],
+  "elementType": "File",
+  "minSdkVersionForDexing": 21
+}

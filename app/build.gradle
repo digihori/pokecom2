@@ -4,13 +4,13 @@ plugins {
 def applicationName = "pokecom2"
 
 android {
-    compileSdk 34
+    compileSdk 35
     defaultConfig {
         applicationId "tk.horiuchi.pokecom2"
         minSdk 21
-        targetSdk 34
-        versionCode 64
-        versionName "1.06.13"
+        targetSdk 35
+        versionCode 65
+        versionName "1.06.14"
         testInstrumentationRunner "androidx.support.test.runner.AndroidJUnitRunner"
         archivesBaseName = "${applicationName}-${versionName}"
     }

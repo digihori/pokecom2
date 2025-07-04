@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.9.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.0)" variant="fatal" version="8.9.0">
+
+    <issue
+        id="InvalidId"
+        message="Invalid id; ID definitions **must** be of the form `@+id/name`; did you mean `@+id/title`?"
+        errorLine1="    android:id=&quot;@+android:id/title&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/custom_preference.xml"
+            line="3"
+            column="5"/>
+    </issue>
+
+</issues>
